@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -9,6 +9,7 @@ import { EmailService } from '../MessageModule/email.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
@@ -19,19 +20,27 @@ export class AuthService {
 
   async register(body: RegisterDto) {
     const { firstName, lastName, email, phone, password } = body;
-    const db = this.prismaService.getDatabase('PENDING');
+    this.logger.log(`Registering user: email=${email}, phone=${phone}`);
 
+    const db = this.prismaService.getDatabase('PENDING');
+    this.logger.log(`Database instance: ${JSON.stringify(db, null, 2)}`);
+
+    this.logger.log(`Checking if user exists...`);
     const existingUser = await db.user.findFirst({
       where: { OR: [{ phone }, { email }] },
     });
+
     if (existingUser) {
+      this.logger.warn(`User already exists: email=${email}, phone=${phone}`);
       throw new ForbiddenException(
         'User with this phone or email already exists',
       );
     }
 
+    this.logger.log(`Hashing password...`);
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    this.logger.log(`Creating new user...`);
     const newUser = await db.user.create({
       data: {
         firstName,
@@ -42,30 +51,36 @@ export class AuthService {
         isRegistered: false,
       },
     });
+    this.logger.log(`User created: id=${newUser.id}`);
 
-    // Генерируем 6-значный код
     const verificationCode = Math.floor(
       100000 + Math.random() * 900000,
     ).toString();
+    this.logger.log(`Generated verification code: ${verificationCode}`);
 
-    // Сохраняем код в Redis на 5 минут
     if (email) {
+      this.logger.log(`Saving email verification code in Redis...`);
       await this.redisService.set(
         `email_verification:${email}`,
         verificationCode,
         300,
       );
+      this.logger.log(`Sending verification email...`);
       await this.emailService.sendVerificationEmail(email, verificationCode);
     }
 
     if (phone) {
+      this.logger.log(`Saving phone verification code in Redis...`);
       await this.redisService.set(
         `phone_verification:${phone}`,
         verificationCode,
         300,
       );
+      this.logger.log(`Sending verification SMS...`);
       await this.smsService.sendVerificationSms(phone, verificationCode);
     }
+
+    this.logger.log(`User registration completed.`);
 
     return {
       userId: newUser.id,

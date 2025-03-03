@@ -10,7 +10,7 @@ import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { Request } from 'express';
 import { UpdateProfileDto } from './dto/user.dto';
 import { RedisService } from 'src/RedisModule/redis.service';
-import { SmsService } from 'src/AuthModule/sms.service';
+import { SmsService } from 'src/MessageModule/sms.service';
 import { CreateReviewDto } from './dto/review.dto';
 import { VerifyEmailDto } from 'src/AuthModule/dto/auth.dto';
 

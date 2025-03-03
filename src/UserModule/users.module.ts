@@ -4,6 +4,9 @@ import { UsersController } from './users.controller';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PrismaModule } from 'src/PrismaModule/prisma.module';
+import { MessageModule } from 'src/MessageModule/message.module';
+import { RedisModule } from 'src/RedisModule/redis.module';
 
 @Module({
   imports: [
@@ -15,6 +18,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         signOptions: { expiresIn: '1h' },
       }),
     }),
+    PrismaModule,
+    RedisModule,
+    MessageModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, PrismaService],

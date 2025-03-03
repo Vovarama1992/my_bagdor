@@ -4,8 +4,8 @@ import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto, LoginDto, OAuthUserDto } from './dto/auth.dto';
 import { RedisService } from 'src/RedisModule/redis.service';
-import { SmsService } from './sms.service';
-import { EmailService } from './email.service';
+import { SmsService } from '../MessageModule/sms.service';
+import { EmailService } from '../MessageModule/email.service';
 
 @Injectable()
 export class AuthService {

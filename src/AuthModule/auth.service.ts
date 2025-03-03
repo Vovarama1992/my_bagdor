@@ -155,6 +155,9 @@ export class AuthService {
     return {
       token,
       message: `Login successful via ${user.googleId ? 'Google' : 'Apple'}`,
+      email: existingUser.email,
+      firstName: existingUser.firstName,
+      lastName: existingUser.lastName,
     };
   }
 

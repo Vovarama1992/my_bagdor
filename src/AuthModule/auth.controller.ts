@@ -1,7 +1,18 @@
 import { Controller, Post, Body, Get, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { RegisterDto, LoginDto, OAuthUserDto } from './dto/auth.dto';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiOkResponse,
+} from '@nestjs/swagger';
+import {
+  RegisterDto,
+  LoginDto,
+  OAuthUserDto,
+  AuthResponseDto,
+} from './dto/auth.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 
@@ -17,10 +28,15 @@ export class AuthController {
   async googleAuth() {}
 
   @ApiOperation({ summary: 'Google OAuth Callback' })
-  @ApiResponse({ status: 200, description: 'Returns JWT token' })
+  @ApiOkResponse({
+    description: 'Returns JWT token and user data',
+    type: AuthResponseDto,
+  })
+  @ApiQuery({ name: 'code', required: true, example: '4/0AfJohXAAAB' })
+  @ApiQuery({ name: 'state', required: false, example: 'xyz' })
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req: Request) {
+  async googleAuthRedirect(@Req() req: Request): Promise<AuthResponseDto> {
     const user = req.user as OAuthUserDto;
     return this.authService.oauthLogin(user);
   }
@@ -32,10 +48,19 @@ export class AuthController {
   async appleAuth() {}
 
   @ApiOperation({ summary: 'Apple OAuth Callback' })
-  @ApiResponse({ status: 200, description: 'Returns JWT token' })
+  @ApiOkResponse({
+    description: 'Returns JWT token and user data',
+    type: AuthResponseDto,
+  })
+  @ApiQuery({
+    name: 'code',
+    required: true,
+    example: '001234.abcdefg.hijklmnop',
+  })
+  @ApiQuery({ name: 'state', required: false, example: 'xyz' })
   @Get('apple/callback')
   @UseGuards(AuthGuard('apple'))
-  async appleAuthRedirect(@Req() req: Request) {
+  async appleAuthRedirect(@Req() req: Request): Promise<AuthResponseDto> {
     const user = req.user as OAuthUserDto;
     return this.authService.oauthLogin(user);
   }

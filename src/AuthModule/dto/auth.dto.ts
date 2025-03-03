@@ -111,3 +111,20 @@ export class OAuthUserDto {
   @ApiProperty({ example: 'Иванов' })
   lastName: string;
 }
+
+export class AuthResponseDto {
+  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  token: string;
+
+  @ApiProperty({ example: 'Login successful via Google' })
+  message: string;
+
+  @ApiProperty({ example: 'ivan@example.com' })
+  email: string;
+
+  @ApiProperty({ example: 'Иван' })
+  firstName: string;
+
+  @ApiProperty({ example: 'Иванов' })
+  lastName: string;
+}

@@ -1,0 +1,95 @@
+services:
+  database-ru:
+    image: postgres:13
+    container_name: database-ru
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: hmm_ru
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-data-ru:/var/lib/postgresql/data
+    networks:
+      - new-network
+    env_file:
+      - .env
+
+  database-other:
+    image: postgres:13
+    container_name: database-other
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: hmm_other
+    ports:
+      - "5434:5432"
+    volumes:
+      - db-data-other:/var/lib/postgresql/data
+    networks:
+      - new-network
+    env_file:
+      - .env
+
+  database-pending:
+    image: postgres:13
+    container_name: database-pending
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: hmm_pending
+    ports:
+      - "5435:5432"
+    volumes:
+      - db-data-pending:/var/lib/postgresql/data
+    networks:
+      - new-network
+    env_file:
+      - .env
+
+  app:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL_RU: ${DATABASE_URL_RU}
+      DATABASE_URL_OTHER: ${DATABASE_URL_OTHER}
+      DATABASE_URL_PENDING: ${DATABASE_URL_PENDING}
+      JWT_SECRET: ${JWT_SECRET}
+      REDIS_HOST: redis-service
+      REDIS_PORT: 6379
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      EMAIL_FROM: ${EMAIL_FROM}
+    volumes:
+      - .:/app  
+      - /app/node_modules 
+    depends_on:
+      - database-ru
+      - database-other
+      - database-pending
+      - redis-service
+    networks:
+      - new-network
+    env_file:
+      - .env
+
+  redis-service:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - new-network
+
+volumes:
+  db-data-ru: {}
+  db-data-other: {}
+  db-data-pending: {}
+
+networks:
+  new-network:
+    driver: bridge

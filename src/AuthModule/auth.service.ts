@@ -23,7 +23,8 @@ export class AuthService {
     this.logger.log(`Registering user: email=${email}, phone=${phone}`);
 
     const db = this.prismaService.getDatabase('PENDING');
-    this.logger.log(`Database instance: ${JSON.stringify(db, null, 2)}`);
+    this.logger.log(`Database instance type: ${db.constructor.name}`);
+    this.logger.log(`Database methods: ${Object.keys(db).join(', ')}`);
 
     this.logger.log(`Checking if user exists...`);
     const existingUser = await db.user.findFirst({

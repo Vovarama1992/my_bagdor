@@ -18,7 +18,7 @@ datasource db {
 
 model User {
   id                     Int         @id @default(autoincrement())
-  phone                  String?      @unique
+  phone                  String?     @unique
   email                  String?     @unique
   firstName              String?
   lastName               String?

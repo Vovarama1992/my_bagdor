@@ -54,7 +54,7 @@ export class AuthService {
           firstName,
           lastName,
           email,
-          phone,
+          phone: phone || null,
           password: hashedPassword,
           isRegistered: false,
         },

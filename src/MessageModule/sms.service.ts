@@ -14,11 +14,14 @@ export class SmsService {
       'https://api3.greensms.ru/sms/send',
     );
     this.apiKey = this.configService.get<string>('SMS_KEY');
+
     if (!this.apiKey) {
-      this.logger.error('API key for GreenSMS is not configured.');
-      throw new Error('API key for GreenSMS is not configured.');
+      this.logger.error(
+        'API key for GreenSMS is not configured. SMS sending is disabled.',
+      );
+    } else {
+      this.logger.log('SmsService initialized with API key.');
     }
-    this.logger.log('SmsService initialized.');
   }
 
   async sendVerificationSms(phone: string, code: string): Promise<void> {

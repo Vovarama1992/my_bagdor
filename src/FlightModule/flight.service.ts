@@ -16,12 +16,19 @@ export class FlightService {
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
   ) {
-    this.apiUrl = this.configService.get<string>('FR24_API_URL');
+    this.apiUrl = this.configService.get<string>(
+      'FR24_API_URL',
+      'https://fr24api.flightradar24.com/api',
+    );
     this.apiKey = this.configService.get<string>('FR24_PRODUCTION_KEY');
   }
 
   private getAuthHeaders() {
-    return { 'x-api-key': this.apiKey };
+    return {
+      Accept: 'application/json',
+      'Accept-Version': 'v1',
+      Authorization: `Bearer ${this.apiKey}`,
+    };
   }
 
   private async fetchWithCache(cacheKey: string, url: string): Promise<any> {
@@ -32,7 +39,6 @@ export class FlightService {
         return JSON.parse(cachedData);
       }
 
-      // Логируем запрос
       this.logger.log(`Fetching data from: ${url}`);
 
       // Запрос к API
@@ -40,7 +46,6 @@ export class FlightService {
         this.httpService.get(url, { headers: this.getAuthHeaders() }),
       );
 
-      // Сохраняем в кэш
       await this.redisService.set(
         cacheKey,
         JSON.stringify(response.data),
@@ -49,42 +54,89 @@ export class FlightService {
 
       return response.data;
     } catch (error) {
-      this.logger.error(`Request to ${url} failed: ${error.message}`);
+      this.logger.error(
+        `Request to ${error.config?.url} failed: ${error.message}`,
+      );
 
-      // Проверяем, есть ли ответ от API
+      // Если API вернул ошибку - передаем ее в ответ
       if (error.response) {
         const status = error.response.status;
-        const message = error.response.data?.message || 'Unknown API error';
-        throw new HttpException(`API Error ${status}: ${message}`, status);
+        const apiMessage =
+          error.response.data?.message ||
+          JSON.stringify(error.response.data) ||
+          'Unknown API error';
+
+        this.logger.error(
+          `API Error ${status}: ${apiMessage} (URL: ${error.config?.url})`,
+        );
+
+        throw new HttpException(apiMessage, status);
       }
 
-      // Ошибка сети или внутренний сбой
+      // Если это ошибка сети или сервера
       throw new HttpException(
-        'Internal Server Error: API connection failed',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Ошибка соединения с API Flightradar24',
+        HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
   }
 
-  async getCities(): Promise<any> {
-    return this.fetchWithCache('cities', `${this.apiUrl}/cities`);
+  async getAirports(): Promise<any> {
+    return this.fetchWithCache(
+      'airports',
+      `${this.apiUrl}/static/airports/full`,
+    );
   }
 
-  async getAirports(): Promise<any> {
-    return this.fetchWithCache('airports', `${this.apiUrl}/airports`);
+  async getAirportsLight(): Promise<any> {
+    return this.fetchWithCache(
+      'airports-light',
+      `${this.apiUrl}/static/airports/light`,
+    );
+  }
+
+  async getAirportByCode(code: string): Promise<any> {
+    return this.fetchWithCache(
+      `airport:${code}`,
+      `${this.apiUrl}/static/airports/${code}/full`,
+    );
+  }
+
+  async getAirlines(): Promise<any> {
+    return this.fetchWithCache(
+      'airlines',
+      `${this.apiUrl}/static/airlines/full`,
+    );
+  }
+
+  async getAirlineByICAO(icao: string): Promise<any> {
+    return this.fetchWithCache(
+      `airline:${icao}`,
+      `${this.apiUrl}/static/airlines/${icao}/light`,
+    );
+  }
+
+  async getLiveFlights(bounds?: string, airports?: string): Promise<any> {
+    let url = `${this.apiUrl}/live/flight-positions/full`;
+    const params = [];
+    if (bounds) params.push(`bounds=${bounds}`);
+    if (airports) params.push(`airports=${airports}`);
+    if (params.length) url += `?${params.join('&')}`;
+
+    return this.fetchWithCache(`live-flights:${bounds || 'global'}`, url);
   }
 
   async getFlightByNumber(flightNumber: string): Promise<any> {
     return this.fetchWithCache(
       `flight:${flightNumber}`,
-      `${this.apiUrl}/flights/${flightNumber}`,
+      `${this.apiUrl}/flight-tracks?flight_id=${flightNumber}`,
     );
   }
 
   async getFlightsByRoute(departure: string, arrival: string): Promise<any> {
     return this.fetchWithCache(
       `route:${departure}-${arrival}`,
-      `${this.apiUrl}/flights/route/${departure}/${arrival}`,
+      `${this.apiUrl}/live/flight-positions/full?routes=${departure}-${arrival}`,
     );
   }
 
@@ -95,21 +147,21 @@ export class FlightService {
   ): Promise<any> {
     return this.fetchWithCache(
       `route:${departure}-${arrival}:${date}`,
-      `${this.apiUrl}/flights/route/${departure}/${arrival}/${date}`,
+      `${this.apiUrl}/historic/flight-positions/full?routes=${departure}-${arrival}&timestamp=${date}`,
     );
   }
 
   async getFlightsByDate(date: string): Promise<any> {
     return this.fetchWithCache(
       `flights:${date}`,
-      `${this.apiUrl}/flights/date/${date}`,
+      `${this.apiUrl}/historic/flight-positions/full?timestamp=${date}`,
     );
   }
 
   async getFlightsFromAirportToday(airportCode: string): Promise<any> {
     return this.fetchWithCache(
       `departures:${airportCode}`,
-      `${this.apiUrl}/flights/departures/${airportCode}`,
+      `${this.apiUrl}/live/flight-positions/full?airports=outbound:${airportCode}`,
     );
   }
 }

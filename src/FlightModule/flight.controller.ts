@@ -11,7 +11,11 @@ export class FlightController {
   @ApiResponse({ status: 200, description: 'Список городов успешно получен' })
   @Get('cities')
   async getCities() {
-    return this.flightService.getCities();
+    const airports = await this.flightService.getAirports();
+    const cities = [
+      ...new Set(airports.map((airport: any) => airport.city).filter(Boolean)),
+    ];
+    return { cities };
   }
 
   @ApiOperation({ summary: 'Получить список аэропортов' })

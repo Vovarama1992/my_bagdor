@@ -6,6 +6,7 @@ import {
   ApiResponse,
   ApiQuery,
   ApiOkResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import {
   RegisterDto,
@@ -68,6 +69,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Регистрация пользователя' })
   @ApiResponse({ status: 201, description: 'Пользователь зарегистрирован' })
   @ApiResponse({ status: 400, description: 'Ошибка валидации' })
+  @ApiBody({ type: RegisterDto })
   @Post('register')
   async register(@Body() body: RegisterDto) {
     return this.authService.register(body);

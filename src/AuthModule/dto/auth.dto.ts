@@ -9,33 +9,34 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
-  @ApiProperty({ example: 'Иван' })
+  @ApiProperty({ example: 'Иван', required: true })
   @IsString()
   @IsNotEmpty()
   firstName: string;
 
-  @ApiProperty({ example: 'Иванов' })
+  @ApiProperty({ example: 'Иванов', required: true })
   @IsString()
   @IsNotEmpty()
   lastName: string;
 
-  @ApiProperty({ example: 'ivan_nickname' })
+  @ApiProperty({ example: 'ivan_nickname', required: false })
   @IsString()
   @IsOptional()
   nickname?: string;
 
-  @ApiProperty({ example: '+79991234567' })
+  @ApiProperty({ example: '+79991234567', required: true })
   @IsString()
   @IsNotEmpty()
   phone: string;
 
-  @ApiProperty({ example: 'ivan@example.com' })
+  @ApiProperty({ example: 'ivan@example.com', required: false })
   @IsEmail()
   @IsOptional()
   email?: string;
 
   @ApiProperty({
     example: 'Password123!',
+    required: true,
     description:
       'Пароль должен содержать минимум 8 символов, хотя бы одну цифру, одну заглавную букву и один спецсимвол',
   })

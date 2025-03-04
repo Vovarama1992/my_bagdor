@@ -83,7 +83,10 @@ export class AuthController {
     status: 200,
     description: 'Успешный вход, выдаётся JWT-токен',
   })
-  @ApiBody({ type: LoginDto })
+  @ApiBody({
+    type: LoginDto,
+    description: 'Данные для авторизации пользователя',
+  })
   @Post('login')
   async login(@Body() body: LoginDto) {
     return this.authService.login(body);

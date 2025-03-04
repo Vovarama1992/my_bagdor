@@ -24,10 +24,10 @@ export class RegisterDto {
   @IsOptional()
   nickname?: string;
 
-  @ApiProperty({ example: '+79991234567', required: true })
+  @ApiProperty({ example: '+79991234567', required: false })
   @IsString()
-  @IsNotEmpty()
-  phone: string;
+  @IsOptional()
+  phone?: string;
 
   @ApiProperty({ example: 'ivan@example.com', required: false })
   @IsEmail()

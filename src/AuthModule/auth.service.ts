@@ -108,7 +108,6 @@ export class AuthService {
         `Logging in user: email=${body.email || ''}, phone=${body.phone || ''}`,
       );
 
-      // Сначала ищем в RU
       let db = this.prismaService.getDatabase('RU');
       let user = await db.user.findFirst({
         where: {
@@ -124,6 +123,23 @@ export class AuthService {
             OR: [{ email: body.email }, { phone: body.phone }],
           },
         });
+      }
+
+      // Если не нашли, ищем в PENDING
+      if (!user) {
+        db = this.prismaService.getDatabase('PENDING');
+        user = await db.user.findFirst({
+          where: {
+            OR: [{ email: body.email }, { phone: body.phone }],
+          },
+        });
+
+        if (user) {
+          this.logger.warn(
+            `User found in PENDING: email=${body.email || ''}, phone=${body.phone || ''}`,
+          );
+          throw new ForbiddenException('User is not verified yet');
+        }
       }
 
       if (!user) {

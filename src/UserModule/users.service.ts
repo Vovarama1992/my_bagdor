@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
@@ -16,6 +17,7 @@ import { VerifyEmailDto } from 'src/AuthModule/dto/auth.dto';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
   constructor(
     private prismaService: PrismaService,
     private jwtService: JwtService,
@@ -180,17 +182,46 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new ForbiddenException('User not found');
+      throw new ForbiddenException('User not found in PENDING database');
     }
 
-    await dbPending.user.update({
-      where: { id: user.id },
-      data: { isEmailVerified: true },
+    const targetRegion = Math.random() < 0.5 ? 'RU' : 'OTHER';
+    const finalDB = this.prismaService.getDatabase(targetRegion);
+
+    this.logger.log(`Moving user ${user.id} from PENDING to ${targetRegion}`);
+
+    const existingUser = await finalDB.user.findUnique({
+      where: { email: user.email },
     });
+    if (existingUser) {
+      this.logger.warn(
+        `User with email ${user.email} already exists in ${targetRegion}`,
+      );
+      throw new ForbiddenException(
+        'User already exists in the target database',
+      );
+    }
+
+    await finalDB.user.create({
+      data: {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        password: user.password,
+        isRegistered: true,
+        isEmailVerified: true,
+        accountType: user.accountType,
+      },
+    });
+
+    await dbPending.user.delete({ where: { id: user.id } });
+
+    this.logger.log(`User ${user.id} successfully moved to ${targetRegion}`);
 
     await this.redisService.del(`email_verification:${body.email}`);
 
-    return { message: 'Email verified successfully' };
+    return { message: 'Email verified and user moved successfully' };
   }
 
   async createReview(req: Request, reviewData: CreateReviewDto) {

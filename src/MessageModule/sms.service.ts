@@ -13,7 +13,7 @@ export class SmsService {
       'SMS_API_URL',
       'https://api3.greensms.ru/sms/send',
     );
-    this.apiKey = this.configService.get<string>('SMS_KEY');
+    this.apiKey = this.configService.get<string>('SMS_API_KEY');
 
     if (!this.apiKey) {
       this.logger.error(
@@ -29,12 +29,13 @@ export class SmsService {
     const payload = {
       to: phone,
       txt: message,
+      // Дополнительно, можно указать "from" или "tag", если нужно
     };
 
     try {
       const response = await axios.post(this.smsApiUrl, payload, {
         headers: {
-          Authorization: `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`, // Используем Bearer Token
         },
       });
 

@@ -18,9 +18,9 @@ export class FlightService {
   ) {
     this.apiUrl = this.configService.get<string>(
       'FR24_API_URL',
-      'https://fr24api.flightradar24.com/api',
+      'https://fr24api.flightradar24.com/api/sandbox',
     );
-    this.apiKey = this.configService.get<string>('FR24_PRODUCTION_KEY');
+    this.apiKey = this.configService.get<string>('FR24_SANDBOX_KEY');
   }
 
   private getAuthHeaders() {
@@ -33,15 +33,12 @@ export class FlightService {
 
   private async fetchWithCache(cacheKey: string, url: string): Promise<any> {
     try {
-      // Проверяем кэш
       const cachedData = await this.redisService.get(cacheKey);
       if (cachedData) {
         return JSON.parse(cachedData);
       }
 
       this.logger.log(`Fetching data from: ${url}`);
-
-      // Запрос к API
       const response = await firstValueFrom(
         this.httpService.get(url, { headers: this.getAuthHeaders() }),
       );
@@ -51,48 +48,27 @@ export class FlightService {
         JSON.stringify(response.data),
         this.cacheTTL,
       );
-
       return response.data;
     } catch (error) {
       this.logger.error(
         `Request to ${error.config?.url} failed: ${error.message}`,
       );
-
-      // Если API вернул ошибку - передаем ее в ответ
       if (error.response) {
         const status = error.response.status;
         const apiMessage =
           error.response.data?.message ||
           JSON.stringify(error.response.data) ||
           'Unknown API error';
-
         this.logger.error(
           `API Error ${status}: ${apiMessage} (URL: ${error.config?.url})`,
         );
-
         throw new HttpException(apiMessage, status);
       }
-
-      // Если это ошибка сети или сервера
       throw new HttpException(
         'Ошибка соединения с API Flightradar24',
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
-  }
-
-  async getAirports(): Promise<any> {
-    return this.fetchWithCache(
-      'airports',
-      `${this.apiUrl}/static/airports/full`,
-    );
-  }
-
-  async getAirportsLight(): Promise<any> {
-    return this.fetchWithCache(
-      'airports-light',
-      `${this.apiUrl}/static/airports/light`,
-    );
   }
 
   async getAirportByCode(code: string): Promise<any> {
@@ -102,10 +78,10 @@ export class FlightService {
     );
   }
 
-  async getAirlines(): Promise<any> {
+  async getAirportsLight(): Promise<any> {
     return this.fetchWithCache(
-      'airlines',
-      `${this.apiUrl}/static/airlines/full`,
+      'airports-light',
+      `${this.apiUrl}/static/airports/light`,
     );
   }
 
@@ -163,5 +139,9 @@ export class FlightService {
       `departures:${airportCode}`,
       `${this.apiUrl}/live/flight-positions/full?airports=outbound:${airportCode}`,
     );
+  }
+
+  async getUsage(): Promise<any> {
+    return this.fetchWithCache('usage', `${this.apiUrl}/usage`);
   }
 }

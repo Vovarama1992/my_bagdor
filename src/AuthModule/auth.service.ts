@@ -104,16 +104,27 @@ export class AuthService {
 
   async login(body: LoginDto) {
     try {
-      const db = this.prismaService.getDatabase('OTHER');
       this.logger.log(
         `Logging in user: email=${body.email || ''}, phone=${body.phone || ''}`,
       );
 
-      const user = await db.user.findFirst({
+      // Сначала ищем в RU
+      let db = this.prismaService.getDatabase('RU');
+      let user = await db.user.findFirst({
         where: {
           OR: [{ email: body.email }, { phone: body.phone }],
         },
       });
+
+      // Если не нашли, ищем в OTHER
+      if (!user) {
+        db = this.prismaService.getDatabase('OTHER');
+        user = await db.user.findFirst({
+          where: {
+            OR: [{ email: body.email }, { phone: body.phone }],
+          },
+        });
+      }
 
       if (!user) {
         this.logger.warn(
@@ -211,8 +222,13 @@ export class AuthService {
       };
     } catch (error) {
       this.logger.error(`OAuth login failed: ${error.message}`, error.stack);
+
+      if (error instanceof HttpException) {
+        throw error; // Оставляем статус ошибки, если он уже определён
+      }
+
       throw new HttpException(
-        error.message,
+        error.message || 'Internal Server Error',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

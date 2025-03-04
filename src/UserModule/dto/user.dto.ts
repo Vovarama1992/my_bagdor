@@ -3,34 +3,34 @@ import { IsString, IsOptional, IsEmail } from 'class-validator';
 import { ReviewDto } from './review.dto';
 
 export class UserProfileResponseDto {
-  @ApiProperty({ example: 1 })
+  @ApiProperty({ example: 1, required: true })
   id: number;
 
-  @ApiProperty({ example: 'user@example.com' })
+  @ApiProperty({ example: 'user@example.com', required: true })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'John' })
+  @ApiProperty({ example: 'John', required: false })
   @IsString()
   @IsOptional()
   firstName?: string;
 
-  @ApiProperty({ example: 'Doe' })
+  @ApiProperty({ example: 'Doe', required: false })
   @IsString()
   @IsOptional()
   lastName?: string;
 
-  @ApiProperty({ example: 'johnny' })
+  @ApiProperty({ example: 'johnny', required: false })
   @IsString()
   @IsOptional()
   nickname?: string;
 
-  @ApiProperty({ example: '+123456789' })
+  @ApiProperty({ example: '+123456789', required: false })
   @IsString()
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({ example: '@durov' })
+  @ApiProperty({ example: '@durov', required: false })
   @IsString()
   @IsOptional()
   telegram?: string;
@@ -38,33 +38,50 @@ export class UserProfileResponseDto {
   @ApiProperty({
     type: [ReviewDto],
     description: 'Отзывы, оставленные пользователем',
+    required: false,
   })
   @IsOptional()
   reviews?: ReviewDto[];
 }
 
 export class UpdateProfileDto {
-  @ApiProperty({ example: 'John', description: 'Имя пользователя' })
+  @ApiProperty({
+    example: 'John',
+    description: 'Имя пользователя',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   firstName?: string;
 
-  @ApiProperty({ example: 'Doe', description: 'Фамилия пользователя' })
+  @ApiProperty({
+    example: 'Doe',
+    description: 'Фамилия пользователя',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   lastName?: string;
 
-  @ApiProperty({ example: 'johnny', description: 'Никнейм' })
+  @ApiProperty({ example: 'johnny', description: 'Никнейм', required: false })
   @IsString()
   @IsOptional()
   nickname?: string;
 
-  @ApiProperty({ example: '+123456789', description: 'Номер телефона' })
+  @ApiProperty({
+    example: '+123456789',
+    description: 'Номер телефона',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({ example: '@durov', description: 'Телеграм пользователя' })
+  @ApiProperty({
+    example: '@durov',
+    description: 'Телеграм пользователя',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   telegram?: string;

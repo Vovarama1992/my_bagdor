@@ -4,7 +4,7 @@ import { Request as Req } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { UserProfileResponseDto, UpdateProfileDto } from './dto/user.dto';
 import { CreateReviewDto, ReviewDto } from './dto/review.dto';
-import { VerifyEmailDto } from 'src/AuthModule/dto/auth.dto';
+import { VerifyEmailDto, VerifyPhoneDto } from 'src/AuthModule/dto/auth.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -58,14 +58,7 @@ export class UsersController {
     status: 401,
     description: 'Неавторизованный доступ',
   })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        code: { type: 'string', example: '123456' },
-      },
-    },
-  })
+  @ApiBody({ type: VerifyPhoneDto })
   @Post('verify-phone')
   async verifyPhone(@Request() req: Req, @Body() body: { code: string }) {
     return this.usersService.verifyPhone(req, body.code);

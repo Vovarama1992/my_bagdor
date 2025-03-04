@@ -50,39 +50,39 @@ export class RegisterDto {
 }
 
 export class VerifyEmailDto {
-  @ApiProperty({ example: 'ivan@example.com' })
+  @ApiProperty({ example: 'ivan@example.com', required: true })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: '111111' })
+  @ApiProperty({ example: '111111', required: true })
   @IsString()
   @Length(6, 6)
   code: string;
 }
 
 export class VerifyPhoneDto {
-  @ApiProperty({ example: '+79991234567' })
+  @ApiProperty({ example: '+79991234567', required: true })
   @IsString()
   phone: string;
 
-  @ApiProperty({ example: '111111' })
+  @ApiProperty({ example: '111111', required: true })
   @IsString()
   @Length(6, 6)
   code: string;
 }
 
 export class LoginDto {
-  @ApiProperty({ example: 'ivan@example.com' })
+  @ApiProperty({ example: 'ivan@example.com', required: false })
   @IsOptional()
   @IsEmail()
   email?: string;
 
-  @ApiProperty({ example: '+79991234567' })
+  @ApiProperty({ example: '+79991234567', required: false })
   @IsOptional()
   @IsString()
   phone?: string;
 
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({ example: 'password123', required: true })
   @IsString()
   password: string;
 }
@@ -91,41 +91,46 @@ export class OAuthUserDto {
   @ApiProperty({
     example: '12345678901234567890',
     description: 'Google ID пользователя',
+    required: false,
   })
   googleId?: string;
 
   @ApiProperty({
     example: '001234.abcdefg.hijklmnop',
     description: 'Apple ID пользователя',
+    required: false,
   })
   appleId?: string;
 
-  @ApiProperty({ example: 'ivan@example.com' })
+  @ApiProperty({ example: 'ivan@example.com', required: false })
   email: string | null;
 
-  @ApiProperty({ example: 'Иван' })
+  @ApiProperty({ example: 'Иван', required: true })
   firstName: string;
 
-  @ApiProperty({ example: '+79999999999' })
+  @ApiProperty({ example: '+79999999999', required: false })
   phone: string;
 
-  @ApiProperty({ example: 'Иванов' })
+  @ApiProperty({ example: 'Иванов', required: true })
   lastName: string;
 }
 
 export class AuthResponseDto {
-  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    required: true,
+  })
   token: string;
 
-  @ApiProperty({ example: 'Login successful via Google' })
+  @ApiProperty({ example: 'Login successful via Google', required: true })
   message: string;
 
-  @ApiProperty({ example: 'ivan@example.com' })
+  @ApiProperty({ example: 'ivan@example.com', required: true })
   email: string;
 
-  @ApiProperty({ example: 'Иван' })
+  @ApiProperty({ example: 'Иван', required: true })
   firstName: string;
 
-  @ApiProperty({ example: 'Иванов' })
+  @ApiProperty({ example: 'Иванов', required: true })
   lastName: string;
 }

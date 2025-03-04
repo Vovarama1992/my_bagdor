@@ -4,7 +4,9 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  HttpStatus,
   Logger,
+  HttpException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
@@ -61,13 +63,13 @@ export class UsersService {
   async updateProfile(req: Request, updateData: UpdateProfileDto) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      throw new UnauthorizedException(
-        'Authorization header for updateProfile missing',
-      );
+      this.logger.error('Authorization header for updateProfile missing');
+      throw new UnauthorizedException('Authorization header missing');
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
+      this.logger.error('Token missing in updateProfile request');
       throw new UnauthorizedException('Token missing');
     }
 
@@ -77,44 +79,70 @@ export class UsersService {
       });
 
       const userId = decoded.sub;
+      this.logger.log(`Updating profile for user ID: ${userId}`);
 
       for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
-        const userModel = this.prismaService.getUserModel(region);
-        const user = await userModel.findUnique({ where: { id: userId } });
+        try {
+          const userModel = this.prismaService.getUserModel(region);
+          const user = await userModel.findUnique({ where: { id: userId } });
 
-        if (user) {
-          const updatePayload: Partial<
-            UpdateProfileDto & { isPhoneVerified?: boolean }
-          > = { ...updateData };
+          if (user) {
+            this.logger.log(`User found in ${region}, updating profile...`);
 
-          // Если номер изменился — сбрасываем верификацию и отправляем код
-          if (updateData.phone && updateData.phone !== user.phone) {
-            updatePayload.isPhoneVerified = false;
+            const updatePayload: Partial<
+              UpdateProfileDto & { isPhoneVerified?: boolean }
+            > = { ...updateData };
 
-            const verificationCode = Math.floor(
-              100000 + Math.random() * 900000,
-            ).toString();
-            await this.redisService.set(
-              `phone_verification:${userId}`,
-              verificationCode,
-              300,
+            // Если номер изменился — сбрасываем верификацию и отправляем код
+            if (updateData.phone && updateData.phone !== user.phone) {
+              this.logger.log(
+                `Phone number changed for user ${userId}, sending verification code...`,
+              );
+
+              updatePayload.isPhoneVerified = false;
+
+              const verificationCode = Math.floor(
+                100000 + Math.random() * 900000,
+              ).toString();
+              await this.redisService.set(
+                `phone_verification:${userId}`,
+                verificationCode,
+                300,
+              );
+              await this.smsService.sendVerificationSms(
+                updateData.phone,
+                verificationCode,
+              );
+            }
+
+            const updatedUser = await userModel.update({
+              where: { id: userId },
+              data: updatePayload,
+            });
+
+            this.logger.log(
+              `User ${userId} profile updated successfully in ${region}`,
             );
-            await this.smsService.sendVerificationSms(
-              updateData.phone,
-              verificationCode,
-            );
+            return updatedUser;
           }
-
-          return await userModel.update({
-            where: { id: userId },
-            data: updatePayload,
-          });
+        } catch (error) {
+          this.logger.error(
+            `Error updating user ${userId} in ${region}: ${error.message}`,
+          );
         }
       }
 
+      this.logger.warn(`User ${userId} not found in any database`);
       throw new NotFoundException('User not found');
     } catch (error) {
-      throw new UnauthorizedException('Invalid token');
+      this.logger.error(
+        `Failed to update profile for user: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        error.message,
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 

@@ -6,6 +6,7 @@ import {
   Req,
   UseGuards,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -71,9 +72,13 @@ export class AuthController {
   @Get('apple/callback')
   @UseGuards(AuthGuard('apple'))
   async appleAuthRedirect(@Req() req: Request): Promise<AuthResponseDto> {
-    this.logger.log(`Apple OAuth Callback received:`, req.query);
-    const user = req.user as OAuthUserDto;
-    return this.authService.oauthLogin(user);
+    const code = Array.isArray(req.query.code)
+      ? req.query.code[0]
+      : req.query.code;
+    if (typeof code !== 'string') {
+      throw new BadRequestException('Invalid authorization code format');
+    }
+    return this.authService.handleAppleCallback(code);
   }
 
   @ApiOperation({ summary: 'Регистрация пользователя' })

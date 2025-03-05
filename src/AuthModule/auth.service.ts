@@ -8,14 +8,22 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import axios from 'axios';
+import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { RegisterDto, LoginDto, OAuthUserDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  OAuthUserDto,
+  AuthResponseDto,
+} from './dto/auth.dto';
 import { RedisService } from 'src/RedisModule/redis.service';
 import { SmsService } from '../MessageModule/sms.service';
 import { EmailService } from '../MessageModule/email.service';
 import { InternalOAuthError } from 'passport-apple';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -27,7 +35,58 @@ export class AuthService {
     private readonly redisService: RedisService,
     private readonly smsService: SmsService,
     private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
+
+  async handleAppleCallback(code: string): Promise<AuthResponseDto> {
+    if (!code) {
+      throw new BadRequestException('Missing authorization code from Apple');
+    }
+
+    const { id_token } = await this.exchangeCodeForToken(code);
+    const user = this.extractUserFromIdToken(id_token);
+
+    return this.oauthLogin(user);
+  }
+
+  private async exchangeCodeForToken(
+    code: string,
+  ): Promise<{ id_token: string }> {
+    const response = await axios.post(
+      'https://appleid.apple.com/auth/token',
+      new URLSearchParams({
+        client_id: this.configService.get<string>('APPLE_CLIENT_ID'),
+        client_secret: this.generateAppleClientSecret(),
+        code,
+        grant_type: 'authorization_code',
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+
+    return response.data;
+  }
+
+  private extractUserFromIdToken(id_token: string): OAuthUserDto {
+    const decoded: any = jwt.decode(id_token);
+    return {
+      appleId: decoded.sub,
+      phone: decoded.phone || null,
+      email: decoded.email || null,
+      firstName: decoded.name?.firstName || null,
+      lastName: decoded.name?.lastName || null,
+    };
+  }
+
+  private generateAppleClientSecret(): string {
+    return jwt.sign({}, this.configService.get<string>('APPLE_PRIVATE_KEY'), {
+      algorithm: 'ES256',
+      keyid: this.configService.get<string>('APPLE_KEY_ID'),
+      issuer: this.configService.get<string>('APPLE_TEAM_ID'),
+      audience: 'https://appleid.apple.com',
+      subject: this.configService.get<string>('APPLE_CLIENT_ID'),
+      expiresIn: '1h',
+    });
+  }
 
   async register(body: RegisterDto) {
     try {

@@ -4,6 +4,9 @@ import {
   Logger,
   HttpException,
   HttpStatus,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
@@ -12,6 +15,7 @@ import { RegisterDto, LoginDto, OAuthUserDto } from './dto/auth.dto';
 import { RedisService } from 'src/RedisModule/redis.service';
 import { SmsService } from '../MessageModule/sms.service';
 import { EmailService } from '../MessageModule/email.service';
+import { InternalOAuthError } from 'passport-apple';
 
 @Injectable()
 export class AuthService {
@@ -108,26 +112,11 @@ export class AuthService {
         `Logging in user: email=${body.email || ''}, phone=${body.phone || ''}`,
       );
 
-      let db = this.prismaService.getDatabase('RU');
-      let user = await db.user.findFirst({
-        where: {
-          OR: [{ email: body.email }, { phone: body.phone }],
-        },
-      });
+      let user = null;
+      let dbRegion: 'RU' | 'OTHER' | 'PENDING' | null = null;
 
-      // Если не нашли, ищем в OTHER
-      if (!user) {
-        db = this.prismaService.getDatabase('OTHER');
-        user = await db.user.findFirst({
-          where: {
-            OR: [{ email: body.email }, { phone: body.phone }],
-          },
-        });
-      }
-
-      // Если не нашли, ищем в PENDING
-      if (!user) {
-        db = this.prismaService.getDatabase('PENDING');
+      for (const region of ['RU', 'OTHER', 'PENDING'] as const) {
+        const db = this.prismaService.getDatabase(region);
         user = await db.user.findFirst({
           where: {
             OR: [{ email: body.email }, { phone: body.phone }],
@@ -135,10 +124,8 @@ export class AuthService {
         });
 
         if (user) {
-          this.logger.warn(
-            `User found in PENDING: email=${body.email || ''}, phone=${body.phone || ''}`,
-          );
-          throw new ForbiddenException('User is not verified yet');
+          dbRegion = region;
+          break;
         }
       }
 
@@ -149,6 +136,13 @@ export class AuthService {
         throw new ForbiddenException('Invalid credentials');
       }
 
+      if (dbRegion === 'PENDING') {
+        this.logger.warn(
+          `User found in PENDING: email=${body.email || ''}, phone=${body.phone || ''}`,
+        );
+        throw new ForbiddenException('User is not verified yet');
+      }
+
       const passwordMatch = await bcrypt.compare(body.password, user.password);
       if (!passwordMatch) {
         this.logger.warn(
@@ -157,8 +151,14 @@ export class AuthService {
         throw new ForbiddenException('Invalid credentials');
       }
 
-      const token = this.jwtService.sign({ id: user.id });
-      this.logger.log(`User logged in successfully: id=${user.id}`);
+      const token = this.jwtService.sign({
+        id: user.id,
+        dbRegion, // Теперь в токене есть регион пользователя
+      });
+
+      this.logger.log(
+        `User logged in successfully: id=${user.id}, region=${dbRegion}`,
+      );
 
       return { token, message: 'Login successful' };
     } catch (error) {
@@ -175,7 +175,16 @@ export class AuthService {
       this.logger.log(
         `Processing OAuth login: email=${user.email || ''}, googleId=${user.googleId || ''}, appleId=${user.appleId || ''}`,
       );
+
+      if (!user.email && !user.googleId && !user.appleId) {
+        this.logger.warn('OAuth login failed: Missing user identifiers');
+        throw new BadRequestException(
+          'OAuth login failed: Missing user identifiers',
+        );
+      }
+
       const dbPending = this.prismaService.getDatabase('PENDING');
+      let dbRegion: 'RU' | 'OTHER' | 'PENDING' | null = null;
 
       let existingUser = user.googleId
         ? await dbPending.user.findUnique({
@@ -190,12 +199,14 @@ export class AuthService {
       if (!existingUser) {
         const region = Math.random() < 0.5 ? 'RU' : 'OTHER';
         const finalDB = this.prismaService.getDatabase(region);
+        dbRegion = region;
 
         existingUser = await finalDB.user.findUnique({
           where: { email: user.email },
         });
 
         if (!existingUser) {
+          dbRegion = 'PENDING';
           existingUser = await dbPending.user.create({
             data: {
               email: user.email,
@@ -226,8 +237,19 @@ export class AuthService {
         }
       }
 
-      const token = this.jwtService.sign({ id: existingUser.id });
-      this.logger.log(`OAuth login successful: id=${existingUser.id}`);
+      if (!dbRegion) {
+        dbRegion =
+          existingUser.googleId || existingUser.appleId ? 'PENDING' : 'RU';
+      }
+
+      const token = this.jwtService.sign({
+        id: existingUser.id,
+        dbRegion,
+      });
+
+      this.logger.log(
+        `OAuth login successful: id=${existingUser.id}, region=${dbRegion}`,
+      );
 
       return {
         token,
@@ -235,18 +257,28 @@ export class AuthService {
         email: existingUser.email,
         firstName: existingUser.firstName,
         lastName: existingUser.lastName,
+        region: dbRegion,
       };
     } catch (error) {
       this.logger.error(`OAuth login failed: ${error.message}`, error.stack);
 
-      if (error instanceof HttpException) {
-        throw error; // Оставляем статус ошибки, если он уже определён
+      if (error instanceof InternalOAuthError) {
+        this.logger.error(`OAuth provider error: ${error.oauthError.data}`);
+        throw new UnauthorizedException(
+          error.oauthError.data || 'OAuth provider error',
+        );
       }
 
-      throw new HttpException(
-        error.message || 'Internal Server Error',
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      if (error.code === 'P2002') {
+        this.logger.warn('User with this email already exists');
+        throw new ConflictException('User with this email already exists');
+      }
+
+      throw new BadRequestException(error.message || 'OAuth login failed');
     }
   }
 }

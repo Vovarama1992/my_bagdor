@@ -19,7 +19,7 @@ export class UsersController {
   })
   @Get('profile')
   async getProfile(@Request() req: Req) {
-    return this.usersService.authenticate(req);
+    return this.usersService.authenticate(req.headers.authorization);
   }
 
   @ApiOperation({ summary: 'Обновить профиль пользователя' })

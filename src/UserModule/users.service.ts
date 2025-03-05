@@ -4,9 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
-  HttpStatus,
   Logger,
-  HttpException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
@@ -29,49 +27,15 @@ export class UsersService {
     private emailService: EmailService,
   ) {}
 
-  async authenticate(req: Request) {
-    const authHeader = req.headers.authorization;
+  async authenticate(authHeader: string) {
     if (!authHeader) {
-      throw new UnauthorizedException(
-        'Authorization header for route getProfile missing',
-      );
-    }
-
-    const token = authHeader.split(' ')[1];
-    if (!token) {
-      throw new UnauthorizedException('Token missing');
-    }
-
-    try {
-      const decoded = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
-      });
-
-      const userId = decoded.id;
-
-      for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
-        const user = await this.prismaService
-          .getUserModel(region)
-          .findUnique({ where: { id: userId } });
-        if (user) return user;
-      }
-
-      throw new NotFoundException('User not found');
-    } catch (error) {
-      throw new UnauthorizedException('Invalid token');
-    }
-  }
-
-  async updateProfile(req: Request, updateData: UpdateProfileDto) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      this.logger.error('Authorization header for updateProfile missing');
+      this.logger.error('Authorization header missing');
       throw new UnauthorizedException('Authorization header missing');
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-      this.logger.error('Token missing in updateProfile request');
+      this.logger.error('Token missing');
       throw new UnauthorizedException('Token missing');
     }
 
@@ -80,72 +44,71 @@ export class UsersService {
         secret: process.env.JWT_SECRET,
       });
 
-      const userId = decoded.id;
-      this.logger.log(`Updating profile for user ID: ${userId}`);
+      const { id, dbRegion } = decoded;
 
-      for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
-        try {
-          const userModel = this.prismaService.getUserModel(region);
-          const user = await userModel.findUnique({ where: { id: userId } });
-
-          if (user) {
-            this.logger.log(`User found in ${region}, updating profile...`);
-
-            const updatePayload: Partial<
-              UpdateProfileDto & { isPhoneVerified?: boolean }
-            > = { ...updateData };
-
-            // Если номер изменился — сбрасываем верификацию и отправляем код
-            if (updateData.phone && updateData.phone !== user.phone) {
-              this.logger.log(
-                `Phone number changed for user ${userId}, sending verification code...`,
-              );
-
-              updatePayload.isPhoneVerified = false;
-
-              const verificationCode = Math.floor(
-                100000 + Math.random() * 900000,
-              ).toString();
-              await this.redisService.set(
-                `phone_verification:${userId}`,
-                verificationCode,
-                300,
-              );
-              await this.smsService.sendVerificationSms(
-                updateData.phone,
-                verificationCode,
-              );
-            }
-
-            const updatedUser = await userModel.update({
-              where: { id: userId },
-              data: updatePayload,
-            });
-
-            this.logger.log(
-              `User ${userId} profile updated successfully in ${region}`,
-            );
-            return updatedUser;
-          }
-        } catch (error) {
-          this.logger.error(
-            `Error updating user ${userId} in ${region}: ${error.message}`,
-          );
-        }
+      if (!id || !dbRegion) {
+        this.logger.error(
+          `Invalid token structure: ${JSON.stringify(decoded)}`,
+        );
+        throw new UnauthorizedException('Invalid token structure');
       }
 
-      this.logger.warn(`User ${userId} not found in any database`);
-      throw new NotFoundException('User not found');
+      const userModel = this.prismaService.getUserModel(dbRegion);
+      const user = await userModel.findUnique({ where: { id } });
+
+      if (!user) {
+        this.logger.warn(`User ${id} not found in ${dbRegion}`);
+        throw new NotFoundException('User not found');
+      }
+
+      return user;
     } catch (error) {
-      this.logger.error(
-        `Failed to update profile for user: ${error.message}`,
-        error.stack,
+      this.logger.error(`Token verification failed: ${error.message}`);
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+  }
+
+  async updateProfile(req: Request, updateData: UpdateProfileDto) {
+    const user = await this.authenticate(req.headers.authorization);
+    this.logger.log(
+      `Updating profile for user ID: ${user.id} in ${user.dbRegion}`,
+    );
+
+    const userModel = this.prismaService.getUserModel(user.dbRegion);
+    const updatePayload: Partial<
+      UpdateProfileDto & { isPhoneVerified?: boolean }
+    > = { ...updateData };
+
+    // Если номер изменился — сбрасываем верификацию и отправляем код
+    if (updateData.phone && updateData.phone !== user.phone) {
+      this.logger.log(
+        `Phone number changed for user ${user.id}, sending verification code...`,
       );
-      throw new HttpException(
-        error.message,
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      updatePayload.isPhoneVerified = false;
+
+      const verificationCode = Math.floor(
+        100000 + Math.random() * 900000,
+      ).toString();
+      await this.redisService.set(
+        `phone_verification:${user.id}`,
+        verificationCode,
+        300,
+      );
+      await this.smsService.sendVerificationSms(
+        updateData.phone,
+        verificationCode,
       );
     }
+
+    const updatedUser = await userModel.update({
+      where: { id: user.id },
+      data: updatePayload,
+    });
+
+    this.logger.log(
+      `User ${user.id} profile updated successfully in ${user.dbRegion}`,
+    );
+    return updatedUser;
   }
 
   async resendVerificationCode(email: string) {
@@ -189,91 +152,37 @@ export class UsersService {
   }
 
   async verifyPhone(req: Request, code: string) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      this.logger.error('Authorization header missing');
-      throw new UnauthorizedException('Authorization header missing');
-    }
-
-    const token = authHeader.split(' ')[1];
-    if (!token) {
-      this.logger.error('Token missing in request');
-      throw new UnauthorizedException('Token missing');
-    }
-
-    let userId: number;
-    try {
-      const decoded = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
-      });
-
-      this.logger.log(`Decoded token: ${JSON.stringify(decoded)}`);
-
-      userId = decoded.id;
-      if (!userId) {
-        this.logger.error('User ID is missing in decoded token');
-        throw new UnauthorizedException(
-          'Invalid token structure: missing user ID',
-        );
-      }
-    } catch (error) {
-      this.logger.error(`Token verification failed: ${error.message}`);
-      throw new UnauthorizedException('Invalid or expired token');
-    }
-
-    this.logger.log(`Fetching verification code for userId: ${userId}`);
-    const storedCode = await this.redisService.get(
-      `phone_verification:${userId}`,
+    const user = await this.authenticate(req.headers.authorization);
+    this.logger.log(
+      `Verifying phone for user ID: ${user.id} in ${user.dbRegion}`,
     );
 
-    this.logger.log(`Stored verification code: ${storedCode}`);
+    const storedCode = await this.redisService.get(
+      `phone_verification:${user.id}`,
+    );
 
     if (!storedCode) {
-      this.logger.warn(`No verification code found for userId: ${userId}`);
+      this.logger.warn(`No verification code found for user ID: ${user.id}`);
       throw new BadRequestException(
         'Verification code expired or does not exist',
       );
     }
 
     if (storedCode !== code) {
-      this.logger.warn(`Invalid verification code for userId: ${userId}`);
+      this.logger.warn(`Invalid verification code for user ID: ${user.id}`);
       throw new BadRequestException('Incorrect verification code');
     }
 
-    let userFound = false;
-    for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
-      try {
-        this.logger.log(`Checking user in ${region} database`);
-        const userModel = this.prismaService.getUserModel(region);
-        const user = await userModel.findUnique({ where: { id: userId } });
+    const userModel = this.prismaService.getUserModel(user.dbRegion);
+    await userModel.update({
+      where: { id: user.id },
+      data: { isPhoneVerified: true },
+    });
 
-        if (user) {
-          this.logger.log(
-            `User found in ${region}, updating verification status`,
-          );
+    await this.redisService.del(`phone_verification:${user.id}`);
+    this.logger.log(`Phone verification completed for user ID: ${user.id}`);
 
-          await userModel.update({
-            where: { id: userId },
-            data: { isPhoneVerified: true },
-          });
-
-          await this.redisService.del(`phone_verification:${userId}`);
-          this.logger.log(`Phone verification completed for userId: ${userId}`);
-
-          userFound = true;
-          return { message: 'Phone number successfully verified' };
-        }
-      } catch (error) {
-        this.logger.error(
-          `Error querying ${region} database: ${error.message}`,
-        );
-      }
-    }
-
-    if (!userFound) {
-      this.logger.warn(`User with ID ${userId} not found in any database`);
-      throw new NotFoundException('User not found in any database');
-    }
+    return { message: 'Phone number successfully verified' };
   }
 
   async verifyEmail(body: VerifyEmailDto) {
@@ -334,45 +243,20 @@ export class UsersService {
   }
 
   async createReview(req: Request, reviewData: CreateReviewDto) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      throw new UnauthorizedException('Authorization header is missing');
-    }
+    const user = await this.authenticate(req.headers.authorization);
+    this.logger.log(
+      `Creating review for user ID: ${user.id} in ${user.dbRegion}`,
+    );
 
-    const token = authHeader.split(' ')[1];
-    if (!token) {
-      throw new UnauthorizedException('Token missing');
-    }
+    const userModel = this.prismaService.getUserModel(user.dbRegion);
+    const review = await userModel.review.create({
+      data: {
+        userId: user.id,
+        rating: reviewData.rating,
+        comment: reviewData.comment,
+      },
+    });
 
-    try {
-      const decoded = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
-      });
-
-      const userId = decoded.sub; // Автор отзыва
-
-      for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
-        const userModel = this.prismaService.getUserModel(region);
-        const user = await userModel.findUnique({ where: { id: userId } });
-
-        if (user) {
-          const review = await this.prismaService
-            .getDatabase(region)
-            .review.create({
-              data: {
-                userId, // Кто оставил отзыв
-                rating: reviewData.rating,
-                comment: reviewData.comment,
-              },
-            });
-
-          return review;
-        }
-      }
-
-      throw new NotFoundException('User not found');
-    } catch (error) {
-      throw new UnauthorizedException('Invalid token');
-    }
+    return review;
   }
 }

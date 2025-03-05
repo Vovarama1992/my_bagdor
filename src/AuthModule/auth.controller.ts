@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Get, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Req,
+  UseGuards,
+  Logger,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   ApiTags,
@@ -20,6 +28,7 @@ import { Request } from 'express';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
   constructor(private readonly authService: AuthService) {}
 
   @ApiOperation({ summary: 'Google OAuth Login' })
@@ -62,6 +71,7 @@ export class AuthController {
   @Get('apple/callback')
   @UseGuards(AuthGuard('apple'))
   async appleAuthRedirect(@Req() req: Request): Promise<AuthResponseDto> {
+    this.logger.log(`Apple OAuth Callback received:`, req.query);
     const user = req.user as OAuthUserDto;
     return this.authService.oauthLogin(user);
   }

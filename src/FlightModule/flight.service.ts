@@ -20,7 +20,7 @@ export class FlightService {
       'FR24_API_URL',
       'https://fr24api.flightradar24.com/api/sandbox',
     );
-    this.apiKey = this.configService.get<string>('FR24_SANDBOX_KEY');
+    this.apiKey = this.configService.get<string>('FR24_PRODUCTION_KEY');
   }
 
   private getAuthHeaders() {

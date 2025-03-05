@@ -21,6 +21,7 @@ export class FlightService {
       'https://fr24api.flightradar24.com/api/sandbox',
     );
     this.apiKey = this.configService.get<string>('FR24_PRODUCTION_KEY');
+    this.logger.log(`FlightService initialized with API URL: ${this.apiUrl}`);
   }
 
   private getAuthHeaders() {
@@ -33,16 +34,19 @@ export class FlightService {
 
   private async fetchWithCache(cacheKey: string, url: string): Promise<any> {
     try {
+      this.logger.log(`Checking cache for key: ${cacheKey}`);
       const cachedData = await this.redisService.get(cacheKey);
       if (cachedData) {
+        this.logger.log(`Cache hit for key: ${cacheKey}`);
         return JSON.parse(cachedData);
       }
 
-      this.logger.log(`Fetching data from: ${url}`);
+      this.logger.log(`Cache miss. Fetching data from: ${url}`);
       const response = await firstValueFrom(
         this.httpService.get(url, { headers: this.getAuthHeaders() }),
       );
 
+      this.logger.log(`Data successfully fetched from: ${url}`);
       await this.redisService.set(
         cacheKey,
         JSON.stringify(response.data),
@@ -50,18 +54,14 @@ export class FlightService {
       );
       return response.data;
     } catch (error) {
-      this.logger.error(
-        `Request to ${error.config?.url} failed: ${error.message}`,
-      );
+      this.logger.error(`Request to ${url} failed: ${error.message}`);
       if (error.response) {
         const status = error.response.status;
         const apiMessage =
           error.response.data?.message ||
           JSON.stringify(error.response.data) ||
           'Unknown API error';
-        this.logger.error(
-          `API Error ${status}: ${apiMessage} (URL: ${error.config?.url})`,
-        );
+        this.logger.error(`API Error ${status}: ${apiMessage} (URL: ${url})`);
         throw new HttpException(apiMessage, status);
       }
       throw new HttpException(
@@ -72,6 +72,7 @@ export class FlightService {
   }
 
   async getAirportByCode(code: string): Promise<any> {
+    this.logger.log(`Fetching airport by code: ${code}`);
     return this.fetchWithCache(
       `airport:${code}`,
       `${this.apiUrl}/static/airports/${code}/full`,
@@ -79,6 +80,7 @@ export class FlightService {
   }
 
   async getAirportsLight(): Promise<any> {
+    this.logger.log('Fetching light airports list');
     return this.fetchWithCache(
       'airports-light',
       `${this.apiUrl}/static/airports/light`,
@@ -86,6 +88,7 @@ export class FlightService {
   }
 
   async getAirlineByICAO(icao: string): Promise<any> {
+    this.logger.log(`Fetching airline by ICAO: ${icao}`);
     return this.fetchWithCache(
       `airline:${icao}`,
       `${this.apiUrl}/static/airlines/${icao}/light`,
@@ -99,10 +102,12 @@ export class FlightService {
     if (airports) params.push(`airports=${airports}`);
     if (params.length) url += `?${params.join('&')}`;
 
+    this.logger.log(`Fetching live flights with params: ${params.join(', ')}`);
     return this.fetchWithCache(`live-flights:${bounds || 'global'}`, url);
   }
 
   async getFlightByNumber(flightNumber: string): Promise<any> {
+    this.logger.log(`Fetching flight by number: ${flightNumber}`);
     return this.fetchWithCache(
       `flight:${flightNumber}`,
       `${this.apiUrl}/flight-tracks?flight_id=${flightNumber}`,
@@ -110,6 +115,7 @@ export class FlightService {
   }
 
   async getFlightsByRoute(departure: string, arrival: string): Promise<any> {
+    this.logger.log(`Fetching flights from ${departure} to ${arrival}`);
     return this.fetchWithCache(
       `route:${departure}-${arrival}`,
       `${this.apiUrl}/live/flight-positions/full?routes=${departure}-${arrival}`,
@@ -121,6 +127,9 @@ export class FlightService {
     arrival: string,
     date: string,
   ): Promise<any> {
+    this.logger.log(
+      `Fetching flights from ${departure} to ${arrival} on ${date}`,
+    );
     return this.fetchWithCache(
       `route:${departure}-${arrival}:${date}`,
       `${this.apiUrl}/historic/flight-positions/full?routes=${departure}-${arrival}&timestamp=${date}`,
@@ -128,6 +137,7 @@ export class FlightService {
   }
 
   async getFlightsByDate(date: string): Promise<any> {
+    this.logger.log(`Fetching flights for date: ${date}`);
     return this.fetchWithCache(
       `flights:${date}`,
       `${this.apiUrl}/historic/flight-positions/full?timestamp=${date}`,
@@ -135,6 +145,7 @@ export class FlightService {
   }
 
   async getFlightsFromAirportToday(airportCode: string): Promise<any> {
+    this.logger.log(`Fetching departures from airport: ${airportCode}`);
     return this.fetchWithCache(
       `departures:${airportCode}`,
       `${this.apiUrl}/live/flight-positions/full?airports=outbound:${airportCode}`,
@@ -142,6 +153,7 @@ export class FlightService {
   }
 
   async getUsage(): Promise<any> {
+    this.logger.log('Fetching API usage statistics');
     return this.fetchWithCache('usage', `${this.apiUrl}/usage`);
   }
 }

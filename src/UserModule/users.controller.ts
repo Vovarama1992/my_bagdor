@@ -33,6 +33,25 @@ export class UsersController {
     return this.usersService.updateProfile(req, body);
   }
 
+  @ApiOperation({ summary: 'Повторная отправка кода подтверждения' })
+  @ApiResponse({
+    status: 200,
+    description: 'Код повторно отправлен',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Пользователь не найден',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Код не найден в системе',
+  })
+  @ApiBody({ schema: { properties: { email: { type: 'string' } } } })
+  @Post('resend-verification-code')
+  async resendVerificationCode(@Body() body: { email: string }) {
+    return this.usersService.resendVerificationCode(body.email);
+  }
+
   @ApiOperation({ summary: 'Добавить отзыв' })
   @ApiResponse({
     status: 201,

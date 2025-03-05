@@ -16,6 +16,7 @@ import { RedisService } from 'src/RedisModule/redis.service';
 import { SmsService } from 'src/MessageModule/sms.service';
 import { CreateReviewDto } from './dto/review.dto';
 import { VerifyEmailDto } from 'src/AuthModule/dto/auth.dto';
+import { EmailService } from 'src/MessageModule/email.service';
 
 @Injectable()
 export class UsersService {
@@ -25,6 +26,7 @@ export class UsersService {
     private jwtService: JwtService,
     private redisService: RedisService,
     private smsService: SmsService,
+    private emailService: EmailService,
   ) {}
 
   async authenticate(req: Request) {
@@ -144,6 +146,46 @@ export class UsersService {
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async resendVerificationCode(email: string) {
+    this.logger.log(`Resending verification code for email: ${email}`);
+
+    // Поиск пользователя во всех БД
+    for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
+      const userModel = this.prismaService.getUserModel(region);
+      const user = await userModel.findUnique({ where: { email } });
+
+      if (user) {
+        this.logger.log(`User found in ${region}: ID=${user.id}`);
+
+        // Проверяем наличие кода в Redis
+        const phoneCode = await this.redisService.get(
+          `phone_verification:${user.id}`,
+        );
+        const emailCode = await this.redisService.get(
+          `email_verification:${email}`,
+        );
+
+        if (phoneCode) {
+          this.logger.log(`Resending phone verification code to ${user.phone}`);
+          await this.smsService.sendVerificationSms(user.phone, phoneCode);
+          return { message: 'Verification code sent to phone' };
+        }
+
+        if (emailCode) {
+          this.logger.log(`Resending email verification code to ${email}`);
+          await this.emailService.sendVerificationEmail(email, emailCode);
+          return { message: 'Verification code sent to email' };
+        }
+
+        this.logger.warn(`No verification code found for user ID: ${user.id}`);
+        throw new BadRequestException('Verification code expired or not found');
+      }
+    }
+
+    this.logger.warn(`User with email ${email} not found in any database`);
+    throw new NotFoundException('User not found');
   }
 
   async verifyPhone(req: Request, code: string) {

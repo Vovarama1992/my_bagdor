@@ -9,7 +9,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { Request } from 'express';
-import { UpdateProfileDto } from './dto/user.dto';
+import { AuthenticatedUser, UpdateProfileDto } from './dto/user.dto';
 import { RedisService } from 'src/RedisModule/redis.service';
 import { SmsService } from 'src/MessageModule/sms.service';
 import { CreateReviewDto } from './dto/review.dto';
@@ -27,7 +27,7 @@ export class UsersService {
     private emailService: EmailService,
   ) {}
 
-  async authenticate(authHeader: string) {
+  async authenticate(authHeader: string): Promise<AuthenticatedUser> {
     if (!authHeader) {
       this.logger.error('Authorization header missing');
       throw new UnauthorizedException('Authorization header missing');
@@ -61,7 +61,7 @@ export class UsersService {
         throw new NotFoundException('User not found');
       }
 
-      return user;
+      return { ...user, dbRegion };
     } catch (error) {
       this.logger.error(`Token verification failed: ${error.message}`);
       throw new UnauthorizedException('Invalid or expired token');
@@ -79,7 +79,6 @@ export class UsersService {
       UpdateProfileDto & { isPhoneVerified?: boolean }
     > = { ...updateData };
 
-    // Если номер изменился — сбрасываем верификацию и отправляем код
     if (updateData.phone && updateData.phone !== user.phone) {
       this.logger.log(
         `Phone number changed for user ${user.id}, sending verification code...`,
@@ -248,8 +247,9 @@ export class UsersService {
       `Creating review for user ID: ${user.id} in ${user.dbRegion}`,
     );
 
-    const userModel = this.prismaService.getUserModel(user.dbRegion);
-    const review = await userModel.review.create({
+    const db = this.prismaService.getDatabase(user.dbRegion);
+
+    const review = await db.review.create({
       data: {
         userId: user.id,
         rating: reviewData.rating,

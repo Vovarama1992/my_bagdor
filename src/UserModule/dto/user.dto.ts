@@ -86,3 +86,7 @@ export class UpdateProfileDto {
   @IsOptional()
   telegram?: string;
 }
+
+export type AuthenticatedUser = UserProfileResponseDto & {
+  dbRegion: 'PENDING' | 'RU' | 'OTHER';
+};

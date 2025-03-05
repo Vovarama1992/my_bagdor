@@ -164,7 +164,7 @@ export class UsersService {
         secret: process.env.JWT_SECRET,
       });
 
-      const userId = decoded.sub;
+      const userId = decoded.id;
       const storedCode = await this.redisService.get(
         `phone_verification:${userId}`,
       );

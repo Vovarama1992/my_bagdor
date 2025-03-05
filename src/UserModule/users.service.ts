@@ -45,7 +45,7 @@ export class UsersService {
         secret: process.env.JWT_SECRET,
       });
 
-      const userId = decoded.sub;
+      const userId = decoded.id;
 
       for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
         const user = await this.prismaService

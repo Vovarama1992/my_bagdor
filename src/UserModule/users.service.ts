@@ -78,7 +78,7 @@ export class UsersService {
         secret: process.env.JWT_SECRET,
       });
 
-      const userId = decoded.sub;
+      const userId = decoded.id;
       this.logger.log(`Updating profile for user ID: ${userId}`);
 
       for (const region of ['PENDING', 'RU', 'OTHER'] as const) {

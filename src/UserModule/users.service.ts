@@ -149,49 +149,88 @@ export class UsersService {
   async verifyPhone(req: Request, code: string) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      throw new UnauthorizedException(
-        'Authorization header for verifyPhone missing',
-      );
+      this.logger.error('Authorization header missing');
+      throw new UnauthorizedException('Authorization header missing');
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
+      this.logger.error('Token missing in request');
       throw new UnauthorizedException('Token missing');
     }
 
+    let userId: number;
     try {
       const decoded = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET,
       });
 
-      const userId = decoded.id;
-      const storedCode = await this.redisService.get(
-        `phone_verification:${userId}`,
-      );
+      this.logger.log(`Decoded token: ${JSON.stringify(decoded)}`);
 
-      if (!storedCode || storedCode !== code) {
-        throw new BadRequestException('Неверный код подтверждения');
+      userId = decoded.id;
+      if (!userId) {
+        this.logger.error('User ID is missing in decoded token');
+        throw new UnauthorizedException(
+          'Invalid token structure: missing user ID',
+        );
       }
+    } catch (error) {
+      this.logger.error(`Token verification failed: ${error.message}`);
+      throw new UnauthorizedException('Invalid or expired token');
+    }
 
-      for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
+    this.logger.log(`Fetching verification code for userId: ${userId}`);
+    const storedCode = await this.redisService.get(
+      `phone_verification:${userId}`,
+    );
+
+    this.logger.log(`Stored verification code: ${storedCode}`);
+
+    if (!storedCode) {
+      this.logger.warn(`No verification code found for userId: ${userId}`);
+      throw new BadRequestException(
+        'Verification code expired or does not exist',
+      );
+    }
+
+    if (storedCode !== code) {
+      this.logger.warn(`Invalid verification code for userId: ${userId}`);
+      throw new BadRequestException('Incorrect verification code');
+    }
+
+    let userFound = false;
+    for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
+      try {
+        this.logger.log(`Checking user in ${region} database`);
         const userModel = this.prismaService.getUserModel(region);
         const user = await userModel.findUnique({ where: { id: userId } });
 
         if (user) {
+          this.logger.log(
+            `User found in ${region}, updating verification status`,
+          );
+
           await userModel.update({
             where: { id: userId },
             data: { isPhoneVerified: true },
           });
 
           await this.redisService.del(`phone_verification:${userId}`);
+          this.logger.log(`Phone verification completed for userId: ${userId}`);
 
-          return { message: 'Номер успешно подтверждён' };
+          userFound = true;
+          return { message: 'Phone number successfully verified' };
         }
+      } catch (error) {
+        this.logger.error(
+          `Error querying ${region} database: ${error.message}`,
+        );
       }
+    }
 
-      throw new NotFoundException('User not found');
-    } catch (error) {
-      throw new UnauthorizedException('Invalid token');
+    if (!userFound) {
+      this.logger.warn(`User with ID ${userId} not found in any database`);
+      throw new NotFoundException('User not found in any database');
     }
   }
 

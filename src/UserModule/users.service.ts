@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { Request } from 'express';
@@ -76,7 +77,11 @@ export class UsersService {
 
     const userModel = this.prismaService.getUserModel(user.dbRegion);
     const updatePayload: Partial<
-      UpdateProfileDto & { isPhoneVerified?: boolean }
+      UpdateProfileDto & {
+        isPhoneVerified?: boolean;
+        isEmailVerified?: boolean;
+        password?: string;
+      }
     > = { ...updateData };
 
     if (updateData.phone && updateData.phone !== user.phone) {
@@ -97,6 +102,31 @@ export class UsersService {
         updateData.phone,
         verificationCode,
       );
+    }
+
+    if (updateData.email && updateData.email !== user.email) {
+      this.logger.log(
+        `Email changed for user ${user.id}, sending verification code...`,
+      );
+      updatePayload.isEmailVerified = false;
+
+      const verificationCode = Math.floor(
+        100000 + Math.random() * 900000,
+      ).toString();
+      await this.redisService.set(
+        `email_verification:${updateData.email}`,
+        verificationCode,
+        300,
+      );
+      await this.emailService.sendVerificationEmail(
+        updateData.email,
+        verificationCode,
+      );
+    }
+
+    if (updateData.password) {
+      this.logger.log(`Hashing new password for user ${user.id}...`);
+      updatePayload.password = await bcrypt.hash(updateData.password, 10);
     }
 
     const updatedUser = await userModel.update({

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEmail } from 'class-validator';
+import { IsString, IsOptional, IsEmail, MinLength } from 'class-validator';
 import { ReviewDto } from './review.dto';
 
 export class UserProfileResponseDto {
@@ -85,6 +85,25 @@ export class UpdateProfileDto {
   @IsString()
   @IsOptional()
   telegram?: string;
+
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'Электронная почта пользователя',
+    required: false,
+  })
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @ApiProperty({
+    example: 'StrongP@ssw0rd',
+    description: 'Новый пароль пользователя',
+    required: false,
+  })
+  @IsString()
+  @MinLength(8)
+  @IsOptional()
+  password?: string;
 }
 
 export type AuthenticatedUser = UserProfileResponseDto & {

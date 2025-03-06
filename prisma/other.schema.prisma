@@ -35,6 +35,10 @@ model User {
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
 
+  numberOfOrders         Int         @default(0) // Кол-во заказов
+  numberOfFlights        Int         @default(0) // Кол-во перелетов
+  numberOfDeliveredOrders Int        @default(0) // Кол-во доставленных заказов (доставок)
+
 
   reviews                Review[]  
 }

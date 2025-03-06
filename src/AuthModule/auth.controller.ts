@@ -81,6 +81,26 @@ export class AuthController {
     return this.authService.handleAppleCallback(code);
   }
 
+  @ApiOperation({ summary: 'Apple OAuth Mobile Login' })
+  @ApiOkResponse({ description: 'Returns JWT token and user data' })
+  @Post('apple/mobile')
+  async appleAuthMobile(@Body('authorizationCode') authorizationCode: string) {
+    if (!authorizationCode) {
+      throw new BadRequestException('Missing authorizationCode');
+    }
+    return this.authService.handleAppleMobileAuth(authorizationCode);
+  }
+
+  @ApiOperation({ summary: 'Google OAuth Mobile Login' })
+  @ApiOkResponse({ description: 'Returns JWT token and user data' })
+  @Post('google/mobile')
+  async googleAuthMobile(@Body('authorizationCode') authorizationCode: string) {
+    if (!authorizationCode) {
+      throw new BadRequestException('Missing authorizationCode');
+    }
+    return this.authService.handleGoogleMobileAuth(authorizationCode);
+  }
+
   @ApiOperation({ summary: 'Регистрация пользователя' })
   @ApiResponse({ status: 201, description: 'Пользователь зарегистрирован' })
   @ApiResponse({ status: 400, description: 'Ошибка валидации' })

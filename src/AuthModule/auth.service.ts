@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
@@ -338,6 +339,140 @@ export class AuthService {
       }
 
       throw new BadRequestException(error.message || 'OAuth login failed');
+    }
+  }
+
+  async handleAppleMobileAuth(authorizationCode: string) {
+    try {
+      this.logger.log(
+        `Apple OAuth: received authorizationCode=${authorizationCode}`,
+      );
+
+      const tokenResponse = await axios.post(
+        'https://appleid.apple.com/auth/token',
+        new URLSearchParams({
+          client_id: this.configService.get<string>('APPLE_CLIENT_ID'),
+          client_secret: this.configService.get<string>('APPLE_PRIVATE_KEY'),
+          code: authorizationCode,
+          grant_type: 'authorization_code',
+        }).toString(),
+        {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        },
+      );
+
+      this.logger.log(
+        `Apple OAuth: token response=${JSON.stringify(tokenResponse.data)}`,
+      );
+
+      if (!tokenResponse.data.id_token) {
+        const errorMessage = 'Apple OAuth failed: Missing id_token in response';
+        this.logger.error(errorMessage);
+        throw new BadRequestException(errorMessage);
+      }
+
+      const idToken = jwt.decode(tokenResponse.data.id_token) as any;
+      if (!idToken) {
+        const errorMessage = `Apple OAuth failed: Unable to decode id_token=${tokenResponse.data.id_token}`;
+        this.logger.error(errorMessage);
+        throw new BadRequestException(errorMessage);
+      }
+
+      this.logger.log(
+        `Apple OAuth: decoded id_token=${JSON.stringify(idToken)}`,
+      );
+
+      const user: OAuthUserDto = {
+        appleId: idToken.sub,
+        email: idToken.email || null,
+        firstName: '',
+        lastName: '',
+        phone: null,
+      };
+
+      return this.oauthLogin(user);
+    } catch (error) {
+      this.logger.error(`Apple OAuth failed: ${error.message}`, error.stack);
+      if (error.response) {
+        this.logger.error(
+          `Apple OAuth HTTP Response: ${JSON.stringify(error.response.data)}`,
+        );
+      }
+      throw new InternalServerErrorException({
+        message: 'Apple OAuth failed',
+        error: error.message,
+        stack: error.stack,
+        response: error.response?.data || null,
+      });
+    }
+  }
+
+  async handleGoogleMobileAuth(authorizationCode: string) {
+    try {
+      this.logger.log(
+        `Google OAuth: received authorizationCode=${authorizationCode}`,
+      );
+
+      const tokenResponse = await axios.post(
+        'https://oauth2.googleapis.com/token',
+        new URLSearchParams({
+          client_id: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+          client_secret: this.configService.get<string>('GOOGLE_CLIENT_SECRET'),
+          code: authorizationCode,
+          grant_type: 'authorization_code',
+          redirect_uri: this.configService.get<string>('GOOGLE_CALLBACK_URL'),
+        }).toString(),
+        {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        },
+      );
+
+      this.logger.log(
+        `Google OAuth: token response=${JSON.stringify(tokenResponse.data)}`,
+      );
+
+      if (!tokenResponse.data.access_token) {
+        const errorMessage =
+          'Google OAuth failed: Missing access_token in response';
+        this.logger.error(errorMessage);
+        throw new BadRequestException(errorMessage);
+      }
+
+      const userInfoResponse = await axios.get(
+        'https://www.googleapis.com/oauth2/v2/userinfo',
+        {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.data.access_token}`,
+          },
+        },
+      );
+
+      this.logger.log(
+        `Google OAuth: user info=${JSON.stringify(userInfoResponse.data)}`,
+      );
+
+      const user: OAuthUserDto = {
+        googleId: userInfoResponse.data.id,
+        email: userInfoResponse.data.email || null,
+        firstName: userInfoResponse.data.given_name || '',
+        lastName: userInfoResponse.data.family_name || '',
+        phone: null,
+      };
+
+      return this.oauthLogin(user);
+    } catch (error) {
+      this.logger.error(`Google OAuth failed: ${error.message}`, error.stack);
+      if (error.response) {
+        this.logger.error(
+          `Google OAuth HTTP Response: ${JSON.stringify(error.response.data)}`,
+        );
+      }
+      throw new InternalServerErrorException({
+        message: 'Google OAuth failed',
+        error: error.message,
+        stack: error.stack,
+        response: error.response?.data || null,
+      });
     }
   }
 }

@@ -348,11 +348,35 @@ export class AuthService {
         `Apple OAuth: received authorizationCode=${authorizationCode}`,
       );
 
+      // Генерация client_secret (JWT)
+      const clientSecret = jwt.sign(
+        {},
+        this.configService.get<string>('APPLE_PRIVATE_KEY'),
+        {
+          algorithm: 'ES256',
+          keyid: this.configService.get<string>('APPLE_KEY_ID'),
+          issuer: this.configService.get<string>('APPLE_TEAM_ID'),
+          subject: this.configService.get<string>('APPLE_CLIENT_ID'),
+          audience: 'https://appleid.apple.com',
+          expiresIn: '180d', // 6 месяцев
+        },
+      );
+
+      this.logger.log(
+        `Apple OAuth: client_id=${this.configService.get<string>('APPLE_CLIENT_ID')}`,
+      );
+      this.logger.log(
+        `Apple OAuth: team_id=${this.configService.get<string>('APPLE_TEAM_ID')}`,
+      );
+      this.logger.log(
+        `Apple OAuth: key_id=${this.configService.get<string>('APPLE_KEY_ID')}`,
+      );
+
       const tokenResponse = await axios.post(
         'https://appleid.apple.com/auth/token',
         new URLSearchParams({
           client_id: this.configService.get<string>('APPLE_CLIENT_ID'),
-          client_secret: this.configService.get<string>('APPLE_PRIVATE_KEY'),
+          client_secret: clientSecret, // Теперь передаем корректный client_secret
           code: authorizationCode,
           grant_type: 'authorization_code',
         }).toString(),

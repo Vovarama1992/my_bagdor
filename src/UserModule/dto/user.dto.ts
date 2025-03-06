@@ -42,6 +42,28 @@ export class UserProfileResponseDto {
   })
   @IsOptional()
   reviews?: ReviewDto[];
+
+  // Новые поля
+  @ApiProperty({
+    example: 0,
+    description: 'Количество заказов',
+    required: true,
+  })
+  numberOfOrders: number;
+
+  @ApiProperty({
+    example: 0,
+    description: 'Количество перелетов',
+    required: true,
+  })
+  numberOfFlights: number;
+
+  @ApiProperty({
+    example: 0,
+    description: 'Количество доставленных заказов',
+    required: true,
+  })
+  numberOfDeliveredOrders: number;
 }
 
 export class UpdateProfileDto {

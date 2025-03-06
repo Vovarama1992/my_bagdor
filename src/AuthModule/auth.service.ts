@@ -293,16 +293,20 @@ export class AuthService {
           : null;
 
       if (!existingUser) {
-        const region = Math.random() < 0.5 ? 'RU' : 'OTHER';
-        const finalDB = this.prismaService.getDatabase(region);
-        dbRegion = region;
-
-        existingUser = await finalDB.user.findUnique({
-          where: { email: user.email },
-        });
-
-        if (!existingUser) {
+        try {
           dbRegion = 'PENDING';
+
+          const emailExists = await dbPending.user.findUnique({
+            where: { email: user.email },
+          });
+
+          if (emailExists) {
+            this.logger.warn(
+              `User with this email already exists: ${user.email}`,
+            );
+            throw new ConflictException('User with this email already exists.');
+          }
+
           existingUser = await dbPending.user.create({
             data: {
               email: user.email,
@@ -316,20 +320,16 @@ export class AuthService {
             },
           });
 
-          if (user.phone) {
-            const verificationCode = Math.floor(
-              100000 + Math.random() * 900000,
-            ).toString();
-            await this.redisService.set(
-              `phone_verification:${user.phone}`,
-              verificationCode,
-              300,
-            );
-            await this.smsService.sendVerificationSms(
-              user.phone,
-              verificationCode,
+          this.logger.log(`Created new user: id=${existingUser.id}`);
+        } catch (error) {
+          this.logger.error(`Database error: ${error.message}`, error.stack);
+          if (error.code === 'P2002') {
+            // Prisma уникальный constraint error
+            throw new ConflictException(
+              'User with this phone or email already exists.',
             );
           }
+          throw error;
         }
       }
 

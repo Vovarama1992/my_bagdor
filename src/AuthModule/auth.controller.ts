@@ -83,6 +83,19 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Apple OAuth Mobile Login' })
   @ApiOkResponse({ description: 'Returns JWT token and user data' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        authorizationCode: {
+          type: 'string',
+          example: '001234.abcdefg.hijklmnop',
+          description: 'OAuth authorization code from Apple',
+        },
+      },
+      required: ['authorizationCode'],
+    },
+  })
   @Post('apple/mobile')
   async appleAuthMobile(@Body('authorizationCode') authorizationCode: string) {
     if (!authorizationCode) {
@@ -93,6 +106,19 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Google OAuth Mobile Login' })
   @ApiOkResponse({ description: 'Returns JWT token and user data' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        authorizationCode: {
+          type: 'string',
+          example: '4/0AfJohXAAAB',
+          description: 'OAuth authorization code from Google',
+        },
+      },
+      required: ['authorizationCode'],
+    },
+  })
   @Post('google/mobile')
   async googleAuthMobile(@Body('authorizationCode') authorizationCode: string) {
     if (!authorizationCode) {

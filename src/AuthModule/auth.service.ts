@@ -79,7 +79,11 @@ export class AuthService {
   }
 
   private generateAppleClientSecret(): string {
-    return jwt.sign({}, this.configService.get<string>('APPLE_PRIVATE_KEY'), {
+    const privateKey = this.configService
+      .get<string>('APPLE_PRIVATE_KEY')
+      .replace(/\\n/g, '\n'); // Преобразуем в многострочный PEM-формат
+
+    return jwt.sign({}, privateKey, {
       algorithm: 'ES256',
       keyid: this.configService.get<string>('APPLE_KEY_ID'),
       issuer: this.configService.get<string>('APPLE_TEAM_ID'),

@@ -79,18 +79,25 @@ export class AuthService {
   }
 
   private generateAppleClientSecret(): string {
-    const privateKey = this.configService
-      .get<string>('APPLE_PRIVATE_KEY')
-      .replace(/\\n/g, '\n'); // Преобразуем в многострочный PEM-формат
+    const privateKeyRaw = this.configService.get<string>('APPLE_PRIVATE_KEY');
+    const privateKey = privateKeyRaw.replace(/\\n/g, '\n'); // Преобразуем в многострочный PEM
 
-    return jwt.sign({}, privateKey, {
+    this.logger.log(
+      `Apple OAuth: Raw Private Key (before formatting): ${privateKeyRaw}`,
+    );
+    this.logger.log(`Apple OAuth: Formatted Private Key:\n${privateKey}`);
+
+    const clientSecret = jwt.sign({}, privateKey, {
       algorithm: 'ES256',
       keyid: this.configService.get<string>('APPLE_KEY_ID'),
       issuer: this.configService.get<string>('APPLE_TEAM_ID'),
-      audience: 'https://appleid.apple.com',
       subject: this.configService.get<string>('APPLE_CLIENT_ID'),
+      audience: 'https://appleid.apple.com',
       expiresIn: '1h',
     });
+
+    this.logger.log(`Apple OAuth: Generated client_secret: ${clientSecret}`);
+    return clientSecret;
   }
 
   async register(body: RegisterDto) {

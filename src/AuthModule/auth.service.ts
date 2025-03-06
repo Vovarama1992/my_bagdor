@@ -103,10 +103,35 @@ export class AuthService {
       });
 
       if (existingUser) {
-        this.logger.warn(`User already exists: email=${email}, phone=${phone}`);
-        throw new ForbiddenException(
-          'User with this phone or email already exists',
-        );
+        if (!existingUser.isEmailVerified) {
+          this.logger.warn(`User exists but not verified: email=${email}`);
+
+          // Генерируем новый код подтверждения
+          const verificationCode = Math.floor(
+            100000 + Math.random() * 900000,
+          ).toString();
+          this.logger.log(`Generated verification code: ${verificationCode}`);
+
+          // Обновляем код в Redis и отправляем его на почту
+          await this.redisService.set(
+            `email_verification:${email}`,
+            verificationCode,
+            300,
+          );
+          await this.emailService.sendVerificationEmail(
+            email,
+            verificationCode,
+          );
+
+          return {
+            userId: existingUser.id,
+            message:
+              'Verification required. A new verification code has been sent to your email.',
+          };
+        }
+
+        this.logger.warn(`User already registered: email=${email}`);
+        throw new ForbiddenException('User with this email already exists');
       }
 
       this.logger.log(`Hashing password...`);

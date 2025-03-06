@@ -306,7 +306,7 @@ export class AuthService {
           existingUser = await dbPending.user.create({
             data: {
               email: user.email,
-              phone: user.phone || '',
+              phone: user.phone && user.phone.trim() !== '' ? user.phone : null,
               firstName: user.firstName || '',
               lastName: user.lastName || '',
               googleId: user.googleId || null,

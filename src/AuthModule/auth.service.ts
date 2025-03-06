@@ -447,48 +447,20 @@ export class AuthService {
     }
   }
 
-  async handleGoogleMobileAuth(authorizationCode: string) {
+  async handleGoogleMobileAuth(accessToken: string) {
     try {
-      this.logger.log(
-        `Google OAuth: received authorizationCode=${authorizationCode}`,
-      );
+      this.logger.log(`Google OAuth: received accessToken=${accessToken}`);
 
-      const tokenResponse = await axios.post(
-        'https://oauth2.googleapis.com/token',
-        new URLSearchParams({
-          client_id: this.configService.get<string>('GOOGLE_CLIENT_ID'),
-          client_secret: this.configService.get<string>('GOOGLE_CLIENT_SECRET'),
-          code: authorizationCode,
-          grant_type: 'authorization_code',
-          redirect_uri: this.configService.get<string>('GOOGLE_CALLBACK_URL'),
-        }).toString(),
-        {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        },
-      );
-
-      this.logger.log(
-        `Google OAuth: token response=${JSON.stringify(tokenResponse.data)}`,
-      );
-
-      if (!tokenResponse.data.access_token) {
-        const errorMessage =
-          'Google OAuth failed: Missing access_token in response';
-        this.logger.error(errorMessage);
-        throw new BadRequestException(errorMessage);
-      }
-
+      // Запрос к Google API для получения данных юзера
       const userInfoResponse = await axios.get(
         'https://www.googleapis.com/oauth2/v2/userinfo',
         {
-          headers: {
-            Authorization: `Bearer ${tokenResponse.data.access_token}`,
-          },
+          headers: { Authorization: `Bearer ${accessToken}` },
         },
       );
 
       this.logger.log(
-        `Google OAuth: user info=${JSON.stringify(userInfoResponse.data)}`,
+        `Google OAuth: user info response=${JSON.stringify(userInfoResponse.data)}`,
       );
 
       const user: OAuthUserDto = {

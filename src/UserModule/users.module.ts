@@ -24,5 +24,6 @@ import { RedisModule } from 'src/RedisModule/redis.module';
   ],
   controllers: [UsersController],
   providers: [UsersService, PrismaService],
+  exports: [UsersService],
 })
 export class UsersModule {}

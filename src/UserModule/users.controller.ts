@@ -1,4 +1,12 @@
-import { Controller, Get, Put, Request, Body, Post } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Request,
+  Body,
+  Post,
+  Headers,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { Request as Req } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
@@ -31,6 +39,13 @@ export class UsersController {
   @Put('profile')
   async updateProfile(@Request() req: Req, @Body() body: UpdateProfileDto) {
     return this.usersService.updateProfile(req, body);
+  }
+
+  @ApiOperation({ summary: 'Получить историю поисков пользователя' })
+  @ApiResponse({ status: 200, description: 'История поисков успешно получена' })
+  @Get('search-history')
+  async getUserSearchHistory(@Headers('authorization') authHeader: string) {
+    return this.usersService.getUserSearchHistory(authHeader);
   }
 
   @ApiOperation({ summary: 'Повторная отправка кода подтверждения' })

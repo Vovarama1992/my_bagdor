@@ -9,6 +9,14 @@ export class CreateReviewDto {
   rating: number;
 
   @ApiProperty({
+    example: 123,
+    description: 'ID рейса, к которому относится отзыв',
+    required: true,
+  })
+  @IsInt()
+  flightId: number;
+
+  @ApiProperty({
     example: 'Отличный сервис!',
     description: 'Комментарий к отзыву',
     required: true,

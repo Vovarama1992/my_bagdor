@@ -7,6 +7,9 @@ import { AuthModule } from './AuthModule/auth.module';
 import * as express from 'express';
 import { join } from 'path';
 import { FlightModule } from './FlightModule/flight.module';
+import { TelegramModule } from './TelegramModule/telegram.module';
+import { OrderModule } from './OrderModule/order.module';
+import { ReviewModule } from './ReviewModule/review.module';
 
 @Module({
   imports: [
@@ -19,8 +22,11 @@ import { FlightModule } from './FlightModule/flight.module';
     FlightModule,
 
     JwtModule,
+    OrderModule,
+    ReviewModule,
 
     UsersModule,
+    TelegramModule,
 
     PrismaModule,
   ],

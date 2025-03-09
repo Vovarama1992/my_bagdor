@@ -16,6 +16,7 @@ import { SmsService } from 'src/MessageModule/sms.service';
 import { CreateReviewDto } from './dto/review.dto';
 import { VerifyEmailDto } from 'src/AuthModule/dto/auth.dto';
 import { EmailService } from 'src/MessageModule/email.service';
+import { SearchType } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -67,6 +68,19 @@ export class UsersService {
       this.logger.error(`Token verification failed: ${error.message}`);
       throw new UnauthorizedException('Invalid or expired token');
     }
+  }
+
+  async getUserSearchHistory(authHeader: string) {
+    const user = await this.authenticate(authHeader);
+    const db = this.prismaService.getDatabase(user.dbRegion);
+
+    const history = await db.userSearch.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20, // Ограничиваем последние 20 запросов
+    });
+
+    return { message: 'История поисков', history };
   }
 
   async updateProfile(req: Request, updateData: UpdateProfileDto) {
@@ -279,14 +293,58 @@ export class UsersService {
 
     const db = this.prismaService.getDatabase(user.dbRegion);
 
-    const review = await db.review.create({
-      data: {
+    // Проверяем, существует ли рейс
+    const flight = await db.flight.findUnique({
+      where: { id: reviewData.flightId },
+    });
+
+    if (!flight) {
+      throw new BadRequestException('Рейс не найден');
+    }
+
+    const order = await db.order.findFirst({
+      where: {
+        flightId: reviewData.flightId,
         userId: user.id,
-        rating: reviewData.rating,
-        comment: reviewData.comment,
       },
     });
 
-    return review;
+    if (!order) {
+      throw new ForbiddenException('Вы не участвовали в этом рейсе');
+    }
+
+    const review = await db.review.create({
+      data: {
+        userId: user.id,
+        flightId: reviewData.flightId,
+        orderId: order.id,
+        rating: reviewData.rating,
+        comment: reviewData.comment,
+        accountType: user.accountType,
+        isModerated: false,
+      },
+    });
+
+    return { message: 'Отзыв создан и отправлен на модерацию', review };
+  }
+
+  async saveSearchHistory(
+    userId: number,
+    dbRegion: string,
+    query: string,
+    type: SearchType,
+  ) {
+    this.logger.log(
+      `Saving search history for user ${userId} in ${dbRegion}: ${query} (${type})`,
+    );
+
+    const db = this.prismaService.getDatabase(dbRegion);
+    await db.userSearch.create({
+      data: {
+        userId,
+        query,
+        type,
+      },
+    });
   }
 }

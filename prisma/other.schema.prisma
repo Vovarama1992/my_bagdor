@@ -30,7 +30,7 @@ model User {
   accountType            AccountType @default(CUSTOMER)
   numberOfFlightsPerYear Int         @default(0)
   isRegistered           Boolean     @default(false)
-  isEmailVerified        Boolean @default(false)
+  isEmailVerified        Boolean     @default(false)
   isPhoneVerified        Boolean     @default(false)
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
@@ -39,21 +39,96 @@ model User {
   numberOfFlights        Int         @default(0) // Кол-во перелетов
   numberOfDeliveredOrders Int        @default(0) // Кол-во доставленных заказов (доставок)
 
+  flights                Flight[]    // Рейсы, созданные этим пользователем (перевозчиком)
+  orders                 Order[] 
 
-  reviews                Review[]  
+  reviews                Review[]
+  searches               UserSearch[] // История поиска пользователя
 }
 
-model Review {
-  id          Int     @id @default(autoincrement())
-  userId      Int     
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rating      Int
-  isModerated Boolean @default(false)
-  comment     String
-  createdAt   DateTime @default(now())
+model UserSearch {
+  id        Int        @id @default(autoincrement())
+  userId    Int  
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query     String     // Сам запрос (город, код авиакомпании, номер рейса)
+  type      SearchType // Тип запроса
+  createdAt DateTime   @default(now())
 }
+
+enum SearchType {
+  CITY
+  AIRPORT
+  FLIGHT_NUMBER
+  AIRLINE_CODE
+  FLIGHT_DATE 
+}
+
 
 enum AccountType {
   CUSTOMER
   CARRIER
+}
+
+model Flight {
+  id          Int       @id @default(autoincrement())
+  userId      Int       // ID перевозчика
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departure   String    // Аэропорт отправления (код, например, SVO)
+  arrival     String    // Аэропорт прибытия (код, например, JFK)
+  date        DateTime  // Дата и время рейса
+  description String    // Описание (например, "беру до 5 кг")
+  status      FlightStatus @default(PENDING) // Статус рейса
+  documentUrl String?
+  orders      Order[]   // Связанные заказы
+  createdAt   DateTime  @default(now())
+  reviews     Review[]
+  updatedAt   DateTime  @updatedAt
+}
+
+enum FlightStatus {
+  PENDING      // Ожидает подтверждения
+  CONFIRMED    // Подтверждён, открыт для заказов
+  IN_PROGRESS  // В пути, есть активные заказы
+  ARRIVED      // Прилетел, но не все заказы доставлены
+  COMPLETED    // Завершён (все заказы доставлены)
+  ARCHIVED
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int         // ID заказчика
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flightId    Int?        // ID рейса, к которому привязан заказ
+  flight      Flight?     @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  isAccepted  Boolean     @default(false) // Подтвержден ли заказ
+  description String      // Что перевозим
+  isDone      Boolean     @default(false) // Доставлен ли заказ
+  status      OrderStatus @default(RAW)   // Статус заказа
+  isModerated Boolean     @default(false)
+
+  reviews     Review[]
+  createdAt   DateTime    @default(now())
+}
+
+enum OrderStatus {
+  RAW                 // Заказ создан, но не привязан к рейсу
+  PROCESSED_BY_CUSTOMER // Заказчик указал рейс при создании
+  PROCESSED_BY_CARRIER  // Перевозчик добавил заказ в свой рейс
+  CONFIRMED           // Сделка заключена, заказ принят
+}
+
+model Review {
+  id          Int       @id @default(autoincrement())
+  userId      Int       
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flightId    Int       
+  flight      Flight    @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  orderId     Int       // Привязка к конкретному заказу
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  rating      Int       @default(5) // Добавили рейтинг от 1 до 5
+  isModerated Boolean   @default(false)
+  isDisputed  Boolean   @default(false)
+  accountType AccountType
+  comment     String    
+  createdAt   DateTime  @default(now())
 }

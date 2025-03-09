@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEmail, MinLength } from 'class-validator';
 import { ReviewDto } from './review.dto';
+import { AccountType } from '@prisma/client';
 
 export class UserProfileResponseDto {
   @ApiProperty({ example: 1, required: true })
@@ -64,6 +65,15 @@ export class UserProfileResponseDto {
     required: true,
   })
   numberOfDeliveredOrders: number;
+
+  @ApiProperty({
+    example: 'CARRIER',
+    enum: AccountType,
+    description: 'Тип аккаунта: CUSTOMER или CARRIER',
+    required: false,
+  })
+  @IsOptional()
+  accountType?: AccountType;
 }
 
 export class UpdateProfileDto {

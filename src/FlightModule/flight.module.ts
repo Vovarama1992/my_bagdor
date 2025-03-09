@@ -5,9 +5,10 @@ import { FlightService } from './flight.service';
 import { FlightController } from './flight.controller';
 import { RedisModule } from 'src/RedisModule/redis.module';
 import { TelegramModule } from 'src/TelegramModule/telegram.module';
+import { UsersModule } from 'src/UserModule/users.module';
 
 @Module({
-  imports: [HttpModule, ConfigModule, RedisModule, TelegramModule],
+  imports: [HttpModule, ConfigModule, RedisModule, TelegramModule, UsersModule],
   providers: [FlightService],
   controllers: [FlightController],
 })

@@ -6,9 +6,17 @@ import { FlightController } from './flight.controller';
 import { RedisModule } from 'src/RedisModule/redis.module';
 import { TelegramModule } from 'src/TelegramModule/telegram.module';
 import { UsersModule } from 'src/UserModule/users.module';
+import { PrismaModule } from 'src/PrismaModule/prisma.module';
 
 @Module({
-  imports: [HttpModule, ConfigModule, RedisModule, TelegramModule, UsersModule],
+  imports: [
+    HttpModule,
+    PrismaModule,
+    ConfigModule,
+    RedisModule,
+    TelegramModule,
+    UsersModule,
+  ],
   providers: [FlightService],
   controllers: [FlightController],
 })

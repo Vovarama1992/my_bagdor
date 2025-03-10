@@ -11,7 +11,6 @@ import { UsersService } from './users.service';
 import { Request as Req } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { UserProfileResponseDto, UpdateProfileDto } from './dto/user.dto';
-import { CreateReviewDto, ReviewDto } from './dto/review.dto';
 import { VerifyEmailDto, VerifyPhoneDto } from 'src/AuthModule/dto/auth.dto';
 
 @ApiTags('Users')
@@ -65,18 +64,6 @@ export class UsersController {
   @Post('resend-verification-code')
   async resendVerificationCode(@Body() body: { email: string }) {
     return this.usersService.resendVerificationCode(body.email);
-  }
-
-  @ApiOperation({ summary: 'Добавить отзыв' })
-  @ApiResponse({
-    status: 201,
-    description: 'Отзыв успешно добавлен',
-    type: ReviewDto,
-  })
-  @ApiBody({ type: CreateReviewDto })
-  @Post('review')
-  async createReview(@Request() req: Req, @Body() body: CreateReviewDto) {
-    return this.usersService.createReview(req, body);
   }
 
   @ApiOperation({ summary: 'Подтвердить номер телефона' })

@@ -7,6 +7,10 @@ import {
   Headers,
   Get,
   Delete,
+  Res,
+  BadRequestException,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +21,13 @@ import {
 } from '@nestjs/swagger';
 import { OrderService } from './order.service';
 import { CreateOrderDto, AcceptOrderDto } from './dto/order.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Response } from 'express';
+
+const MEDIA_STORAGE_PATH = path.join(process.cwd(), 'storage', 'order_media');
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -35,6 +46,73 @@ export class OrderController {
     @Body() createOrderDto: CreateOrderDto,
   ) {
     return this.orderService.createOrder(authHeader, createOrderDto);
+  }
+
+  @ApiOperation({ summary: 'Загрузить медиафайлы для заказа' })
+  @ApiParam({ name: 'orderId', example: 1, description: 'ID заказа' })
+  @ApiResponse({ status: 200, description: 'Файлы загружены' })
+  @Post(':orderId/upload-media')
+  @UseInterceptors(
+    FilesInterceptor('files', 10, {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const orderId = req.params.orderId;
+          const orderPath = path.join(MEDIA_STORAGE_PATH, `order_${orderId}`);
+
+          if (!fs.existsSync(orderPath)) {
+            fs.mkdirSync(orderPath, { recursive: true });
+          }
+
+          cb(null, orderPath);
+        },
+        filename: (req, file, cb) => {
+          const orderId = req.params.orderId;
+          const timestamp = Date.now();
+          const random = Math.round(Math.random() * 1e9);
+          const extension = path.extname(file.originalname);
+          cb(null, `order_${orderId}_${timestamp}_${random}${extension}`);
+        },
+      }),
+    }),
+  )
+  async uploadMedia(
+    @Headers('authorization') authHeader: string,
+    @Param('orderId') orderId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('Файлы не загружены');
+    }
+
+    return this.orderService.uploadMedia(
+      authHeader,
+      orderId,
+      files.map((file) => file.filename),
+    );
+  }
+
+  @ApiOperation({ summary: 'Получить медиафайл заказа' })
+  @ApiParam({ name: 'orderId', example: 1, description: 'ID заказа' })
+  @ApiParam({
+    name: 'fileName',
+    example: 'order_1_12345678.jpg',
+    description: 'Имя файла',
+  })
+  @ApiResponse({ status: 200, description: 'Медиафайл отправлен' })
+  @Get(':orderId/media/:fileName')
+  async getMedia(
+    @Param('orderId') orderId: string,
+    @Param('fileName') fileName: string,
+    @Res() res: Response,
+  ) {
+    const orderPath = path.join(MEDIA_STORAGE_PATH, `order_${orderId}`);
+    const filePath = path.join(orderPath, fileName);
+
+    if (!fs.existsSync(filePath)) {
+      throw new BadRequestException('Файл не найден');
+    }
+
+    return res.sendFile(filePath);
   }
 
   @ApiOperation({ summary: 'Подтвердить заказ' })

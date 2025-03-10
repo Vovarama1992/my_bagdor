@@ -42,10 +42,11 @@ model User {
   flights                Flight[]    // Рейсы, созданные этим пользователем (перевозчиком)
   orders                 Order[] 
 
-  reviews                Review[]
+  reviewsGiven           Review[]    @relation("ReviewFromUser")
+  reviewsReceived        Review[]    @relation("ReviewToUser")
+
   searches               UserSearch[] // История поиска пользователя
 }
-
 model UserSearch {
   id        Int        @id @default(autoincrement())
   userId    Int  
@@ -95,19 +96,28 @@ enum FlightStatus {
 }
 
 model Order {
-  id          Int         @id @default(autoincrement())
-  userId      Int         // ID заказчика
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  flightId    Int?        // ID рейса, к которому привязан заказ
-  flight      Flight?     @relation(fields: [flightId], references: [id], onDelete: Cascade)
-  isAccepted  Boolean     @default(false) // Подтвержден ли заказ
-  description String      // Что перевозим
-  isDone      Boolean     @default(false) // Доставлен ли заказ
-  isModerated Boolean     @default(false)
+  id            Int         @id @default(autoincrement())
+  userId        Int         // ID заказчика
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flightId      Int?        // ID рейса (может быть NULL)
+  flight        Flight?     @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  isAccepted    Boolean     @default(false) // Подтвержден ли заказ
+  description   String      // Что перевозим
+  status        OrderStatus @default(RAW)   // Статус заказа
+  isModerated   Boolean     @default(false) // Прошел ли модерацию
+  isDone        Boolean     @default(false)
 
-  reviews     Review[]
-  status      OrderStatus @default(RAW)   // Статус заказа
-  createdAt   DateTime    @default(now())
+  // ✅ **Добавляем новые поля**
+  price         Float?      // 💰 Стоимость заказа
+  reward        Float?      // 🎁 Вознаграждение перевозчику
+  deliveryStart DateTime?   // 🚚 Начало периода доставки
+  deliveryEnd   DateTime?   // 🚚 Конец периода доставки
+  departure     String?     // 📍 Откуда (город/аэропорт)
+  arrival       String?     // 📍 Куда (город/аэропорт)
+  mediaUrls     String[]    // 📸 Список URL на фото/видео заказа
+
+  reviews       Review[]
+  createdAt     DateTime    @default(now())
 }
 
 enum OrderStatus {
@@ -119,13 +129,18 @@ enum OrderStatus {
 
 model Review {
   id          Int       @id @default(autoincrement())
-  userId      Int       
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromUserId  Int
+  fromUser    User      @relation(fields: [fromUserId], references: [id], onDelete: Cascade, name: "ReviewFromUser")
+
+  toUserId    Int
+  toUser      User      @relation(fields: [toUserId], references: [id], onDelete: Cascade, name: "ReviewToUser")
+
   flightId    Int       
   flight      Flight    @relation(fields: [flightId], references: [id], onDelete: Cascade)
-  orderId     Int       // Привязка к конкретному заказу
+  orderId     Int       
   order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  rating      Int       @default(5) // Добавили рейтинг от 1 до 5
+
+  rating      Int       @default(5) // Рейтинг от 1 до 5
   isModerated Boolean   @default(false)
   isDisputed  Boolean   @default(false)
   accountType AccountType

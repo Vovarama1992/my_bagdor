@@ -13,7 +13,6 @@ import { Request } from 'express';
 import { AuthenticatedUser, UpdateProfileDto } from './dto/user.dto';
 import { RedisService } from 'src/RedisModule/redis.service';
 import { SmsService } from 'src/MessageModule/sms.service';
-import { CreateReviewDto } from './dto/review.dto';
 import { VerifyEmailDto } from 'src/AuthModule/dto/auth.dto';
 import { EmailService } from 'src/MessageModule/email.service';
 import { SearchType } from '@prisma/client';
@@ -283,49 +282,6 @@ export class UsersService {
     await this.redisService.del(`email_verification:${body.email}`);
 
     return { message: 'Email verified and user moved successfully' };
-  }
-
-  async createReview(req: Request, reviewData: CreateReviewDto) {
-    const user = await this.authenticate(req.headers.authorization);
-    this.logger.log(
-      `Creating review for user ID: ${user.id} in ${user.dbRegion}`,
-    );
-
-    const db = this.prismaService.getDatabase(user.dbRegion);
-
-    // Проверяем, существует ли рейс
-    const flight = await db.flight.findUnique({
-      where: { id: reviewData.flightId },
-    });
-
-    if (!flight) {
-      throw new BadRequestException('Рейс не найден');
-    }
-
-    const order = await db.order.findFirst({
-      where: {
-        flightId: reviewData.flightId,
-        userId: user.id,
-      },
-    });
-
-    if (!order) {
-      throw new ForbiddenException('Вы не участвовали в этом рейсе');
-    }
-
-    const review = await db.review.create({
-      data: {
-        userId: user.id,
-        flightId: reviewData.flightId,
-        orderId: order.id,
-        rating: reviewData.rating,
-        comment: reviewData.comment,
-        accountType: user.accountType,
-        isModerated: false,
-      },
-    });
-
-    return { message: 'Отзыв создан и отправлен на модерацию', review };
   }
 
   async saveSearchHistory(

@@ -9,14 +9,20 @@ import { UsersService } from 'src/UserModule/users.service';
 import { CreateOrderDto, AcceptOrderDto } from './dto/order.dto';
 import { Flight, FlightStatus, OrderStatus } from '@prisma/client';
 import { TelegramService } from 'src/TelegramModule/telegram.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class OrderService {
+  private readonly baseUrl: string;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly telegramService: TelegramService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.baseUrl = this.configService.get<string>('BASE_URL');
+  }
 
   async createOrder(authHeader: string, createOrderDto: CreateOrderDto) {
     const user = await this.usersService.authenticate(authHeader);
@@ -46,19 +52,37 @@ export class OrderService {
       },
     });
 
-    await this.telegramService.sendOrderForModeration(
-      order,
-      {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-      },
-      user.dbRegion,
-    );
+    await this.telegramService.sendOrderForModeration(order.id, user.dbRegion);
 
     return { message: 'Заказ создан и отправлен на модерацию', order };
+  }
+
+  async uploadMedia(authHeader: string, orderId: string, fileNames: string[]) {
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    const order = await db.order.findUnique({
+      where: { id: Number(orderId) },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Заказ не найден');
+    }
+
+    if (order.userId !== user.id) {
+      throw new ForbiddenException('Вы не владелец этого заказа');
+    }
+
+    const mediaUrls = fileNames.map(
+      (file) => `${this.baseUrl}/orders/${orderId}/media/${file}`,
+    );
+
+    await db.order.update({
+      where: { id: Number(orderId) },
+      data: { mediaUrls: { push: mediaUrls } },
+    });
+
+    return { message: 'Файлы загружены', mediaUrls };
   }
 
   async getUnmoderatedOrders(authHeader: string) {

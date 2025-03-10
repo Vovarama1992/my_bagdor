@@ -23,6 +23,7 @@ export class FlightService {
   private readonly apiUrl: string;
   private readonly apiKey: string;
   private readonly cacheTTL = 60 * 60; // 1 час
+  private readonly baseUrl: string;
 
   constructor(
     private readonly httpService: HttpService,
@@ -36,6 +37,7 @@ export class FlightService {
       'FR24_API_URL',
       'https://fr24api.flightradar24.com/api/sandbox',
     );
+    this.baseUrl = this.configService.get<string>('BASE_URL');
     this.apiKey = this.configService.get<string>('FR24_PRODUCTION_KEY');
     this.logger.log(`FlightService initialized with API URL: ${this.apiUrl}`);
   }
@@ -79,9 +81,38 @@ export class FlightService {
       },
     });
 
-    await this.telegramService.sendFlightForModeration(flight, user.dbRegion);
+    await this.telegramService.sendFlightForModeration(
+      flight.id,
+      user.dbRegion,
+    );
 
     return { message: 'Рейс создан и отправлен на модерацию', flight };
+  }
+
+  async uploadDocument(authHeader: string, flightId: string) {
+    const user = await this.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    const flight = await db.flight.findUnique({
+      where: { id: Number(flightId) },
+    });
+
+    if (!flight) {
+      throw new NotFoundException('Рейс не найден');
+    }
+
+    if (flight.userId !== user.id) {
+      throw new ForbiddenException('Вы не владелец этого рейса');
+    }
+
+    const documentUrl = `${this.baseUrl}/flights/${flightId}/document`;
+
+    await db.flight.update({
+      where: { id: Number(flightId) },
+      data: { documentUrl },
+    });
+
+    return { message: 'Документ загружен', documentUrl };
   }
 
   async searchFlightsForCustomer(

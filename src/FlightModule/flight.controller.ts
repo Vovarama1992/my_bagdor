@@ -8,7 +8,13 @@ import {
   Query,
   Patch,
   Delete,
+  UploadedFile,
+  BadRequestException,
+  UseInterceptors,
+  Res,
+  NotFoundException,
 } from '@nestjs/common';
+import { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -17,13 +23,66 @@ import {
   ApiBody,
   ApiQuery,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import * as fs from 'fs';
+import * as path from 'path';
 import { FlightService } from './flight.service';
 import { CreateFlightDto } from './dto/create-flight.dto';
+import { PrismaService } from 'src/PrismaModule/prisma.service';
+
+const DOCUMENTS_PATH = path.join(process.cwd(), 'storage', 'flight_documents');
 
 @ApiTags('Flights')
 @Controller('flights')
 export class FlightController {
-  constructor(private readonly flightService: FlightService) {}
+  constructor(
+    private readonly flightService: FlightService,
+    private readonly prismaService: PrismaService,
+  ) {}
+  @Post(':flightId/upload-document')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          if (!fs.existsSync(DOCUMENTS_PATH)) {
+            fs.mkdirSync(DOCUMENTS_PATH, { recursive: true });
+          }
+          cb(null, DOCUMENTS_PATH);
+        },
+        filename: (req, file, cb) => {
+          const flightId = req.params.flightId;
+          const extension = path.extname(file.originalname);
+          cb(null, `flight_${flightId}${extension}`);
+        },
+      }),
+    }),
+  )
+  async uploadDocument(
+    @Headers('authorization') authHeader: string,
+    @Param('flightId') flightId: string,
+    @UploadedFile() file,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Файл не загружен');
+    }
+
+    return this.flightService.uploadDocument(authHeader, flightId);
+  }
+
+  @Get(':flightId/document')
+  async getDocument(@Param('flightId') flightId: string, @Res() res: Response) {
+    const file = fs
+      .readdirSync(DOCUMENTS_PATH)
+      .find((f) => f.startsWith(`flight_${flightId}`));
+
+    if (!file) {
+      throw new NotFoundException('Документ не найден');
+    }
+
+    const filePath = path.join(DOCUMENTS_PATH, file);
+    return res.sendFile(filePath);
+  }
 
   @ApiOperation({ summary: 'Создать новый рейс (перевозчик)' })
   @ApiResponse({

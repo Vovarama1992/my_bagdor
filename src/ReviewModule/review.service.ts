@@ -27,16 +27,28 @@ export class ReviewService {
     }
 
     const existingReview = await db.review.findFirst({
-      where: { orderId: order.id, userId: user.id },
+      where: { orderId: order.id, fromUserId: user.id },
     });
 
     if (existingReview) {
       throw new BadRequestException('Вы уже оставили отзыв на этот заказ');
     }
 
+    let toUserId: number;
+    if (user.id === order.userId) {
+      toUserId = order.flight?.userId ?? null;
+    } else if (user.id === order.flight?.userId) {
+      toUserId = order.userId;
+    } else {
+      throw new BadRequestException(
+        'Вы не можете оставлять отзыв на этот заказ',
+      );
+    }
+
     const review = await db.review.create({
       data: {
-        userId: user.id,
+        fromUserId: user.id,
+        toUserId: toUserId,
         flightId: createReviewDto.flightId,
         orderId: createReviewDto.orderId,
         comment: createReviewDto.comment,
@@ -68,14 +80,7 @@ export class ReviewService {
     }
 
     await this.telegramService.sendReviewForModeration(
-      review,
-      {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-      },
+      review.id,
       user.dbRegion,
     );
 

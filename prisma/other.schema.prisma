@@ -117,6 +117,8 @@ model Order {
   arrival       String      // 🔹 📍 Куда (город/аэропорт)
   mediaUrls     String[]    // 🔹 📸 Список URL на фото/видео заказа
 
+  productLink   String?
+
   reviews       Review[]
   createdAt     DateTime    @default(now())
 }

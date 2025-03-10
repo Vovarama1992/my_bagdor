@@ -114,15 +114,18 @@ export class TelegramService {
       where: { id: orderId },
       include: { user: true },
     });
+
     if (!order) return;
 
     const message = `📦 *Новый заказ на модерации*
-👤 Пользователь: ${order.user.lastName} (ID: ${order.userId})
-📜 Описание: ${order.description}
-💰 Стоимость: ${order.price} ₽
-🎁 Вознаграждение: ${order.reward} ₽
-📅 Доставка: ${order.deliveryStart ? new Date(order.deliveryStart).toLocaleDateString() : 'Не указано'} – ${order.deliveryEnd ? new Date(order.deliveryEnd).toLocaleDateString() : 'Не указано'}
-📍 Маршрут: ${order.departure} → ${order.arrival}`;
+  👤 Пользователь: ${order.user.lastName} (ID: ${order.userId})
+  📜 Описание: ${order.description}
+  💰 Стоимость: ${order.price ? `${order.price} ₽` : 'Не указано'}
+  🎁 Вознаграждение: ${order.reward ? `${order.reward} ₽` : 'Не указано'}
+  📅 Доставка: ${order.deliveryStart ? new Date(order.deliveryStart).toLocaleDateString() : 'Не указано'} – ${order.deliveryEnd ? new Date(order.deliveryEnd).toLocaleDateString() : 'Не указано'}
+  📍 Маршрут: ${order.departure || 'Не указано'} → ${order.arrival || 'Не указано'}
+  🔄 Статус: ${order.status}
+  🚚 Доставлен: ${order.isDone ? 'Да' : 'Нет'}`;
 
     await this.bot.telegram.sendMessage(this.moderatorChatId, message);
 

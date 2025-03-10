@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsInt,
   IsString,
@@ -6,6 +6,7 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsOptional,
 } from 'class-validator';
 import { OrderType } from '@prisma/client';
 
@@ -86,6 +87,14 @@ export class CreateOrderDto {
   })
   @IsString()
   arrival: string;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/product/123',
+    description: 'Ссылка на товар',
+  })
+  @IsOptional()
+  @IsString()
+  productLink?: string;
 
   @ApiProperty({
     example: ['https://example.com/photo1.jpg'],

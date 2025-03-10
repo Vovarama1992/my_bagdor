@@ -61,15 +61,18 @@ export class ModerationService {
       where: { isModerated: false },
       include: { user: true },
     });
+
     for (const order of orders) {
       await ctx.reply(
         `📦 *Заказ #${order.id}*
-👤 Пользователь: ${order.user.lastName} (ID: ${order.userId})
-📜 Описание: ${order.description}
-💰 Стоимость: ${order.price} ₽
-🎁 Вознаграждение: ${order.reward} ₽
-📅 Доставка: ${order.deliveryStart ? new Date(order.deliveryStart).toLocaleDateString() : 'Не указано'} – ${order.deliveryEnd ? new Date(order.deliveryEnd).toLocaleDateString() : 'Не указано'}
-📍 Маршрут: ${order.departure} → ${order.arrival}`,
+  👤 Пользователь: ${order.user.lastName} (ID: ${order.userId})
+  📜 Описание: ${order.description}
+  💰 Стоимость: ${order.price ? `${order.price} ₽` : 'Не указано'}
+  🎁 Вознаграждение: ${order.reward ? `${order.reward} ₽` : 'Не указано'}
+  📅 Доставка: ${order.deliveryStart ? new Date(order.deliveryStart).toLocaleDateString() : 'Не указано'} – ${order.deliveryEnd ? new Date(order.deliveryEnd).toLocaleDateString() : 'Не указано'}
+  📍 Маршрут: ${order.departure || 'Не указано'} → ${order.arrival || 'Не указано'}
+  🔄 Статус: ${order.status}
+  🚚 Доставлен: ${order.isDone ? 'Да' : 'Нет'}`,
         Markup.inlineKeyboard([
           [
             Markup.button.callback(
@@ -86,7 +89,7 @@ export class ModerationService {
         ]),
       );
 
-      if (order.mediaUrls.length > 0) {
+      if (order.mediaUrls && order.mediaUrls.length > 0) {
         const media: (InputMediaPhoto | InputMediaVideo)[] =
           order.mediaUrls.map((url) => ({
             type: url.endsWith('.mp4') ? 'video' : 'photo',

@@ -75,6 +75,22 @@ export class OrderController {
       }),
     }),
   )
+  @ApiOperation({ summary: 'Обновить заказ (добавить flightId)' })
+  @ApiParam({ name: 'orderId', example: 1, description: 'ID заказа' })
+  @ApiResponse({ status: 200, description: 'Заказ обновлён' })
+  @Patch(':orderId')
+  async updateOrder(
+    @Headers('authorization') authHeader: string,
+    @Param('orderId') orderId: string,
+    @Body() updateData: { flightId: number },
+  ) {
+    return this.orderService.updateOrder(
+      authHeader,
+      Number(orderId),
+      updateData,
+    );
+  }
+
   async uploadMedia(
     @Headers('authorization') authHeader: string,
     @Param('orderId') orderId: string,

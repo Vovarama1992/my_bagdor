@@ -101,23 +101,29 @@ model Order {
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   flightId      Int?        // ID рейса (может быть NULL)
   flight        Flight?     @relation(fields: [flightId], references: [id], onDelete: Cascade)
-  isAccepted    Boolean     @default(false) // Подтвержден ли заказ
-  description   String      // Что перевозим
-  status        OrderStatus @default(RAW)   // Статус заказа
   isModerated   Boolean     @default(false) // Прошел ли модерацию
   isDone        Boolean     @default(false)
-
-  // ✅ **Добавляем новые поля**
-  price         Float?      // 💰 Стоимость заказа
-  reward        Float?      // 🎁 Вознаграждение перевозчику
-  deliveryStart DateTime?   // 🚚 Начало периода доставки
-  deliveryEnd   DateTime?   // 🚚 Конец периода доставки
-  departure     String?     // 📍 Откуда (город/аэропорт)
-  arrival       String?     // 📍 Куда (город/аэропорт)
-  mediaUrls     String[]    // 📸 Список URL на фото/видео заказа
+  
+  status        OrderStatus @default(RAW)   // Статус заказа
+  type          OrderType   // 🔹 Тип заказа (документы, личные вещи, покупка из магазина)
+  name          String      // 🔹 Название заказа (например, "Перевезти ноутбук")
+  description   String      // 🔹 Что перевозим
+  price         Float       // 🔹 💰 Стоимость заказа (обязательное поле)
+  reward        Float       // 🔹 🎁 Вознаграждение перевозчику (обязательное поле)
+  deliveryStart DateTime    // 🔹 🚚 Начало периода доставки
+  deliveryEnd   DateTime    // 🔹 🚚 Конец периода доставки
+  departure     String      // 🔹 📍 Откуда (город/аэропорт)
+  arrival       String      // 🔹 📍 Куда (город/аэропорт)
+  mediaUrls     String[]    // 🔹 📸 Список URL на фото/видео заказа
 
   reviews       Review[]
   createdAt     DateTime    @default(now())
+}
+
+enum OrderType {
+  DOCUMENTS       // 📄 Документы
+  STORE_PURCHASE  // 🛍 Покупка из магазина
+  PERSONAL_ITEMS  // 🎒 Личные вещи
 }
 
 enum OrderStatus {

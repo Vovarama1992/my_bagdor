@@ -1,10 +1,35 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, IsBoolean } from 'class-validator';
+import {
+  IsInt,
+  IsString,
+  IsNumber,
+  IsArray,
+  IsDateString,
+  IsEnum,
+} from 'class-validator';
+import { OrderType } from '@prisma/client';
 
 export class CreateOrderDto {
   @ApiProperty({ example: 1, description: 'ID заказчика', required: true })
   @IsInt()
   userId: number;
+
+  @ApiProperty({
+    example: 'DOCUMENTS',
+    description: 'Тип заказа (документы, личные вещи, покупка из магазина)',
+    enum: OrderType,
+    required: true,
+  })
+  @IsEnum(OrderType)
+  type: OrderType;
+
+  @ApiProperty({
+    example: 'Перевезти ноутбук',
+    description: 'Название заказа',
+    required: true,
+  })
+  @IsString()
+  name: string;
 
   @ApiProperty({
     example: 'Нужен курьер для перевозки документов',
@@ -15,31 +40,70 @@ export class CreateOrderDto {
   description: string;
 
   @ApiProperty({
-    example: 10,
-    description: 'ID рейса, к которому привязывается заказ (если известен)',
+    example: 500,
+    description: 'Стоимость заказа',
+    required: true,
+  })
+  @IsNumber()
+  price: number;
+
+  @ApiProperty({
+    example: 100,
+    description: 'Вознаграждение перевозчику',
+    required: true,
+  })
+  @IsNumber()
+  reward: number;
+
+  @ApiProperty({
+    example: '2025-03-15T10:00:00Z',
+    description: 'Начало периода доставки',
+    required: true,
+  })
+  @IsDateString()
+  deliveryStart: string;
+
+  @ApiProperty({
+    example: '2025-03-20T18:00:00Z',
+    description: 'Конец периода доставки',
+    required: true,
+  })
+  @IsDateString()
+  deliveryEnd: string;
+
+  @ApiProperty({
+    example: 'Москва',
+    description: 'Город отправления',
+    required: true,
+  })
+  @IsString()
+  departure: string;
+
+  @ApiProperty({
+    example: 'Париж',
+    description: 'Город прибытия',
+    required: true,
+  })
+  @IsString()
+  arrival: string;
+
+  @ApiProperty({
+    example: ['https://example.com/photo1.jpg'],
+    description: 'Ссылки на медиафайлы',
     required: false,
   })
-  @IsOptional()
-  @IsInt()
-  flightId?: number;
+  @IsArray()
+  @IsString({ each: true })
+  mediaUrls?: string[];
 }
 
 export class AcceptOrderDto {
-  @ApiProperty({
-    example: true,
-    description: 'Подтвержден ли заказ (исполнителем или заказчиком)',
-    required: true,
-  })
-  @IsBoolean()
-  isAccepted: boolean;
-
   @ApiProperty({
     example: 10,
     description:
       'ID рейса, к которому привязывается заказ (если подтверждает перевозчик)',
     required: false,
   })
-  @IsOptional()
   @IsInt()
   flightId?: number;
 }

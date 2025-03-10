@@ -133,6 +133,7 @@ export class OrderService {
 
     const order = await db.order.findUnique({
       where: { id: Number(orderId) },
+      include: { flight: true }, // Загружаем связанный рейс
     });
 
     if (!order) {
@@ -143,7 +144,23 @@ export class OrderService {
       throw new BadRequestException('Заказ уже подтверждён');
     }
 
-    if (order.flightId) {
+    if (order.status === OrderStatus.PROCESSED_BY_CUSTOMER) {
+      // Подтвердить может только перевозчик, который отвечает за указанный рейс
+      if (!order.flight || order.flight.userId !== user.id) {
+        throw new ForbiddenException(
+          'Вы не являетесь исполнителем этого рейса',
+        );
+      }
+
+      await db.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.CONFIRMED },
+      });
+
+      return { message: 'Перевозчик подтвердил заказ, сделка заключена' };
+    }
+
+    if (order.status === OrderStatus.PROCESSED_BY_CARRIER) {
       if (order.userId !== user.id) {
         throw new ForbiddenException(
           'Только заказчик может подтвердить этот заказ',
@@ -155,8 +172,10 @@ export class OrderService {
         data: { status: OrderStatus.CONFIRMED },
       });
 
-      return { message: 'Заказ подтверждён заказчиком' };
-    } else {
+      return { message: 'Заказчик подтвердил заказ' };
+    }
+
+    if (order.status === OrderStatus.RAW) {
       if (!acceptOrderDto?.flightId) {
         throw new BadRequestException('Не указан рейс для привязки');
       }
@@ -169,24 +188,24 @@ export class OrderService {
         throw new BadRequestException('Рейс не найден или не подтверждён');
       }
 
+      if (flight.userId !== user.id) {
+        throw new ForbiddenException('Вы не являетесь владельцем этого рейса');
+      }
+
       await db.order.update({
         where: { id: order.id },
         data: {
           flightId: flight.id,
-          status:
-            order.status === OrderStatus.RAW
-              ? OrderStatus.PROCESSED_BY_CARRIER
-              : OrderStatus.CONFIRMED,
+          status: OrderStatus.PROCESSED_BY_CARRIER,
         },
       });
 
-      return {
-        message:
-          order.status === OrderStatus.RAW
-            ? 'Перевозчик назначил заказ на рейс'
-            : 'Перевозчик подтвердил заказ, сделка заключена',
-      };
+      return { message: 'Перевозчик подтвердил заказ' };
     }
+
+    throw new BadRequestException(
+      'Невозможно обработать заказ с таким статусом',
+    );
   }
 
   async getOrdersForCustomer(authHeader: string) {

@@ -3,6 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { Telegraf, Markup, Context } from 'telegraf';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { ModerationService } from './moderation.service';
+import {
+  InputMediaPhoto,
+  InputMediaVideo,
+} from 'telegraf/typings/core/types/typegram';
 
 @Injectable()
 export class TelegramService {
@@ -42,40 +46,6 @@ export class TelegramService {
       await this.moderationService.sendPendingFlights(ctx);
     });
 
-    this.bot.action(
-      /^approve_(flight|review|order)_(\d+)_(\w+)$/,
-      async (ctx) => {
-        const [, type, itemId, dbRegion] = ctx.match;
-        this.logger.log(`Approving ${type} ${itemId} in ${dbRegion}`);
-        await this.moderationService.approveItem(
-          type,
-          Number(itemId),
-          dbRegion,
-        );
-        await ctx.editMessageText(
-          `✅ ${type.toUpperCase()} ${itemId} подтвержден`,
-          {
-            parse_mode: 'Markdown',
-          },
-        );
-      },
-    );
-
-    this.bot.action(
-      /^reject_(flight|review|order)_(\d+)_(\w+)$/,
-      async (ctx) => {
-        const [, type, itemId, dbRegion] = ctx.match;
-        this.logger.log(`Rejecting ${type} ${itemId} in ${dbRegion}`);
-        await this.moderationService.rejectItem(type, Number(itemId), dbRegion);
-        await ctx.editMessageText(
-          `❌ ${type.toUpperCase()} ${itemId} отклонен`,
-          {
-            parse_mode: 'Markdown',
-          },
-        );
-      },
-    );
-
     this.bot.launch();
   }
 
@@ -111,27 +81,28 @@ export class TelegramService {
     dbRegion: string,
   ): Promise<void> {
     const db = this.prisma.getDatabase(dbRegion);
-    const flight = await db.flight.findUnique({ where: { id: flightId } });
+    const flight = await db.flight.findUnique({
+      where: { id: flightId },
+      include: { user: true },
+    });
     if (!flight) return;
 
-    const message = `✈️ *Новый рейс на модерации*\n📍 Откуда: ${flight.departure}\n📍 Куда: ${flight.arrival}\n📅 Дата: ${new Date(flight.date).toLocaleString()}`;
-    await this.bot.telegram.sendMessage(this.moderatorChatId, message, {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [
-          Markup.button.callback(
-            '✅ Подтвердить',
-            `approve_flight_${flight.id}_${dbRegion}`,
-          ),
-        ],
-        [
-          Markup.button.callback(
-            '❌ Отклонить',
-            `reject_flight_${flight.id}_${dbRegion}`,
-          ),
-        ],
-      ]),
-    });
+    const message = `✈️ *Новый рейс на модерации*
+👤 Перевозчик: ${flight.user.lastName} (ID: ${flight.userId})
+📍 Откуда: ${flight.departure}
+📍 Куда: ${flight.arrival}
+📅 Дата: ${new Date(flight.date).toLocaleString()}
+💬 Описание: ${flight.description}`;
+
+    if (flight.documentUrl) {
+      await this.bot.telegram.sendDocument(
+        this.moderatorChatId,
+        flight.documentUrl,
+        { caption: message },
+      );
+    } else {
+      await this.bot.telegram.sendMessage(this.moderatorChatId, message);
+    }
   }
 
   async sendOrderForModeration(
@@ -139,27 +110,31 @@ export class TelegramService {
     dbRegion: string,
   ): Promise<void> {
     const db = this.prisma.getDatabase(dbRegion);
-    const order = await db.order.findUnique({ where: { id: orderId } });
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      include: { user: true },
+    });
     if (!order) return;
 
-    const message = `📦 *Новый заказ на модерации*\n📜 Описание: ${order.description}\n💰 Стоимость: ${order.price} ₽\n🎁 Вознаграждение: ${order.reward} ₽`;
-    await this.bot.telegram.sendMessage(this.moderatorChatId, message, {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [
-          Markup.button.callback(
-            '✅ Подтвердить',
-            `approve_order_${order.id}_${dbRegion}`,
-          ),
-        ],
-        [
-          Markup.button.callback(
-            '❌ Отклонить',
-            `reject_order_${order.id}_${dbRegion}`,
-          ),
-        ],
-      ]),
-    });
+    const message = `📦 *Новый заказ на модерации*
+👤 Пользователь: ${order.user.lastName} (ID: ${order.userId})
+📜 Описание: ${order.description}
+💰 Стоимость: ${order.price} ₽
+🎁 Вознаграждение: ${order.reward} ₽
+📅 Доставка: ${order.deliveryStart ? new Date(order.deliveryStart).toLocaleDateString() : 'Не указано'} – ${order.deliveryEnd ? new Date(order.deliveryEnd).toLocaleDateString() : 'Не указано'}
+📍 Маршрут: ${order.departure} → ${order.arrival}`;
+
+    await this.bot.telegram.sendMessage(this.moderatorChatId, message);
+
+    if (order.mediaUrls.length > 0) {
+      const media: (InputMediaPhoto | InputMediaVideo)[] = order.mediaUrls.map(
+        (url) => ({
+          type: url.endsWith('.mp4') ? 'video' : 'photo',
+          media: url,
+        }),
+      );
+      await this.bot.telegram.sendMediaGroup(this.moderatorChatId, media);
+    }
   }
 
   async sendReviewForModeration(
@@ -167,26 +142,18 @@ export class TelegramService {
     dbRegion: string,
   ): Promise<void> {
     const db = this.prisma.getDatabase(dbRegion);
-    const review = await db.review.findUnique({ where: { id: reviewId } });
+    const review = await db.review.findUnique({
+      where: { id: reviewId },
+      include: { fromUser: true, toUser: true },
+    });
     if (!review) return;
 
-    const message = `📝 *Новый отзыв на модерации*\n⭐ Оценка: ${review.rating}/5\n💬 Комментарий: ${review.comment}`;
-    await this.bot.telegram.sendMessage(this.moderatorChatId, message, {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [
-          Markup.button.callback(
-            '✅ Подтвердить',
-            `approve_review_${review.id}_${dbRegion}`,
-          ),
-        ],
-        [
-          Markup.button.callback(
-            '❌ Отклонить',
-            `reject_review_${review.id}_${dbRegion}`,
-          ),
-        ],
-      ]),
-    });
+    const message = `📝 *Новый отзыв на модерации*
+👤 От кого: ${review.fromUser.lastName} (ID: ${review.fromUserId})
+👤 Кому: ${review.toUser.lastName} (ID: ${review.toUserId})
+⭐ Оценка: ${review.rating}/5
+💬 Комментарий: ${review.comment}`;
+
+    await this.bot.telegram.sendMessage(this.moderatorChatId, message);
   }
 }

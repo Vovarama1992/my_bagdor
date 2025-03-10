@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { Markup, Context } from 'telegraf';
+import {
+  InputMediaPhoto,
+  InputMediaVideo,
+} from 'telegraf/typings/core/types/typegram';
 
 @Injectable()
 export class ModerationService {
@@ -22,10 +26,17 @@ export class ModerationService {
 
   async sendPendingReviews(ctx: Context): Promise<void> {
     const db = this.prisma.getDatabase('PENDING');
-    const reviews = await db.review.findMany({ where: { isModerated: false } });
+    const reviews = await db.review.findMany({
+      where: { isModerated: false },
+      include: { fromUser: true, toUser: true },
+    });
     for (const review of reviews) {
       await ctx.reply(
-        `📝 *Отзыв #${review.id}*\n👤 От кого: ${review.fromUserId}\n👤 Кому: ${review.toUserId}\n⭐ Оценка: ${review.rating}/5\n💬 Комментарий: ${review.comment}`,
+        `📝 *Отзыв #${review.id}*
+👤 От кого: ${review.fromUser.lastName} (ID: ${review.fromUserId})
+👤 Кому: ${review.toUser.lastName} (ID: ${review.toUserId})
+⭐ Оценка: ${review.rating}/5
+💬 Комментарий: ${review.comment}`,
         Markup.inlineKeyboard([
           [
             Markup.button.callback(
@@ -46,10 +57,19 @@ export class ModerationService {
 
   async sendPendingOrders(ctx: Context): Promise<void> {
     const db = this.prisma.getDatabase('PENDING');
-    const orders = await db.order.findMany({ where: { isModerated: false } });
+    const orders = await db.order.findMany({
+      where: { isModerated: false },
+      include: { user: true },
+    });
     for (const order of orders) {
       await ctx.reply(
-        `📦 *Заказ #${order.id}*\n👤 Пользователь: ${order.userId}\n📜 Описание: ${order.description}\n💰 Стоимость: ${order.price} ₽\n🎁 Вознаграждение: ${order.reward} ₽\n📅 Доставка: ${order.deliveryStart ? new Date(order.deliveryStart).toLocaleDateString() : 'Не указано'} – ${order.deliveryEnd ? new Date(order.deliveryEnd).toLocaleDateString() : 'Не указано'}`,
+        `📦 *Заказ #${order.id}*
+👤 Пользователь: ${order.user.lastName} (ID: ${order.userId})
+📜 Описание: ${order.description}
+💰 Стоимость: ${order.price} ₽
+🎁 Вознаграждение: ${order.reward} ₽
+📅 Доставка: ${order.deliveryStart ? new Date(order.deliveryStart).toLocaleDateString() : 'Не указано'} – ${order.deliveryEnd ? new Date(order.deliveryEnd).toLocaleDateString() : 'Не указано'}
+📍 Маршрут: ${order.departure} → ${order.arrival}`,
         Markup.inlineKeyboard([
           [
             Markup.button.callback(
@@ -65,15 +85,32 @@ export class ModerationService {
           ],
         ]),
       );
+
+      if (order.mediaUrls.length > 0) {
+        const media: (InputMediaPhoto | InputMediaVideo)[] =
+          order.mediaUrls.map((url) => ({
+            type: url.endsWith('.mp4') ? 'video' : 'photo',
+            media: url,
+          }));
+        await ctx.replyWithMediaGroup(media);
+      }
     }
   }
 
   async sendPendingFlights(ctx: Context): Promise<void> {
     const db = this.prisma.getDatabase('PENDING');
-    const flights = await db.flight.findMany({ where: { status: 'PENDING' } });
+    const flights = await db.flight.findMany({
+      where: { status: 'PENDING' },
+      include: { user: true },
+    });
     for (const flight of flights) {
       await ctx.reply(
-        `✈️ *Рейс #${flight.id}*\n👤 Перевозчик: ${flight.userId}\n📍 Откуда: ${flight.departure}\n📍 Куда: ${flight.arrival}\n📅 Дата: ${new Date(flight.date).toLocaleString()}`,
+        `✈️ *Рейс #${flight.id}*
+👤 Перевозчик: ${flight.user.lastName} (ID: ${flight.userId})
+📍 Откуда: ${flight.departure}
+📍 Куда: ${flight.arrival}
+📅 Дата: ${new Date(flight.date).toLocaleString()}
+💬 Описание: ${flight.description}`,
         Markup.inlineKeyboard([
           [
             Markup.button.callback(
@@ -89,6 +126,10 @@ export class ModerationService {
           ],
         ]),
       );
+
+      if (flight.documentUrl) {
+        await ctx.replyWithDocument(flight.documentUrl);
+      }
     }
   }
 

@@ -152,74 +152,79 @@ export class TelegramService {
   }
 
   private async sendOrderForModeration(order: Order & { user: User }) {
-    const message = `📦 *Новый заказ на модерации*
-      👤 *Заказчик:* ${order.user.lastName} (ID: ${order.userId})
-      📌 *Название:* ${order.name}
-      📑 *Тип:* ${this.getOrderTypeLabel(order.type)}
-      📜 *Описание:* ${order.description}
-      💰 *Стоимость:* ${order.price} ₽
-      🎁 *Вознаграждение:* ${order.reward} ₽
-      📅 *Доставка:* ${new Date(order.deliveryStart).toLocaleDateString()} – ${new Date(order.deliveryEnd).toLocaleDateString()}
-      📍 *Маршрут:* ${order.departure} → ${order.arrival}`;
+    const message = `📦 *Новый заказ на модерации*\n...`;
 
-    await this.ctx.reply(
-      message,
-      Markup.inlineKeyboard([
-        [Markup.button.callback('✅ Подтвердить', `approve_order_${order.id}`)],
-        [Markup.button.callback('❌ Отклонить', `reject_order_${order.id}`)],
-      ]),
-    );
-
-    if (order.mediaUrls?.length > 0) {
-      await this.sendMedia(order.mediaUrls); // передаем ctx
-    }
-  }
-
-  private async sendFlightForModeration(flight: Flight & { user: User }) {
-    const message = `✈️ *Новый рейс на модерации*
-      👤 *Перевозчик:* ${flight.user.lastName} (ID: ${flight.userId})
-      📍 *Откуда:* ${flight.departure}
-      📍 *Куда:* ${flight.arrival}
-      📅 *Дата:* ${new Date(flight.date).toLocaleString()}
-      💬 *Описание:* ${flight.description}`;
-
-    await this.ctx.reply(
+    await this.bot.telegram.sendMessage(
+      this.moderatorChatId,
       message,
       Markup.inlineKeyboard([
         [
           Markup.button.callback(
             '✅ Подтвердить',
-            `approve_flight_${flight.id}`,
+            `approve_order_${order.id}_${order.dbRegion}`,
           ),
         ],
-        [Markup.button.callback('❌ Отклонить', `reject_flight_${flight.id}`)],
+        [
+          Markup.button.callback(
+            '❌ Отклонить',
+            `reject_order_${order.id}_${order.dbRegion}`,
+          ),
+        ],
+      ]),
+    );
+  }
+
+  private async sendFlightForModeration(flight: Flight & { user: User }) {
+    const message = `✈️ *Новый рейс на модерации*\n...`;
+
+    await this.bot.telegram.sendMessage(
+      this.moderatorChatId,
+      message,
+      Markup.inlineKeyboard([
+        [
+          Markup.button.callback(
+            '✅ Подтвердить',
+            `approve_flight_${flight.id}_${flight.dbRegion}`,
+          ),
+        ],
+        [
+          Markup.button.callback(
+            '❌ Отклонить',
+            `reject_flight_${flight.id}_${flight.dbRegion}`,
+          ),
+        ],
       ]),
     );
 
     if (flight.documentUrl) {
-      await this.ctx.replyWithDocument(flight.documentUrl);
+      await this.bot.telegram.sendDocument(
+        this.moderatorChatId,
+        flight.documentUrl,
+      );
     }
   }
 
   private async sendReviewForModeration(
     review: Review & { fromUser: User } & { toUser: User },
   ) {
-    const message = `📝 *Новый отзыв на модерации*
-      👤 *От кого:* ${review.fromUser.lastName} (ID: ${review.fromUserId})
-      👤 *Кому:* ${review.toUser.lastName} (ID: ${review.toUserId})
-      ⭐ *Оценка:* ${review.rating}/5
-      💬 *Комментарий:* ${review.comment}`;
+    const message = `📝 *Новый отзыв на модерации*\n...`;
 
-    await this.ctx.reply(
+    await this.bot.telegram.sendMessage(
+      this.moderatorChatId,
       message,
       Markup.inlineKeyboard([
         [
           Markup.button.callback(
             '✅ Подтвердить',
-            `approve_review_${review.id}`,
+            `approve_review_${review.id}_${review.dbRegion}`,
           ),
         ],
-        [Markup.button.callback('❌ Отклонить', `reject_review_${review.id}`)],
+        [
+          Markup.button.callback(
+            '❌ Отклонить',
+            `reject_review_${review.id}_${review.dbRegion}`,
+          ),
+        ],
       ]),
     );
   }

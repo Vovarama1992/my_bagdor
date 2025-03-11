@@ -189,6 +189,29 @@ export class FlightService {
     return this.fetchWithCache('airports-light', `${this.apiUrl}/api/airports`);
   }
 
+  async getCities(authHeader: string) {
+    const user = await this.authenticate(authHeader);
+
+    // Сохраняем историю поиска для городов
+    await this.usersService.saveSearchHistory(
+      user.id,
+      user.dbRegion,
+      'ALL_CITIES',
+      SearchType.CITY,
+    );
+
+    // Получаем список аэропортов
+    const airports = await this.fetchWithCache(
+      'airports-light',
+      `${this.apiUrl}/api/airports`,
+    );
+
+    // Извлекаем города из списка аэропортов
+    const cities = airports.map((airport: { city: string }) => airport.city);
+
+    return cities;
+  }
+
   async getFlightByNumber(authHeader: string, flightNumber: string) {
     const user = await this.authenticate(authHeader);
     await this.usersService.saveSearchHistory(

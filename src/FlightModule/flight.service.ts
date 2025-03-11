@@ -245,7 +245,7 @@ export class FlightService {
       SearchType.CITY,
     );
 
-    const apiUrl = `${this.apiUrl}/api/live/flight-positions/light?route=${departure}-${arrival}`;
+    const apiUrl = `${this.apiUrl}/api/live/flight-positions/light?routes=${departure}-${arrival}`;
     this.logger.log(`Запрос к внешнему API: ${apiUrl}`);
 
     try {

@@ -1,17 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
-import { Context } from 'telegraf';
-import {} from 'telegraf/typings/core/types/typegram';
-import { TelegramService } from './telegram.service';
+import { Flight, Order, Review, User } from '@prisma/client';
 
 @Injectable()
 export class ModerationService {
   private readonly logger = new Logger(ModerationService.name);
 
-  constructor(
-    private prisma: PrismaService,
-    private telegramService: TelegramService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async getPendingCounts(): Promise<{
     reviews: number;
@@ -41,90 +36,128 @@ export class ModerationService {
     );
   }
 
-  async sendPendingOrders(ctx: Context): Promise<void> {
-    await this.sendOrdersFromDB(ctx, 'PENDING');
-    await this.sendOrdersFromDB(ctx, 'RU');
-    await this.sendOrdersFromDB(ctx, 'OTHER');
+  async getPendingOrders(): Promise<(Order & { user: User })[]> {
+    const databases = ['PENDING', 'RU', 'OTHER'];
+
+    const orders = await Promise.all(
+      databases.map(async (region) => {
+        const db = this.prisma.getDatabase(region);
+        return db.order.findMany({
+          where: { isModerated: false },
+          include: { user: true },
+        });
+      }),
+    );
+    return orders.flat();
   }
 
-  private async sendOrdersFromDB(
-    ctx: Context,
+  async getPendingFlights(): Promise<(Flight & { user: User })[]> {
+    const databases = ['PENDING', 'RU', 'OTHER'];
+
+    const flights = await Promise.all(
+      databases.map(async (region) => {
+        const db = this.prisma.getDatabase(region);
+        return db.flight.findMany({
+          where: { status: 'PENDING' },
+          include: { user: true },
+        });
+      }),
+    );
+    return flights.flat();
+  }
+
+  async getPendingReviews(): Promise<
+    (Review & { fromUser: User } & { toUser: User })[]
+  > {
+    const databases = ['PENDING', 'RU', 'OTHER'];
+
+    const reviews = await Promise.all(
+      databases.map(async (region) => {
+        const db = this.prisma.getDatabase(region);
+        return db.review.findMany({
+          where: { isModerated: false },
+          include: { fromUser: true, toUser: true },
+        });
+      }),
+    );
+    return reviews.flat();
+  }
+
+  async findOrderById(
     dbRegion: string,
-  ): Promise<void> {
+    orderId: number,
+  ): Promise<(Order & { user: User }) | null> {
     const db = this.prisma.getDatabase(dbRegion);
-    const orders = await db.order.findMany({
-      where: { isModerated: false },
+    return db.order.findUnique({
+      where: { id: orderId },
       include: { user: true },
     });
-
-    for (const order of orders) {
-      await this.telegramService.sendOrderForModeration(order.id, dbRegion);
-    }
   }
 
-  async sendPendingFlights(ctx: Context): Promise<void> {
-    await this.sendFlightsFromDB(ctx, 'PENDING');
-    await this.sendFlightsFromDB(ctx, 'RU');
-    await this.sendFlightsFromDB(ctx, 'OTHER');
-  }
-
-  private async sendFlightsFromDB(
-    ctx: Context,
+  async findFlightById(
     dbRegion: string,
-  ): Promise<void> {
+    flightId: number,
+  ): Promise<(Flight & { user: User }) | null> {
     const db = this.prisma.getDatabase(dbRegion);
-    const flights = await db.flight.findMany({
-      where: { status: 'PENDING' },
+    return db.flight.findUnique({
+      where: { id: flightId },
       include: { user: true },
     });
-
-    for (const flight of flights) {
-      await this.telegramService.sendFlightForModeration(flight.id, dbRegion);
-    }
   }
 
-  async sendPendingReviews(ctx: Context): Promise<void> {
-    await this.sendReviewsFromDB(ctx, 'PENDING');
-    await this.sendReviewsFromDB(ctx, 'RU');
-    await this.sendReviewsFromDB(ctx, 'OTHER');
-  }
-
-  private async sendReviewsFromDB(
-    ctx: Context,
+  async findReviewById(
     dbRegion: string,
-  ): Promise<void> {
+    reviewId: number,
+  ): Promise<(Review & { fromUser: User; toUser: User }) | null> {
     const db = this.prisma.getDatabase(dbRegion);
-    const reviews = await db.review.findMany({
-      where: { isModerated: false },
+    return db.review.findUnique({
+      where: { id: reviewId },
       include: { fromUser: true, toUser: true },
     });
+  }
 
-    for (const review of reviews) {
-      await this.telegramService.sendReviewForModeration(review.id, dbRegion);
+  async approveItem(dbRegion: string, type: string, id: number): Promise<void> {
+    const db = this.prisma.getDatabase(dbRegion);
+
+    try {
+      if (type === 'flight') {
+        await db.flight.update({
+          where: { id },
+          data: { status: 'CONFIRMED' },
+        });
+        this.logger.log(`FLIGHT ${id} approved in ${dbRegion}`);
+      } else if (type === 'review') {
+        await db.review.update({ where: { id }, data: { isModerated: true } });
+        this.logger.log(`REVIEW ${id} approved in ${dbRegion}`);
+      } else if (type === 'order') {
+        await db.order.update({ where: { id }, data: { isModerated: true } });
+        this.logger.log(`ORDER ${id} approved in ${dbRegion}`);
+      }
+    } catch (e) {
+      this.logger.warn(
+        `Failed to approve ${type.toUpperCase()} ${id} in ${dbRegion}: ${e.message}`,
+      );
     }
   }
 
-  async approveItem(type: string, id: number, dbRegion: string): Promise<void> {
+  async rejectItem(dbRegion: string, type: string, id: number): Promise<void> {
     const db = this.prisma.getDatabase(dbRegion);
-    if (type === 'flight') {
-      await db.flight.update({ where: { id }, data: { status: 'CONFIRMED' } });
-    } else if (type === 'review') {
-      await db.review.update({ where: { id }, data: { isModerated: true } });
-    } else if (type === 'order') {
-      await db.order.update({ where: { id }, data: { isModerated: true } });
-    }
-    this.logger.log(`${type.toUpperCase()} ${id} approved in ${dbRegion}`);
-  }
 
-  async rejectItem(type: string, id: number, dbRegion: string): Promise<void> {
-    const db = this.prisma.getDatabase(dbRegion);
-    if (type === 'flight') {
-      await db.flight.delete({ where: { id } });
-    } else if (type === 'review') {
-      await db.review.delete({ where: { id } });
-    } else if (type === 'order') {
-      await db.order.delete({ where: { id } });
+    try {
+      if (type === 'flight') {
+        await db.flight.delete({ where: { id } });
+        this.logger.log(`FLIGHT ${id} rejected in ${dbRegion}`);
+      } else if (type === 'review') {
+        await db.review.delete({ where: { id } });
+        this.logger.log(`REVIEW ${id} rejected in ${dbRegion}`);
+      } else if (type === 'order') {
+        await db.order.delete({ where: { id } });
+        this.logger.log(`ORDER ${id} rejected in ${dbRegion}`);
+      }
+    } catch (e) {
+      this.logger.warn(
+        `Failed to reject ${type.toUpperCase()} ${id} in ${dbRegion}: ${e.message}`,
+      );
     }
-    this.logger.log(`${type.toUpperCase()} ${id} rejected in ${dbRegion}`);
   }
 }

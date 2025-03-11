@@ -35,6 +35,7 @@ export class OrderService {
           userId: user.id,
           type: createOrderDto.type,
           name: createOrderDto.name,
+          dbRegion: user.dbRegion,
           description: createOrderDto.description,
           price: createOrderDto.price,
           reward: createOrderDto.reward,
@@ -45,7 +46,8 @@ export class OrderService {
         },
       });
 
-      await this.telegramService.sendOrderForModeration(
+      await this.telegramService.delegateToModeration(
+        'order',
         order.id,
         user.dbRegion,
       );

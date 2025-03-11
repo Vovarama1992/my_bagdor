@@ -17,35 +17,42 @@ datasource db {
 
 
 model User {
-  id                     Int         @id @default(autoincrement())
-  phone                  String?     @unique
-  email                  String?     @unique
-  firstName              String?
-  lastName               String?
-  nickname               String?
-  password               String?
-  googleId               String?     @unique
-  appleId                String?     @unique
-  telegram               String?
-  accountType            AccountType @default(CUSTOMER)
-  numberOfFlightsPerYear Int         @default(0)
-  isRegistered           Boolean     @default(false)
-  isEmailVerified        Boolean     @default(false)
-  isPhoneVerified        Boolean     @default(false)
-  createdAt              DateTime    @default(now())
-  updatedAt              DateTime    @updatedAt
+  id                      Int         @id @default(autoincrement())
+  phone                   String?     @unique
+  email                   String?     @unique
+  firstName               String?
+  lastName                String?
+  nickname                String?
+  password                String?
+  googleId                String?     @unique
+  appleId                 String?     @unique
+  telegram                String?
+  accountType             AccountType @default(CUSTOMER)
+  numberOfFlightsPerYear  Int         @default(0)
+  isRegistered            Boolean     @default(false)
+  isEmailVerified         Boolean     @default(false)
+  isPhoneVerified         Boolean     @default(false)
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+  
 
-  numberOfOrders         Int         @default(0) // Кол-во заказов
-  numberOfFlights        Int         @default(0) // Кол-во перелетов
+  numberOfOrders          Int         @default(0) // Кол-во заказов
+  numberOfFlights         Int         @default(0) // Кол-во перелетов
   numberOfDeliveredOrders Int        @default(0) // Кол-во доставленных заказов (доставок)
 
-  flights                Flight[]    // Рейсы, созданные этим пользователем (перевозчиком)
-  orders                 Order[] 
+  flights                 Flight[]    // Рейсы, созданные этим пользователем (перевозчиком)
+  orders                  Order[] 
 
-  reviewsGiven           Review[]    @relation("ReviewFromUser")
-  reviewsReceived        Review[]    @relation("ReviewToUser")
+  reviewsGiven            Review[]    @relation("ReviewFromUser")
+  reviewsReceived         Review[]    @relation("ReviewToUser")
 
-  searches               UserSearch[] // История поиска пользователя
+  searches                UserSearch[] // История поиска пользователя
+}
+
+enum DbRegion {
+  PENDING
+  RU
+  OTHER
 }
 
 model UserSearch {
@@ -83,6 +90,7 @@ model Flight {
   documentUrl String?
   orders      Order[]   // Связанные заказы
   createdAt   DateTime  @default(now())
+  dbRegion    DbRegion    @default(PENDING)
   reviews     Review[]
   updatedAt   DateTime  @updatedAt
 }
@@ -116,6 +124,7 @@ model Order {
   departure     String      // 🔹 📍 Откуда (город/аэропорт)
   arrival       String      // 🔹 📍 Куда (город/аэропорт)
   mediaUrls     String[]    // 🔹 📸 Список URL на фото/видео заказа
+  dbRegion      DbRegion    @default(PENDING)
 
   productLink   String?
 
@@ -146,7 +155,8 @@ model Review {
 
   flightId    Int       
   flight      Flight    @relation(fields: [flightId], references: [id], onDelete: Cascade)
-  orderId     Int       
+  orderId     Int
+  dbRegion    DbRegion    @default(PENDING)       
   order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   rating      Int       @default(5) // Рейтинг от 1 до 5

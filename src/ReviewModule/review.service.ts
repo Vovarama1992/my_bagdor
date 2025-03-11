@@ -50,6 +50,7 @@ export class ReviewService {
         fromUserId: user.id,
         toUserId: toUserId,
         flightId: createReviewDto.flightId,
+        dbRegion: user.dbRegion,
         orderId: createReviewDto.orderId,
         comment: createReviewDto.comment,
         rating: createReviewDto.rating,
@@ -79,7 +80,8 @@ export class ReviewService {
       });
     }
 
-    await this.telegramService.sendReviewForModeration(
+    await this.telegramService.delegateToModeration(
+      'review',
       review.id,
       user.dbRegion,
     );

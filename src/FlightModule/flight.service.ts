@@ -73,6 +73,7 @@ export class FlightService {
       data: {
         userId: user.id,
         departure: flightData.departure,
+        dbRegion: user.dbRegion,
         arrival: flightData.arrival,
         date: flightData.date,
         description: flightData.description,
@@ -81,7 +82,8 @@ export class FlightService {
       },
     });
 
-    await this.telegramService.sendFlightForModeration(
+    await this.telegramService.delegateToModeration(
+      'flight',
       flight.id,
       user.dbRegion,
     );
@@ -176,17 +178,6 @@ export class FlightService {
     return { message: 'Рейс помечен как прибыл', flightId };
   }
 
-  async getCities(authHeader: string) {
-    const user = await this.authenticate(authHeader);
-    await this.usersService.saveSearchHistory(
-      user.id,
-      user.dbRegion,
-      'ALL_CITIES',
-      SearchType.CITY,
-    );
-    return this.getAirports(authHeader);
-  }
-
   async getAirports(authHeader: string) {
     const user = await this.authenticate(authHeader);
     await this.usersService.saveSearchHistory(
@@ -195,10 +186,7 @@ export class FlightService {
       'ALL_AIRPORTS',
       SearchType.AIRPORT,
     );
-    return this.fetchWithCache(
-      'airports-light',
-      `${this.apiUrl}/static/airports/light`,
-    );
+    return this.fetchWithCache('airports-light', `${this.apiUrl}/api/airports`);
   }
 
   async getFlightByNumber(authHeader: string, flightNumber: string) {
@@ -211,7 +199,7 @@ export class FlightService {
     );
     return this.fetchWithCache(
       `flight:${flightNumber}`,
-      `${this.apiUrl}/flight-tracks?flight_id=${flightNumber}`,
+      `${this.apiUrl}/api/flights/${flightNumber}`,
     );
   }
 
@@ -229,7 +217,7 @@ export class FlightService {
     );
     return this.fetchWithCache(
       `route:${departure}-${arrival}`,
-      `${this.apiUrl}/live/flight-positions/full?routes=${departure}-${arrival}`,
+      `${this.apiUrl}/api/live/flights?route=${departure}-${arrival}`,
     );
   }
 
@@ -248,7 +236,7 @@ export class FlightService {
     );
     return this.fetchWithCache(
       `route:${departure}-${arrival}:${date}`,
-      `${this.apiUrl}/historic/flight-positions/full?routes=${departure}-${arrival}&timestamp=${date}`,
+      `${this.apiUrl}/api/historic/flights?route=${departure}-${arrival}&date=${date}`,
     );
   }
 
@@ -262,14 +250,14 @@ export class FlightService {
     );
     return this.fetchWithCache(
       `flights:${date}`,
-      `${this.apiUrl}/historic/flight-positions/full?timestamp=${date}`,
+      `${this.apiUrl}/api/historic/flights?date=${date}`,
     );
   }
 
   async getFlightsFromAirportToday(airportCode: string) {
     return this.fetchWithCache(
       `departures:${airportCode}`,
-      `${this.apiUrl}/live/flight-positions/full?airports=outbound:${airportCode}`,
+      `${this.apiUrl}/api/live/flights?departure=${airportCode}`,
     );
   }
 
@@ -285,7 +273,11 @@ export class FlightService {
       this.logger.log(`Cache miss. Fetching data from: ${url}`);
       const response = await firstValueFrom(
         this.httpService.get(url, {
-          headers: { Authorization: `Bearer ${this.apiKey}` },
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            'Accept-Version': 'v1',
+            Accept: 'application/json',
+          },
         }),
       );
 
@@ -304,7 +296,6 @@ export class FlightService {
       );
     }
   }
-
   async getUnmoderatedFlights(authHeader: string) {
     const { dbRegion } = await this.usersService.authenticate(authHeader);
     const db = this.prisma.getDatabase(dbRegion);

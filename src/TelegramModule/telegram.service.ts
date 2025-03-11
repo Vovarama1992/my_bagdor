@@ -152,11 +152,42 @@ export class TelegramService {
   }
 
   private async sendOrderForModeration(order: Order & { user: User }) {
-    const message = `📦 *Новый заказ на модерации*\n...`;
+    const message = `📦 *Новый заказ на модерации*
+  🆔 *ID заказа:* ${order.id}
+  👤 *Заказчик:* ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})
+  📌 *Название:* ${order.name}
+  📜 *Описание:* ${order.description}
+  💰 *Стоимость:* ${order.price} ₽
+  🎁 *Вознаграждение:* ${order.reward} ₽
+  📅 *Доставка:* ${new Date(order.deliveryStart).toLocaleDateString()} – ${new Date(order.deliveryEnd).toLocaleDateString()}
+  📍 *Маршрут:* ${order.departure} → ${order.arrival}`;
+
+    if (order.mediaUrls?.length > 0) {
+      const mediaGroup: (InputMediaPhoto | InputMediaVideo)[] =
+        order.mediaUrls.map((url, index) => {
+          if (url.endsWith('.mp4')) {
+            return {
+              type: 'video',
+              media: url,
+              caption: index === 0 ? message : undefined, // Только первый файл получает подпись
+            } as InputMediaVideo;
+          } else {
+            return {
+              type: 'photo',
+              media: url,
+              caption: index === 0 ? message : undefined,
+            } as InputMediaPhoto;
+          }
+        });
+
+      await this.bot.telegram.sendMediaGroup(this.moderatorChatId, mediaGroup);
+    } else {
+      await this.bot.telegram.sendMessage(this.moderatorChatId, message);
+    }
 
     await this.bot.telegram.sendMessage(
       this.moderatorChatId,
-      message,
+      'Выберите действие:',
       Markup.inlineKeyboard([
         [
           Markup.button.callback(
@@ -175,11 +206,26 @@ export class TelegramService {
   }
 
   private async sendFlightForModeration(flight: Flight & { user: User }) {
-    const message = `✈️ *Новый рейс на модерации*\n...`;
+    const message = `✈️ *Новый рейс на модерации*
+  🆔 *ID рейса:* ${flight.id}
+  👤 *Перевозчик:* ${flight.user.firstName} ${flight.user.lastName} (ID: ${flight.userId})
+  📍 *Маршрут:* ${flight.departure} → ${flight.arrival}
+  📅 *Дата:* ${new Date(flight.date).toLocaleString()}
+  `;
+
+    if (flight.documentUrl) {
+      await this.bot.telegram.sendDocument(
+        this.moderatorChatId,
+        flight.documentUrl,
+        { caption: message }, // Прикрепляем файл к сообщению
+      );
+    } else {
+      await this.bot.telegram.sendMessage(this.moderatorChatId, message);
+    }
 
     await this.bot.telegram.sendMessage(
       this.moderatorChatId,
-      message,
+      'Выберите действие:',
       Markup.inlineKeyboard([
         [
           Markup.button.callback(
@@ -195,19 +241,16 @@ export class TelegramService {
         ],
       ]),
     );
-
-    if (flight.documentUrl) {
-      await this.bot.telegram.sendDocument(
-        this.moderatorChatId,
-        flight.documentUrl,
-      );
-    }
   }
 
   private async sendReviewForModeration(
     review: Review & { fromUser: User } & { toUser: User },
   ) {
-    const message = `📝 *Новый отзыв на модерации*\n...`;
+    const message = `📝 *Новый отзыв на модерации*
+  👤 *От кого:* ${review.fromUser.firstName} ${review.fromUser.lastName} (ID: ${review.fromUserId})
+  👤 *Кому:* ${review.toUser.firstName} ${review.toUser.lastName} (ID: ${review.toUserId})
+  ⭐ *Оценка:* ${review.rating}/5
+  💬 *Комментарий:* ${review.comment}`;
 
     await this.bot.telegram.sendMessage(
       this.moderatorChatId,
@@ -215,7 +258,7 @@ export class TelegramService {
       Markup.inlineKeyboard([
         [
           Markup.button.callback(
-            '✅ Подтвердить',
+            '✅ Опубликовать',
             `approve_review_${review.id}_${review.dbRegion}`,
           ),
         ],

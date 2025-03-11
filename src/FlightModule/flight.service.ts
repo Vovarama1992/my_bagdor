@@ -231,17 +231,37 @@ export class FlightService {
     departure: string,
     arrival: string,
   ) {
+    this.logger.log(`Получение рейсов по маршруту: ${departure} -> ${arrival}`);
+
     const user = await this.authenticate(authHeader);
+    this.logger.log(
+      `Аутентифицирован пользователь ID: ${user.id}, регион: ${user.dbRegion}`,
+    );
+
     await this.usersService.saveSearchHistory(
       user.id,
       user.dbRegion,
       `${departure}-${arrival}`,
       SearchType.CITY,
     );
-    return this.fetchWithCache(
-      `route:${departure}-${arrival}`,
-      `${this.apiUrl}/api/live/flight-positions/light?routes=${departure}-${arrival}`,
-    );
+
+    const apiUrl = `${this.apiUrl}/api/live/flight-positions/light?routes=${departure}-${arrival}`;
+    this.logger.log(`Запрос к внешнему API: ${apiUrl}`);
+
+    try {
+      const response = await this.fetchWithCache(
+        `route:${departure}-${arrival}`,
+        apiUrl,
+      );
+
+      this.logger.log(
+        `Успешно получены данные от API: ${JSON.stringify(response).slice(0, 500)}...`,
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(`Ошибка при получении данных от API: ${error.message}`);
+      throw error;
+    }
   }
 
   async getFlightsByRouteAndDate(

@@ -240,7 +240,7 @@ export class FlightService {
     );
     return this.fetchWithCache(
       `route:${departure}-${arrival}`,
-      `${this.apiUrl}/api/live/flights?route=${departure}-${arrival}`,
+      `${this.apiUrl}/api/live/flight-positions/light?routes=${departure}-${arrival}`,
     );
   }
 

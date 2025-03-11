@@ -162,7 +162,7 @@ export class AuthService {
       this.logger.log(`User created: id=${newUser.id}`);
 
       const verificationCode = Math.floor(
-        100000 + Math.random() * 900000,
+        10000 + Math.random() * 900000,
       ).toString();
       this.logger.log(`Generated verification code: ${verificationCode}`);
 

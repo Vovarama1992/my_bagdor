@@ -169,7 +169,7 @@ export class TelegramService {
             return {
               type: 'video',
               media: url,
-              caption: index === 0 ? message : undefined, // Только первый файл получает подпись
+              caption: index === 0 ? message : undefined,
             } as InputMediaVideo;
           } else {
             return {

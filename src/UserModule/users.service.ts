@@ -104,7 +104,7 @@ export class UsersService {
       updatePayload.isPhoneVerified = false;
 
       const verificationCode = Math.floor(
-        100000 + Math.random() * 900000,
+        10000 + Math.random() * 900000,
       ).toString();
       await this.redisService.set(
         `phone_verification:${user.id}`,

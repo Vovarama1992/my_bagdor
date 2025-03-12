@@ -119,7 +119,7 @@ export class AuthService {
 
           // Генерируем новый код подтверждения
           const verificationCode = Math.floor(
-            10000 + Math.random() * 900000,
+            10000 + Math.random() * 90000,
           ).toString();
           this.logger.log(`Generated verification code: ${verificationCode}`);
           await this.redisService.del(

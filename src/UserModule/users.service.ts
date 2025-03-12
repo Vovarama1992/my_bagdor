@@ -104,7 +104,7 @@ export class UsersService {
       updatePayload.isPhoneVerified = false;
 
       const verificationCode = Math.floor(
-        10000 + Math.random() * 900000,
+        10000 + Math.random() * 90000,
       ).toString();
       await this.redisService.del(`phone_verification:${user.id}`);
       await this.redisService.set(
@@ -126,7 +126,7 @@ export class UsersService {
       updatePayload.isEmailVerified = false;
 
       const verificationCode = Math.floor(
-        100000 + Math.random() * 900000,
+        100000 + Math.random() * 90000,
       ).toString();
       await this.redisService.del(`email_verification:${user.email}`);
       await this.redisService.set(
@@ -249,54 +249,76 @@ export class UsersService {
       throw new BadRequestException('Invalid verification code');
     }
 
+    // 1. Ищем в PENDING
     const dbPending = this.prismaService.getDatabase('PENDING');
     const user = await dbPending.user.findUnique({
       where: { email: body.email },
     });
 
-    if (!user) {
-      throw new ForbiddenException('User not found in PENDING database');
+    if (user) {
+      // 1.1. Переносим пользователя в RU или OTHER
+      const targetRegion = Math.random() < 0.5 ? 'RU' : 'OTHER';
+      const finalDB = this.prismaService.getDatabase(targetRegion);
+
+      this.logger.log(`Moving user ${user.id} from PENDING to ${targetRegion}`);
+
+      await finalDB.user.create({
+        data: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          password: user.password,
+          isRegistered: true,
+          isEmailVerified: true,
+          accountType: user.accountType,
+        },
+      });
+
+      // 1.2. Удаляем из PENDING
+      await dbPending.user.delete({ where: { id: user.id } });
+      this.logger.log(`User ${user.id} removed from PENDING`);
+    } else {
+      // 2. Если в PENDING нет, ищем в RU или OTHER
+      const dbRU = this.prismaService.getDatabase('RU');
+      const dbOther = this.prismaService.getDatabase('OTHER');
+
+      let existingUser = await dbRU.user.findUnique({
+        where: { email: body.email },
+      });
+      let targetDB = 'RU';
+
+      if (!existingUser) {
+        existingUser = await dbOther.user.findUnique({
+          where: { email: body.email },
+        });
+        targetDB = 'OTHER';
+      }
+
+      if (!existingUser) {
+        this.logger.warn(
+          `User ${body.email} not found in PENDING, RU, or OTHER`,
+        );
+        throw new ForbiddenException('User not found in any database');
+      }
+
+      // 2.1. Обновляем isEmailVerified в RU/OTHER
+      this.logger.log(
+        `Updating isEmailVerified for user ${body.email} in ${targetDB}`,
+      );
+
+      await this.prismaService.getDatabase(targetDB).user.update({
+        where: { email: body.email },
+        data: { isEmailVerified: true },
+      });
     }
 
-    const targetRegion = Math.random() < 0.5 ? 'RU' : 'OTHER';
-    const finalDB = this.prismaService.getDatabase(targetRegion);
-
-    this.logger.log(`Moving user ${user.id} from PENDING to ${targetRegion}`);
-
-    const existingUser = await finalDB.user.findUnique({
-      where: { email: user.email },
-    });
-    if (existingUser && existingUser.isEmailVerified) {
-      this.logger.warn(
-        `User with email ${user.email} already exists in ${targetRegion}`,
-      );
-      throw new ForbiddenException(
-        'User already exists in the target database',
-      );
-    }
-
-    await finalDB.user.create({
-      data: {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        password: user.password,
-        isRegistered: true,
-        isEmailVerified: true,
-        accountType: user.accountType,
-      },
-    });
-
-    await dbPending.user.delete({ where: { id: user.id } });
-
-    this.logger.log(`User ${user.id} successfully moved to ${targetRegion}`);
-
+    // Удаляем ключ из Redis
     await this.redisService.del(`email_verification:${body.email}`);
+    this.logger.log(`Deleted Redis key: email_verification:${body.email}`);
 
-    return { message: 'Email verified and user moved successfully' };
+    return { message: 'Email verified successfully' };
   }
-
   async saveSearchHistory(
     userId: number,
     dbRegion: string,

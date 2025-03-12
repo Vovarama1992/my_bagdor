@@ -99,23 +99,39 @@ export class UsersService {
 
     if (updateData.phone && updateData.phone !== user.phone) {
       this.logger.log(
-        `Phone number changed for user ${user.id}, sending verification code...`,
+        `Phone number change detected for user ${user.id}. Old phone: ${user.phone}, New phone: ${updateData.phone}`,
       );
+
+      // Обнуляем статус верификации номера
       updatePayload.isPhoneVerified = false;
+      this.logger.log(`isPhoneVerified set to false for user ${user.id}`);
 
+      // Генерация нового кода
       const verificationCode = Math.floor(
-        10000 + Math.random() * 90000,
+        10000 + Math.random() * 9000,
       ).toString();
-      await this.redisService.del(`phone_verification:${user.id}`);
-      await this.redisService.set(
-        `phone_verification:${user.id}`,
-        verificationCode,
-        300,
+      this.logger.log(
+        `Generated verification code: ${verificationCode} for user ${user.id}`,
       );
 
+      // Удаляем старый код из Redis
+      const redisKey = `phone_verification:${user.id}`;
+      await this.redisService.del(redisKey);
+      this.logger.log(`Deleted old verification code from Redis: ${redisKey}`);
+
+      // Записываем новый код в Redis
+      await this.redisService.set(redisKey, verificationCode, 300);
+      this.logger.log(
+        `Stored new verification code in Redis: ${redisKey} with TTL: 300s`,
+      );
+
+      // Отправляем код пользователю
       await this.smsService.sendVerificationSms(
         updateData.phone,
         verificationCode,
+      );
+      this.logger.log(
+        `Sent verification SMS to new phone: ${updateData.phone} for user ${user.id}`,
       );
     }
 
@@ -126,7 +142,7 @@ export class UsersService {
       updatePayload.isEmailVerified = false;
 
       const verificationCode = Math.floor(
-        100000 + Math.random() * 90000,
+        10000 + Math.random() * 9000,
       ).toString();
       await this.redisService.del(`email_verification:${user.email}`);
       await this.redisService.set(

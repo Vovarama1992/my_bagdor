@@ -105,13 +105,23 @@ export class AuthService {
       const { firstName, lastName, email, phone, password } = body;
       this.logger.log(`Registering user: email=${email}, phone=${phone}`);
 
-      const db = this.prismaService.getDatabase('PENDING');
-      this.logger.log(`Database instance type: ${db.constructor.name}`);
-      this.logger.log(`Checking if user exists...`);
+      const dbPending = this.prismaService.getDatabase('PENDING');
+      const dbRU = this.prismaService.getDatabase('RU');
+      const dbOther = this.prismaService.getDatabase('OTHER');
 
-      const existingUser = await db.user.findFirst({
-        where: { OR: [{ phone }, { email }] },
-      });
+      this.logger.log(`Checking if user exists in any database...`);
+
+      // Проверяем во всех базах данных
+      const existingUser =
+        (await dbPending.user.findFirst({
+          where: { OR: [{ phone }, { email }] },
+        })) ||
+        (await dbRU.user.findFirst({
+          where: { OR: [{ phone }, { email }] },
+        })) ||
+        (await dbOther.user.findFirst({
+          where: { OR: [{ phone }, { email }] },
+        }));
 
       if (existingUser) {
         if (!existingUser.isEmailVerified) {
@@ -119,7 +129,7 @@ export class AuthService {
 
           // Генерируем новый код подтверждения
           const verificationCode = Math.floor(
-            10000 + Math.random() * 90000,
+            10000 + Math.random() * 9000,
           ).toString();
           this.logger.log(`Generated verification code: ${verificationCode}`);
           await this.redisService.del(
@@ -156,7 +166,7 @@ export class AuthService {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       this.logger.log(`Creating new user...`);
-      const newUser = await db.user.create({
+      const newUser = await dbPending.user.create({
         data: {
           firstName,
           lastName,

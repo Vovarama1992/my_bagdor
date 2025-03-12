@@ -122,6 +122,9 @@ export class AuthService {
             10000 + Math.random() * 900000,
           ).toString();
           this.logger.log(`Generated verification code: ${verificationCode}`);
+          await this.redisService.del(
+            `email_verification:${existingUser.email}`,
+          );
 
           // Обновляем код в Redis и отправляем его на почту
           await this.redisService.set(

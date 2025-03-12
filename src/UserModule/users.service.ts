@@ -126,6 +126,7 @@ export class UsersService {
       const verificationCode = Math.floor(
         100000 + Math.random() * 900000,
       ).toString();
+      await this.redisService.del(`email_verification:${user.email}`);
       await this.redisService.set(
         `email_verification:${updateData.email}`,
         verificationCode,
@@ -253,7 +254,7 @@ export class UsersService {
     const existingUser = await finalDB.user.findUnique({
       where: { email: user.email },
     });
-    if (existingUser) {
+    if (existingUser && existingUser.isEmailVerified) {
       this.logger.warn(
         `User with email ${user.email} already exists in ${targetRegion}`,
       );

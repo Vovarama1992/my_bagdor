@@ -127,6 +127,10 @@ export class AuthService {
           );
 
           // Обновляем код в Redis и отправляем его на почту
+          this.logger.log(
+            `Setting Redis key: email_verification:${email} with value: ${verificationCode} and TTL: 300s`,
+          );
+
           await this.redisService.set(
             `email_verification:${email}`,
             verificationCode,

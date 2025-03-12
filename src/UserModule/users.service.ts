@@ -132,6 +132,9 @@ export class UsersService {
         verificationCode,
         300,
       );
+      this.logger.log(
+        `Setting Redis key: email_verification:${updateData.email} with value: ${verificationCode} and TTL: 300s`,
+      );
       await this.emailService.sendVerificationEmail(
         updateData.email,
         verificationCode,
@@ -233,7 +236,14 @@ export class UsersService {
       `email_verification:${body.email}`,
     );
 
+    this.logger.log(
+      `Retrieving Redis key: email_verification:${body.email}, stored value: ${storedCode}, comparing with input value: ${body.code}`,
+    );
+
     if (!storedCode || storedCode !== body.code) {
+      this.logger.warn(
+        `Verification failed: expected ${storedCode}, received ${body.code}`,
+      );
       throw new BadRequestException('Invalid verification code');
     }
 

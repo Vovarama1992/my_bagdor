@@ -106,11 +106,13 @@ export class UsersService {
       const verificationCode = Math.floor(
         10000 + Math.random() * 900000,
       ).toString();
+      await this.redisService.del(`phone_verification:${user.id}`);
       await this.redisService.set(
         `phone_verification:${user.id}`,
         verificationCode,
         300,
       );
+
       await this.smsService.sendVerificationSms(
         updateData.phone,
         verificationCode,

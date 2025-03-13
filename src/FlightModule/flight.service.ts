@@ -33,13 +33,17 @@ export class FlightService {
     private readonly prisma: PrismaService,
     private readonly telegramService: TelegramService,
   ) {
+    // Используем новый API
     this.apiUrl = this.configService.get<string>(
-      'FR24_API_URL',
-      'https://fr24api.flightradar24.com/api/sandbox',
+      'AVIATION_EDGE_API_URL',
+      'https://aviation-edge.com/v2/public',
     );
+    this.apiKey = this.configService.get<string>('AVIATION_EDGE_API_KEY');
     this.baseUrl = this.configService.get<string>('BASE_URL');
-    this.apiKey = this.configService.get<string>('FR24_PRODUCTION_KEY');
-    this.logger.log(`FlightService initialized with API URL: ${this.apiUrl}`);
+
+    this.logger.log(
+      `FlightService initialized with Aviation Edge API: ${this.apiUrl}`,
+    );
   }
 
   private async authenticate(authHeader: string) {
@@ -271,7 +275,7 @@ export class FlightService {
     date: string,
   ) {
     this.logger.log(
-      `Получение рейсов по маршруту ${departure} -> ${arrival} на ${date}`,
+      `Получение расписания рейсов ${departure} → ${arrival} на ${date}`,
     );
 
     const user = await this.authenticate(authHeader);
@@ -287,24 +291,36 @@ export class FlightService {
     );
 
     const cacheKey = `route:${departure}-${arrival}:${date}`;
-    const apiUrl = `${this.apiUrl}/api/historic/flights?airports=${departure},${arrival}&date=${date}`;
-
     this.logger.log(`Проверка кэша по ключу: ${cacheKey}`);
 
+    // API Aviation Edge НЕ поддерживает поиск по маршруту (SVO → JFK),
+    // поэтому мы делаем 2 запроса: вылеты из SVO и прилеты в JFK
+    const departuresUrl = `${this.apiUrl}/flightsFuture?key=${this.apiKey}&type=departure&iataCode=${departure}&date=${date}`;
+    const arrivalsUrl = `${this.apiUrl}/flightsFuture?key=${this.apiKey}&type=arrival&iataCode=${arrival}&date=${date}`;
+
     try {
-      const response = await this.fetchWithCache(cacheKey, apiUrl);
-      if (!response || response.length === 0) {
-        this.logger.warn(
-          `Данные по маршруту ${departure} -> ${arrival} на ${date} отсутствуют`,
-        );
+      // Делаем 2 запроса параллельно
+      const [departures, arrivals] = await Promise.all([
+        this.fetchWithCache(`${cacheKey}:departures`, departuresUrl),
+        this.fetchWithCache(`${cacheKey}:arrivals`, arrivalsUrl),
+      ]);
+
+      // Фильтруем, чтобы оставить только рейсы с нужным маршрутом
+      const flights = departures.filter((dep) =>
+        arrivals.some((arr) => arr.flight.iataNumber === dep.flight.iataNumber),
+      );
+
+      if (flights.length === 0) {
+        this.logger.warn(`Нет рейсов ${departure} → ${arrival} на ${date}`);
       } else {
         this.logger.log(
-          `Успешно получены данные: ${JSON.stringify(response).slice(0, 500)}...`,
+          `Найдено ${flights.length} рейсов: ${JSON.stringify(flights).slice(0, 500)}...`,
         );
       }
-      return response;
+
+      return flights;
     } catch (error) {
-      this.logger.error(`Ошибка при запросе к Flightradar24: ${error.message}`);
+      this.logger.error(`Ошибка запроса к Aviation Edge: ${error.message}`);
       throw new HttpException(
         'Ошибка получения данных о рейсах',
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -343,15 +359,7 @@ export class FlightService {
       }
 
       this.logger.log(`Cache miss. Fetching data from: ${url}`);
-      const response = await firstValueFrom(
-        this.httpService.get(url, {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            'Accept-Version': 'v1',
-            Accept: 'application/json',
-          },
-        }),
-      );
+      const response = await firstValueFrom(this.httpService.get(url));
 
       this.logger.log(`Data successfully fetched from: ${url}`);
       await this.redisService.set(
@@ -363,7 +371,7 @@ export class FlightService {
     } catch (error) {
       this.logger.error(`Request to ${url} failed: ${error.message}`);
       throw new HttpException(
-        'Ошибка соединения с API Flightradar24',
+        'Ошибка соединения с API Aviation Edge',
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }

@@ -56,13 +56,15 @@ export class UsersService {
 
       const userModel = this.prismaService.getUserModel(dbRegion);
       const user = await userModel.findUnique({ where: { id } });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...userWithoutPass } = user;
 
       if (!user) {
         this.logger.warn(`User ${id} not found in ${dbRegion}`);
         throw new NotFoundException('User not found');
       }
 
-      return { ...user, dbRegion };
+      return { ...userWithoutPass, dbRegion };
     } catch (error) {
       this.logger.error(`Token verification failed: ${error.message}`);
       throw new UnauthorizedException('Invalid or expired token');
@@ -172,7 +174,9 @@ export class UsersService {
     this.logger.log(
       `User ${user.id} profile updated successfully in ${user.dbRegion}`,
     );
-    return updatedUser;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPass } = updatedUser;
+    return userWithoutPass;
   }
 
   async resendVerificationCode(email: string) {

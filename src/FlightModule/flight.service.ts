@@ -270,17 +270,46 @@ export class FlightService {
     arrival: string,
     date: string,
   ) {
+    this.logger.log(
+      `Получение рейсов по маршруту ${departure} -> ${arrival} на ${date}`,
+    );
+
     const user = await this.authenticate(authHeader);
+    this.logger.log(
+      `Аутентифицирован пользователь ID: ${user.id}, регион: ${user.dbRegion}`,
+    );
+
     await this.usersService.saveSearchHistory(
       user.id,
       user.dbRegion,
       `${departure}-${arrival}:${date}`,
       SearchType.CITY,
     );
-    return this.fetchWithCache(
-      `route:${departure}-${arrival}:${date}`,
-      `${this.apiUrl}/api/historic/flights?route=${departure}-${arrival}&date=${date}`,
-    );
+
+    const cacheKey = `route:${departure}-${arrival}:${date}`;
+    const apiUrl = `${this.apiUrl}/api/historic/flights?airports=${departure},${arrival}&date=${date}`;
+
+    this.logger.log(`Проверка кэша по ключу: ${cacheKey}`);
+
+    try {
+      const response = await this.fetchWithCache(cacheKey, apiUrl);
+      if (!response || response.length === 0) {
+        this.logger.warn(
+          `Данные по маршруту ${departure} -> ${arrival} на ${date} отсутствуют`,
+        );
+      } else {
+        this.logger.log(
+          `Успешно получены данные: ${JSON.stringify(response).slice(0, 500)}...`,
+        );
+      }
+      return response;
+    } catch (error) {
+      this.logger.error(`Ошибка при запросе к Flightradar24: ${error.message}`);
+      throw new HttpException(
+        'Ошибка получения данных о рейсах',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
   }
 
   async getFlightsByDate(authHeader: string, date: string) {

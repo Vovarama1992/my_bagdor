@@ -275,7 +275,7 @@ export class FlightService {
     date: string,
   ) {
     this.logger.log(
-      `Получение расписания рейсов ${departure} → ${arrival} на ${date}`,
+      `Получение рейсов по маршруту ${departure} -> ${arrival} на ${date}`,
     );
 
     const user = await this.authenticate(authHeader);
@@ -291,23 +291,35 @@ export class FlightService {
     );
 
     const cacheKey = `route:${departure}-${arrival}:${date}`;
-    this.logger.log(`Проверка кэша по ключу: ${cacheKey}`);
-
-    // API Aviation Edge НЕ поддерживает поиск по маршруту (SVO → JFK),
-    // поэтому мы делаем 2 запроса: вылеты из SVO и прилеты в JFK
     const departuresUrl = `${this.apiUrl}/flightsFuture?key=${this.apiKey}&type=departure&iataCode=${departure}&date=${date}`;
     const arrivalsUrl = `${this.apiUrl}/flightsFuture?key=${this.apiKey}&type=arrival&iataCode=${arrival}&date=${date}`;
 
+    this.logger.log(`Запрос расписания вылетов: ${departuresUrl}`);
+    this.logger.log(`Запрос расписания прилетов: ${arrivalsUrl}`);
+
     try {
-      // Делаем 2 запроса параллельно
       const [departures, arrivals] = await Promise.all([
         this.fetchWithCache(`${cacheKey}:departures`, departuresUrl),
         this.fetchWithCache(`${cacheKey}:arrivals`, arrivalsUrl),
       ]);
 
-      // Фильтруем, чтобы оставить только рейсы с нужным маршрутом
-      const flights = departures.filter((dep) =>
-        arrivals.some((arr) => arr.flight.iataNumber === dep.flight.iataNumber),
+      // Логируем API-ответы, чтобы понять, что приходит
+      this.logger.log(
+        `Ответ на departures: ${JSON.stringify(departures).slice(0, 500)}...`,
+      );
+      this.logger.log(
+        `Ответ на arrivals: ${JSON.stringify(arrivals).slice(0, 500)}...`,
+      );
+
+      // Проверяем, что данные — массивы
+      const validDepartures = Array.isArray(departures) ? departures : [];
+      const validArrivals = Array.isArray(arrivals) ? arrivals : [];
+
+      // Фильтруем рейсы: ищем совпадения по номеру рейса
+      const flights = validDepartures.filter((dep) =>
+        validArrivals.some(
+          (arr) => arr.flight?.iataNumber === dep.flight?.iataNumber,
+        ),
       );
 
       if (flights.length === 0) {

@@ -5,6 +5,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
@@ -88,113 +89,127 @@ export class UsersService {
     req: Request,
     updateData: UpdateProfileDto & { oldPass?: string; newPass?: string },
   ) {
-    const user = await this.authenticate(req.headers.authorization);
-    this.logger.log(
-      `Updating profile for user ID: ${user.id} in ${user.dbRegion}`,
-    );
-
-    const userModel = this.prismaService.getUserModel(user.dbRegion);
-    const updatePayload: Partial<
-      UpdateProfileDto & {
-        isPhoneVerified?: boolean;
-        isEmailVerified?: boolean;
-        password?: string;
-      }
-    > = { ...updateData };
-
-    if (updateData.phone && updateData.phone !== user.phone) {
+    try {
+      const user = await this.authenticate(req.headers.authorization);
       this.logger.log(
-        `Phone number change detected for user ${user.id}. Old phone: ${user.phone}, New phone: ${updateData.phone}`,
+        `Updating profile for user ID: ${user.id} in ${user.dbRegion}`,
       );
 
-      // Обнуляем статус верификации номера
-      updatePayload.isPhoneVerified = false;
-      this.logger.log(`isPhoneVerified set to false for user ${user.id}`);
+      const userModel = this.prismaService.getUserModel(user.dbRegion);
+      const updatePayload: Partial<
+        UpdateProfileDto & {
+          isPhoneVerified?: boolean;
+          isEmailVerified?: boolean;
+          password?: string;
+        }
+      > = { ...updateData };
 
-      // Генерация нового кода
-      const verificationCode = Math.floor(
-        10000 + Math.random() * 9000,
-      ).toString();
-      this.logger.log(
-        `Generated verification code: ${verificationCode} for user ${user.id}`,
-      );
+      if (updateData.phone && updateData.phone !== user.phone) {
+        this.logger.log(
+          `Phone number change detected for user ${user.id}. Old phone: ${user.phone}, New phone: ${updateData.phone}`,
+        );
 
-      // Удаляем старый код из Redis
-      const redisKey = `phone_verification:${user.id}`;
-      await this.redisService.del(redisKey);
-      this.logger.log(`Deleted old verification code from Redis: ${redisKey}`);
+        updatePayload.isPhoneVerified = false;
+        this.logger.log(`isPhoneVerified set to false for user ${user.id}`);
 
-      // Записываем новый код в Redis
-      await this.redisService.set(redisKey, verificationCode, 300);
-      this.logger.log(
-        `Stored new verification code in Redis: ${redisKey} with TTL: 300s`,
-      );
+        const verificationCode = Math.floor(
+          10000 + Math.random() * 9000,
+        ).toString();
+        this.logger.log(
+          `Generated verification code: ${verificationCode} for user ${user.id}`,
+        );
 
-      // Отправляем код пользователю
-      await this.smsService.sendVerificationSms(
-        updateData.phone,
-        verificationCode,
-      );
-      this.logger.log(
-        `Sent verification SMS to new phone: ${updateData.phone} for user ${user.id}`,
-      );
-    }
+        const redisKey = `phone_verification:${user.id}`;
+        await this.redisService.del(redisKey);
+        this.logger.log(
+          `Deleted old verification code from Redis: ${redisKey}`,
+        );
 
-    if (updateData.email && updateData.email !== user.email) {
-      this.logger.log(
-        `Email changed for user ${user.id}, sending verification code...`,
-      );
-      updatePayload.isEmailVerified = false;
+        await this.redisService.set(redisKey, verificationCode, 300);
+        this.logger.log(
+          `Stored new verification code in Redis: ${redisKey} with TTL: 300s`,
+        );
 
-      const verificationCode = Math.floor(
-        10000 + Math.random() * 9000,
-      ).toString();
-      await this.redisService.del(`email_verification:${user.email}`);
-      await this.redisService.set(
-        `email_verification:${updateData.email}`,
-        verificationCode,
-        300,
-      );
-      this.logger.log(
-        `Setting Redis key: email_verification:${updateData.email} with value: ${verificationCode} and TTL: 300s`,
-      );
-      await this.emailService.sendVerificationEmail(
-        updateData.email,
-        verificationCode,
-      );
-    }
-
-    if (updateData.newPass) {
-      if (!updateData.oldPass) {
-        throw new BadRequestException(
-          'Current password is required to set a new password',
+        await this.smsService.sendVerificationSms(
+          updateData.phone,
+          verificationCode,
+        );
+        this.logger.log(
+          `Sent verification SMS to new phone: ${updateData.phone} for user ${user.id}`,
         );
       }
 
-      this.logger.log(`Verifying old password for user ${user.id}...`);
-      const isOldPasswordValid = await bcrypt.compare(
-        updateData.oldPass,
-        user.password,
-      );
-      if (!isOldPasswordValid) {
-        throw new ForbiddenException('Incorrect current password');
+      if (updateData.email && updateData.email !== user.email) {
+        this.logger.log(
+          `Email changed for user ${user.id}, sending verification code...`,
+        );
+        updatePayload.isEmailVerified = false;
+
+        const verificationCode = Math.floor(
+          10000 + Math.random() * 9000,
+        ).toString();
+        await this.redisService.del(`email_verification:${user.email}`);
+        await this.redisService.set(
+          `email_verification:${updateData.email}`,
+          verificationCode,
+          300,
+        );
+        this.logger.log(
+          `Setting Redis key: email_verification:${updateData.email} with value: ${verificationCode} and TTL: 300s`,
+        );
+        await this.emailService.sendVerificationEmail(
+          updateData.email,
+          verificationCode,
+        );
       }
 
-      this.logger.log(`Hashing new password for user ${user.id}...`);
-      updatePayload.password = await bcrypt.hash(updateData.newPass, 10);
+      if (updateData.newPass) {
+        if (!updateData.oldPass) {
+          throw new BadRequestException(
+            'Current password is required to set a new password',
+          );
+        }
+
+        this.logger.log(`Verifying old password for user ${user.id}...`);
+        const isOldPasswordValid = await bcrypt.compare(
+          updateData.oldPass,
+          user.password,
+        );
+        if (!isOldPasswordValid) {
+          throw new ForbiddenException('Incorrect current password');
+        }
+
+        this.logger.log(`Hashing new password for user ${user.id}...`);
+        updatePayload.password = await bcrypt.hash(updateData.newPass, 10);
+      }
+
+      const updatedUser = await userModel.update({
+        where: { id: user.id },
+        data: updatePayload,
+      });
+
+      this.logger.log(
+        `User ${user.id} profile updated successfully in ${user.dbRegion}`,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...userWithoutPass } = updatedUser;
+      return userWithoutPass;
+    } catch (error) {
+      this.logger.error(
+        `Error updating profile: ${error.message}`,
+        error.stack,
+      );
+
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ForbiddenException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(error.stack);
     }
-
-    const updatedUser = await userModel.update({
-      where: { id: user.id },
-      data: updatePayload,
-    });
-
-    this.logger.log(
-      `User ${user.id} profile updated successfully in ${user.dbRegion}`,
-    );
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPass } = updatedUser;
-    return userWithoutPass;
   }
 
   async resendVerificationCode(email: string) {

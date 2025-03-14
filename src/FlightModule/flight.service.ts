@@ -67,7 +67,7 @@ export class FlightService {
 
     if (!flightExists || !flightExists.length) {
       throw new BadRequestException(
-        'Рейс с такими параметрами не найден в FR24. Проверьте данные',
+        'Рейс с такими параметрами не найден в AVIATION_EDGE. Проверьте данные',
       );
     }
 
@@ -291,8 +291,26 @@ export class FlightService {
     );
 
     const cacheKey = `route:${departure}-${arrival}:${date}`;
-    const departuresUrl = `${this.apiUrl}/flightsFuture?key=${this.apiKey}&type=departure&iataCode=${departure}&date=${date}`;
-    const arrivalsUrl = `${this.apiUrl}/flightsFuture?key=${this.apiKey}&type=arrival&iataCode=${arrival}&date=${date}`;
+    let queryDate = date;
+
+    // Минимально разрешенная дата (сегодня + 7 дней)
+    const minAllowedDate = new Date();
+    minAllowedDate.setDate(minAllowedDate.getDate() + 7);
+    const minAllowedDateString = minAllowedDate.toISOString().split('T')[0];
+
+    if (date < minAllowedDateString) {
+      // Если дата меньше разрешенной, запрашиваем аналогичную неделю вперед
+      const newDate = new Date(date);
+      newDate.setDate(newDate.getDate() + 7);
+      queryDate = newDate.toISOString().split('T')[0];
+
+      this.logger.warn(
+        `Дата ${date} недоступна, запрашиваем аналогичную неделю вперед: ${queryDate}`,
+      );
+    }
+
+    const departuresUrl = `${this.apiUrl}/flightsFuture?key=${this.apiKey}&type=departure&iataCode=${departure}&date=${queryDate}`;
+    const arrivalsUrl = `${this.apiUrl}/flightsFuture?key=${this.apiKey}&type=arrival&iataCode=${arrival}&date=${queryDate}`;
 
     this.logger.log(`Запрос расписания вылетов: ${departuresUrl}`);
     this.logger.log(`Запрос расписания прилетов: ${arrivalsUrl}`);
@@ -303,7 +321,6 @@ export class FlightService {
         this.fetchWithCache(`${cacheKey}:arrivals`, arrivalsUrl),
       ]);
 
-      // Логируем API-ответы, чтобы понять, что приходит
       this.logger.log(
         `Ответ на departures: ${JSON.stringify(departures).slice(0, 500)}...`,
       );
@@ -311,11 +328,9 @@ export class FlightService {
         `Ответ на arrivals: ${JSON.stringify(arrivals).slice(0, 500)}...`,
       );
 
-      // Проверяем, что данные — массивы
       const validDepartures = Array.isArray(departures) ? departures : [];
       const validArrivals = Array.isArray(arrivals) ? arrivals : [];
 
-      // Фильтруем рейсы: ищем совпадения по номеру рейса
       const flights = validDepartures.filter((dep) =>
         validArrivals.some(
           (arr) => arr.flight?.iataNumber === dep.flight?.iataNumber,
@@ -326,11 +341,25 @@ export class FlightService {
         this.logger.warn(`Нет рейсов ${departure} → ${arrival} на ${date}`);
       } else {
         this.logger.log(
-          `Найдено ${flights.length} рейсов: ${JSON.stringify(flights).slice(0, 500)}...`,
+          `Найдено ${flights.length} рейсов, подставляем нужную дату (${date}) и убираем дубли`,
         );
       }
 
-      return flights;
+      // Убираем дубликаты и проставляем реальную дату
+      const uniqueFlights = flights
+        .map((flight) => ({
+          ...flight,
+          date, // Проставляем реальную дату пользователя
+        }))
+        .filter(
+          (flight, index, self) =>
+            index ===
+            self.findIndex(
+              (f) => f.flight.iataNumber === flight.flight.iataNumber,
+            ),
+        );
+
+      return uniqueFlights;
     } catch (error) {
       this.logger.error(`Ошибка запроса к Aviation Edge: ${error.message}`);
       throw new HttpException(

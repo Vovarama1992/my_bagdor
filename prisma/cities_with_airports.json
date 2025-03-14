@@ -1,0 +1,3265 @@
+[
+  {
+    "city": "Honiara",
+    "country": "SB",
+    "airports": [
+      "HIR"
+    ]
+  },
+  {
+    "city": "Port Moresby",
+    "country": "PG",
+    "airports": [
+      "POM"
+    ]
+  },
+  {
+    "city": "Reykjavík",
+    "country": "IS",
+    "airports": [
+      "KEF"
+    ]
+  },
+  {
+    "city": "Edmonton",
+    "country": "CA",
+    "airports": [
+      "YEG"
+    ]
+  },
+  {
+    "city": "Halifax",
+    "country": "CA",
+    "airports": [
+      "YHZ"
+    ]
+  },
+  {
+    "city": "Ottawa",
+    "country": "CA",
+    "airports": [
+      "YOW"
+    ]
+  },
+  {
+    "city": "Quebec",
+    "country": "CA",
+    "airports": [
+      "YQB"
+    ]
+  },
+  {
+    "city": "Montréal",
+    "country": "CA",
+    "airports": [
+      "YUL"
+    ]
+  },
+  {
+    "city": "Vancouver",
+    "country": "CA",
+    "airports": [
+      "YVR"
+    ]
+  },
+  {
+    "city": "Winnipeg",
+    "country": "CA",
+    "airports": [
+      "YWG"
+    ]
+  },
+  {
+    "city": "Calgary",
+    "country": "CA",
+    "airports": [
+      "YYC"
+    ]
+  },
+  {
+    "city": "St. John's",
+    "country": "CA",
+    "airports": [
+      "YYT"
+    ]
+  },
+  {
+    "city": "Toronto",
+    "country": "CA",
+    "airports": [
+      "YYZ"
+    ]
+  },
+  {
+    "city": "Algiers",
+    "country": "DZ",
+    "airports": [
+      "ALG"
+    ]
+  },
+  {
+    "city": "Accra",
+    "country": "GH",
+    "airports": [
+      "ACC"
+    ]
+  },
+  {
+    "city": "Abuja",
+    "country": "NG",
+    "airports": [
+      "ABV"
+    ]
+  },
+  {
+    "city": "Lagos",
+    "country": "NG",
+    "airports": [
+      "LOS"
+    ]
+  },
+  {
+    "city": "Niamey",
+    "country": "NE",
+    "airports": [
+      "NIM"
+    ]
+  },
+  {
+    "city": "Tunis",
+    "country": "TN",
+    "airports": [
+      "TUN"
+    ]
+  },
+  {
+    "city": "Zaventem",
+    "country": "BE",
+    "airports": [
+      "BRU"
+    ]
+  },
+  {
+    "city": "Berlin",
+    "country": "DE",
+    "airports": [
+      "BER"
+    ]
+  },
+  {
+    "city": "Frankfurt am Main",
+    "country": "DE",
+    "airports": [
+      "FRA"
+    ]
+  },
+  {
+    "city": "Hamburg",
+    "country": "DE",
+    "airports": [
+      "HAM"
+    ]
+  },
+  {
+    "city": "Köln (Cologne)",
+    "country": "DE",
+    "airports": [
+      "CGN"
+    ]
+  },
+  {
+    "city": "Düsseldorf",
+    "country": "DE",
+    "airports": [
+      "DUS"
+    ]
+  },
+  {
+    "city": "Munich",
+    "country": "DE",
+    "airports": [
+      "MUC"
+    ]
+  },
+  {
+    "city": "Nuremberg",
+    "country": "DE",
+    "airports": [
+      "NUE"
+    ]
+  },
+  {
+    "city": "Schkeuditz",
+    "country": "DE",
+    "airports": [
+      "LEJ"
+    ]
+  },
+  {
+    "city": "Stuttgart",
+    "country": "DE",
+    "airports": [
+      "STR"
+    ]
+  },
+  {
+    "city": "Hannover",
+    "country": "DE",
+    "airports": [
+      "HAJ"
+    ]
+  },
+  {
+    "city": "Tallinn",
+    "country": "EE",
+    "airports": [
+      "TLL"
+    ]
+  },
+  {
+    "city": "Helsinki",
+    "country": "FI",
+    "airports": [
+      "HEL"
+    ]
+  },
+  {
+    "city": "Belfast",
+    "country": "GB",
+    "airports": [
+      "BFS"
+    ]
+  },
+  {
+    "city": "Birmingham, West Midlands",
+    "country": "GB",
+    "airports": [
+      "BHX"
+    ]
+  },
+  {
+    "city": "Manchester, Greater Manchester",
+    "country": "GB",
+    "airports": [
+      "MAN"
+    ]
+  },
+  {
+    "city": "Luton, Bedfordshire",
+    "country": "GB",
+    "airports": [
+      "LTN"
+    ]
+  },
+  {
+    "city": "London",
+    "country": "GB",
+    "airports": [
+      "LGW",
+      "LHR",
+      "STN"
+    ]
+  },
+  {
+    "city": "Paisley, Renfrewshire",
+    "country": "GB",
+    "airports": [
+      "GLA"
+    ]
+  },
+  {
+    "city": "Edinburgh",
+    "country": "GB",
+    "airports": [
+      "EDI"
+    ]
+  },
+  {
+    "city": "Amsterdam",
+    "country": "NL",
+    "airports": [
+      "AMS"
+    ]
+  },
+  {
+    "city": "Eindhoven",
+    "country": "NL",
+    "airports": [
+      "EIN"
+    ]
+  },
+  {
+    "city": "Dublin",
+    "country": "IE",
+    "airports": [
+      "DUB"
+    ]
+  },
+  {
+    "city": "Shannon",
+    "country": "IE",
+    "airports": [
+      "SNN"
+    ]
+  },
+  {
+    "city": "Billund",
+    "country": "DK",
+    "airports": [
+      "BLL"
+    ]
+  },
+  {
+    "city": "Copenhagen",
+    "country": "DK",
+    "airports": [
+      "CPH"
+    ]
+  },
+  {
+    "city": "Luxembourg",
+    "country": "LU",
+    "airports": [
+      "LUX"
+    ]
+  },
+  {
+    "city": "Bergen",
+    "country": "NO",
+    "airports": [
+      "BGO"
+    ]
+  },
+  {
+    "city": "Oslo",
+    "country": "NO",
+    "airports": [
+      "OSL"
+    ]
+  },
+  {
+    "city": "Tromsø",
+    "country": "NO",
+    "airports": [
+      "TOS"
+    ]
+  },
+  {
+    "city": "Trondheim",
+    "country": "NO",
+    "airports": [
+      "TRD"
+    ]
+  },
+  {
+    "city": "Stavanger",
+    "country": "NO",
+    "airports": [
+      "SVG"
+    ]
+  },
+  {
+    "city": "Gdańsk",
+    "country": "PL",
+    "airports": [
+      "GDN"
+    ]
+  },
+  {
+    "city": "Balice",
+    "country": "PL",
+    "airports": [
+      "KRK"
+    ]
+  },
+  {
+    "city": "Warsaw",
+    "country": "PL",
+    "airports": [
+      "WAW"
+    ]
+  },
+  {
+    "city": "Göteborg",
+    "country": "SE",
+    "airports": [
+      "GOT"
+    ]
+  },
+  {
+    "city": "Stockholm",
+    "country": "SE",
+    "airports": [
+      "ARN"
+    ]
+  },
+  {
+    "city": "Riga",
+    "country": "LV",
+    "airports": [
+      "RIX"
+    ]
+  },
+  {
+    "city": "Vilnius",
+    "country": "LT",
+    "airports": [
+      "VNO"
+    ]
+  },
+  {
+    "city": "Cape Town",
+    "country": "ZA",
+    "airports": [
+      "CPT"
+    ]
+  },
+  {
+    "city": "Durban",
+    "country": "ZA",
+    "airports": [
+      "DUR"
+    ]
+  },
+  {
+    "city": "Johannesburg",
+    "country": "ZA",
+    "airports": [
+      "JNB"
+    ]
+  },
+  {
+    "city": "Gaborone",
+    "country": "BW",
+    "airports": [
+      "GBE"
+    ]
+  },
+  {
+    "city": "Mpaka",
+    "country": "SZ",
+    "airports": [
+      "SHO"
+    ]
+  },
+  {
+    "city": "Plaine Magnien",
+    "country": "MU",
+    "airports": [
+      "MRU"
+    ]
+  },
+  {
+    "city": "Lusaka",
+    "country": "ZM",
+    "airports": [
+      "LUN"
+    ]
+  },
+  {
+    "city": "Sainte-Marie",
+    "country": "RE",
+    "airports": [
+      "RUN"
+    ]
+  },
+  {
+    "city": "Antananarivo",
+    "country": "MG",
+    "airports": [
+      "TNR"
+    ]
+  },
+  {
+    "city": "Luanda",
+    "country": "AO",
+    "airports": [
+      "LAD"
+    ]
+  },
+  {
+    "city": "São Tomé",
+    "country": "ST",
+    "airports": [
+      "TMS"
+    ]
+  },
+  {
+    "city": "Maputo",
+    "country": "MZ",
+    "airports": [
+      "MPM"
+    ]
+  },
+  {
+    "city": "Mahe Island",
+    "country": "SC",
+    "airports": [
+      "SEZ"
+    ]
+  },
+  {
+    "city": "N'Djamena",
+    "country": "TD",
+    "airports": [
+      "NDJ"
+    ]
+  },
+  {
+    "city": "Harare",
+    "country": "ZW",
+    "airports": [
+      "HRE"
+    ]
+  },
+  {
+    "city": "Windhoek",
+    "country": "NA",
+    "airports": [
+      "WDH"
+    ]
+  },
+  {
+    "city": "Kinshasa",
+    "country": "CD",
+    "airports": [
+      "FIH"
+    ]
+  },
+  {
+    "city": "Bamako",
+    "country": "ML",
+    "airports": [
+      "BKO"
+    ]
+  },
+  {
+    "city": "Banjul",
+    "country": "GM",
+    "airports": [
+      "BJL"
+    ]
+  },
+  {
+    "city": "El Matorral",
+    "country": "ES",
+    "airports": [
+      "FUE"
+    ]
+  },
+  {
+    "city": "Gran Canaria Island",
+    "country": "ES",
+    "airports": [
+      "LPA"
+    ]
+  },
+  {
+    "city": "San Bartolomé",
+    "country": "ES",
+    "airports": [
+      "ACE"
+    ]
+  },
+  {
+    "city": "Tenerife",
+    "country": "ES",
+    "airports": [
+      "TFS"
+    ]
+  },
+  {
+    "city": "Freetown (Lungi-Town)",
+    "country": "SL",
+    "airports": [
+      "FNA"
+    ]
+  },
+  {
+    "city": "Monrovia",
+    "country": "LR",
+    "airports": [
+      "ROB"
+    ]
+  },
+  {
+    "city": "Agadir (Temsia)",
+    "country": "MA",
+    "airports": [
+      "AGA"
+    ]
+  },
+  {
+    "city": "Saïss",
+    "country": "MA",
+    "airports": [
+      "FEZ"
+    ]
+  },
+  {
+    "city": "Rabat",
+    "country": "MA",
+    "airports": [
+      "RBA"
+    ]
+  },
+  {
+    "city": "Casablanca",
+    "country": "MA",
+    "airports": [
+      "CMN"
+    ]
+  },
+  {
+    "city": "Marrakech",
+    "country": "MA",
+    "airports": [
+      "RAK"
+    ]
+  },
+  {
+    "city": "Tangier",
+    "country": "MA",
+    "airports": [
+      "TNG"
+    ]
+  },
+  {
+    "city": "Dakar",
+    "country": "SN",
+    "airports": [
+      "DSS"
+    ]
+  },
+  {
+    "city": "Nouakchott",
+    "country": "MR",
+    "airports": [
+      "NKC"
+    ]
+  },
+  {
+    "city": "Espargos",
+    "country": "CV",
+    "airports": [
+      "SID"
+    ]
+  },
+  {
+    "city": "Praia",
+    "country": "CV",
+    "airports": [
+      "RAI"
+    ]
+  },
+  {
+    "city": "Addis Ababa",
+    "country": "ET",
+    "airports": [
+      "ADD"
+    ]
+  },
+  {
+    "city": "Djibouti City",
+    "country": "DJ",
+    "airports": [
+      "JIB"
+    ]
+  },
+  {
+    "city": "Cairo",
+    "country": "EG",
+    "airports": [
+      "CAI"
+    ]
+  },
+  {
+    "city": "Hurghada",
+    "country": "EG",
+    "airports": [
+      "HRG"
+    ]
+  },
+  {
+    "city": "Suhaj",
+    "country": "EG",
+    "airports": [
+      "HMB"
+    ]
+  },
+  {
+    "city": "Sharm El Sheikh",
+    "country": "EG",
+    "airports": [
+      "SSH"
+    ]
+  },
+  {
+    "city": "Juba",
+    "country": "SS",
+    "airports": [
+      "JUB"
+    ]
+  },
+  {
+    "city": "Nairobi",
+    "country": "KE",
+    "airports": [
+      "NBO"
+    ]
+  },
+  {
+    "city": "Mombasa",
+    "country": "KE",
+    "airports": [
+      "MBA"
+    ]
+  },
+  {
+    "city": "Tripoli",
+    "country": "LY",
+    "airports": [
+      "MJI"
+    ]
+  },
+  {
+    "city": "Kigali",
+    "country": "RW",
+    "airports": [
+      "KGL"
+    ]
+  },
+  {
+    "city": "Khartoum",
+    "country": "SD",
+    "airports": [
+      "KRT"
+    ]
+  },
+  {
+    "city": "Dar es Salaam",
+    "country": "TZ",
+    "airports": [
+      "DAR"
+    ]
+  },
+  {
+    "city": "Zanzibar",
+    "country": "TZ",
+    "airports": [
+      "ZNZ"
+    ]
+  },
+  {
+    "city": "Kampala",
+    "country": "UG",
+    "airports": [
+      "EBB"
+    ]
+  },
+  {
+    "city": "Kediri",
+    "country": "ID",
+    "airports": [
+      "DHX"
+    ]
+  },
+  {
+    "city": "Navi Mumbai",
+    "country": "IN",
+    "airports": [
+      "NMI"
+    ]
+  },
+  {
+    "city": "Albuquerque",
+    "country": "US",
+    "airports": [
+      "ABQ"
+    ]
+  },
+  {
+    "city": "Camp Springs",
+    "country": "US",
+    "airports": [
+      "ADW"
+    ]
+  },
+  {
+    "city": "Atlanta",
+    "country": "US",
+    "airports": [
+      "ATL"
+    ]
+  },
+  {
+    "city": "Austin",
+    "country": "US",
+    "airports": [
+      "AUS"
+    ]
+  },
+  {
+    "city": "Hartford",
+    "country": "US",
+    "airports": [
+      "BDL"
+    ]
+  },
+  {
+    "city": "Nashville",
+    "country": "US",
+    "airports": [
+      "BNA"
+    ]
+  },
+  {
+    "city": "Boston",
+    "country": "US",
+    "airports": [
+      "BOS"
+    ]
+  },
+  {
+    "city": "Buffalo",
+    "country": "US",
+    "airports": [
+      "BUF"
+    ]
+  },
+  {
+    "city": "Baltimore",
+    "country": "US",
+    "airports": [
+      "BWI"
+    ]
+  },
+  {
+    "city": "Cleveland",
+    "country": "US",
+    "airports": [
+      "CLE"
+    ]
+  },
+  {
+    "city": "Charlotte",
+    "country": "US",
+    "airports": [
+      "CLT"
+    ]
+  },
+  {
+    "city": "Columbus",
+    "country": "US",
+    "airports": [
+      "CMH"
+    ]
+  },
+  {
+    "city": "Cincinnati / Covington",
+    "country": "US",
+    "airports": [
+      "CVG"
+    ]
+  },
+  {
+    "city": "Washington",
+    "country": "US",
+    "airports": [
+      "DCA"
+    ]
+  },
+  {
+    "city": "Denver",
+    "country": "US",
+    "airports": [
+      "DEN"
+    ]
+  },
+  {
+    "city": "Dallas-Fort Worth",
+    "country": "US",
+    "airports": [
+      "DFW"
+    ]
+  },
+  {
+    "city": "Detroit",
+    "country": "US",
+    "airports": [
+      "DTW"
+    ]
+  },
+  {
+    "city": "Newark",
+    "country": "US",
+    "airports": [
+      "EWR"
+    ]
+  },
+  {
+    "city": "Fort Lauderdale",
+    "country": "US",
+    "airports": [
+      "FLL"
+    ]
+  },
+  {
+    "city": "Dulles",
+    "country": "US",
+    "airports": [
+      "IAD"
+    ]
+  },
+  {
+    "city": "Houston",
+    "country": "US",
+    "airports": [
+      "IAH"
+    ]
+  },
+  {
+    "city": "Indianapolis",
+    "country": "US",
+    "airports": [
+      "IND"
+    ]
+  },
+  {
+    "city": "Jacksonville",
+    "country": "US",
+    "airports": [
+      "JAX"
+    ]
+  },
+  {
+    "city": "New York",
+    "country": "US",
+    "airports": [
+      "JFK",
+      "LGA"
+    ]
+  },
+  {
+    "city": "Las Vegas",
+    "country": "US",
+    "airports": [
+      "LAS"
+    ]
+  },
+  {
+    "city": "Los Angeles",
+    "country": "US",
+    "airports": [
+      "LAX"
+    ]
+  },
+  {
+    "city": "Kansas City",
+    "country": "US",
+    "airports": [
+      "MCI"
+    ]
+  },
+  {
+    "city": "Orlando",
+    "country": "US",
+    "airports": [
+      "MCO",
+      "SFB"
+    ]
+  },
+  {
+    "city": "Chicago",
+    "country": "US",
+    "airports": [
+      "MDW",
+      "ORD"
+    ]
+  },
+  {
+    "city": "Memphis",
+    "country": "US",
+    "airports": [
+      "MEM"
+    ]
+  },
+  {
+    "city": "Miami",
+    "country": "US",
+    "airports": [
+      "MIA"
+    ]
+  },
+  {
+    "city": "Milwaukee",
+    "country": "US",
+    "airports": [
+      "MKE"
+    ]
+  },
+  {
+    "city": "Minneapolis",
+    "country": "US",
+    "airports": [
+      "MSP"
+    ]
+  },
+  {
+    "city": "New Orleans",
+    "country": "US",
+    "airports": [
+      "MSY"
+    ]
+  },
+  {
+    "city": "Oakland",
+    "country": "US",
+    "airports": [
+      "OAK"
+    ]
+  },
+  {
+    "city": "Oklahoma City",
+    "country": "US",
+    "airports": [
+      "OKC"
+    ]
+  },
+  {
+    "city": "Omaha",
+    "country": "US",
+    "airports": [
+      "OMA"
+    ]
+  },
+  {
+    "city": "Ontario",
+    "country": "US",
+    "airports": [
+      "ONT"
+    ]
+  },
+  {
+    "city": "Norfolk",
+    "country": "US",
+    "airports": [
+      "ORF"
+    ]
+  },
+  {
+    "city": "West Palm Beach",
+    "country": "US",
+    "airports": [
+      "PBI"
+    ]
+  },
+  {
+    "city": "Portland",
+    "country": "US",
+    "airports": [
+      "PDX",
+      "PWM"
+    ]
+  },
+  {
+    "city": "Philadelphia",
+    "country": "US",
+    "airports": [
+      "PHL"
+    ]
+  },
+  {
+    "city": "Phoenix",
+    "country": "US",
+    "airports": [
+      "PHX"
+    ]
+  },
+  {
+    "city": "Pittsburgh",
+    "country": "US",
+    "airports": [
+      "PIT"
+    ]
+  },
+  {
+    "city": "Warwick",
+    "country": "US",
+    "airports": [
+      "PVD"
+    ]
+  },
+  {
+    "city": "Raleigh/Durham",
+    "country": "US",
+    "airports": [
+      "RDU"
+    ]
+  },
+  {
+    "city": "Richmond",
+    "country": "US",
+    "airports": [
+      "RIC"
+    ]
+  },
+  {
+    "city": "Reno",
+    "country": "US",
+    "airports": [
+      "RNO"
+    ]
+  },
+  {
+    "city": "Fort Myers",
+    "country": "US",
+    "airports": [
+      "RSW"
+    ]
+  },
+  {
+    "city": "San Diego",
+    "country": "US",
+    "airports": [
+      "SAN"
+    ]
+  },
+  {
+    "city": "San Antonio",
+    "country": "US",
+    "airports": [
+      "SAT"
+    ]
+  },
+  {
+    "city": "Savannah",
+    "country": "US",
+    "airports": [
+      "SAV"
+    ]
+  },
+  {
+    "city": "Louisville",
+    "country": "US",
+    "airports": [
+      "SDF"
+    ]
+  },
+  {
+    "city": "Seattle",
+    "country": "US",
+    "airports": [
+      "SEA"
+    ]
+  },
+  {
+    "city": "San Francisco",
+    "country": "US",
+    "airports": [
+      "SFO"
+    ]
+  },
+  {
+    "city": "San Jose",
+    "country": "US",
+    "airports": [
+      "SJC"
+    ]
+  },
+  {
+    "city": "Salt Lake City",
+    "country": "US",
+    "airports": [
+      "SLC"
+    ]
+  },
+  {
+    "city": "Sacramento",
+    "country": "US",
+    "airports": [
+      "SMF"
+    ]
+  },
+  {
+    "city": "Santa Ana",
+    "country": "US",
+    "airports": [
+      "SNA"
+    ]
+  },
+  {
+    "city": "Sarasota/Bradenton",
+    "country": "US",
+    "airports": [
+      "SRQ"
+    ]
+  },
+  {
+    "city": "St Louis",
+    "country": "US",
+    "airports": [
+      "STL"
+    ]
+  },
+  {
+    "city": "Syracuse",
+    "country": "US",
+    "airports": [
+      "SYR"
+    ]
+  },
+  {
+    "city": "Tampa",
+    "country": "US",
+    "airports": [
+      "TPA"
+    ]
+  },
+  {
+    "city": "Tulsa",
+    "country": "US",
+    "airports": [
+      "TUL"
+    ]
+  },
+  {
+    "city": "Rinas",
+    "country": "AL",
+    "airports": [
+      "TIA"
+    ]
+  },
+  {
+    "city": "Burgas",
+    "country": "BG",
+    "airports": [
+      "BOJ"
+    ]
+  },
+  {
+    "city": "Sofia",
+    "country": "BG",
+    "airports": [
+      "SOF"
+    ]
+  },
+  {
+    "city": "Varna",
+    "country": "BG",
+    "airports": [
+      "VAR"
+    ]
+  },
+  {
+    "city": "Larnaca",
+    "country": "CY",
+    "airports": [
+      "LCA"
+    ]
+  },
+  {
+    "city": "Velika Gorica",
+    "country": "HR",
+    "airports": [
+      "ZAG"
+    ]
+  },
+  {
+    "city": "Alicante",
+    "country": "ES",
+    "airports": [
+      "ALC"
+    ]
+  },
+  {
+    "city": "Barcelona",
+    "country": "ES",
+    "airports": [
+      "BCN",
+      "BLA"
+    ]
+  },
+  {
+    "city": "Ibiza (Eivissa)",
+    "country": "ES",
+    "airports": [
+      "IBZ"
+    ]
+  },
+  {
+    "city": "Madrid",
+    "country": "ES",
+    "airports": [
+      "MAD"
+    ]
+  },
+  {
+    "city": "Málaga",
+    "country": "ES",
+    "airports": [
+      "AGP"
+    ]
+  },
+  {
+    "city": "Palma de Mallorca",
+    "country": "ES",
+    "airports": [
+      "PMI"
+    ]
+  },
+  {
+    "city": "Santiago de Compostela",
+    "country": "ES",
+    "airports": [
+      "SCQ"
+    ]
+  },
+  {
+    "city": "Bordeaux/Mérignac",
+    "country": "FR",
+    "airports": [
+      "BOD"
+    ]
+  },
+  {
+    "city": "Toulouse/Blagnac",
+    "country": "FR",
+    "airports": [
+      "TLS"
+    ]
+  },
+  {
+    "city": "Colombier-Saugnieu, Rhône",
+    "country": "FR",
+    "airports": [
+      "LYS"
+    ]
+  },
+  {
+    "city": "Marignane, Bouches-du-Rhône",
+    "country": "FR",
+    "airports": [
+      "MRS"
+    ]
+  },
+  {
+    "city": "Nice, Alpes-Maritimes",
+    "country": "FR",
+    "airports": [
+      "NCE"
+    ]
+  },
+  {
+    "city": "Paris (Roissy-en-France, Val-d'Oise)",
+    "country": "FR",
+    "airports": [
+      "CDG"
+    ]
+  },
+  {
+    "city": "Paris (Orly, Val-de-Marne)",
+    "country": "FR",
+    "airports": [
+      "ORY"
+    ]
+  },
+  {
+    "city": "Saint-Louis",
+    "country": "FR",
+    "airports": [
+      "BSL"
+    ]
+  },
+  {
+    "city": "Spata-Artemida",
+    "country": "GR",
+    "airports": [
+      "ATH"
+    ]
+  },
+  {
+    "city": "Heraklion",
+    "country": "GR",
+    "airports": [
+      "HER"
+    ]
+  },
+  {
+    "city": "Thessaloniki",
+    "country": "GR",
+    "airports": [
+      "SKG"
+    ]
+  },
+  {
+    "city": "Budapest",
+    "country": "HU",
+    "airports": [
+      "BUD"
+    ]
+  },
+  {
+    "city": "Bari",
+    "country": "IT",
+    "airports": [
+      "BRI"
+    ]
+  },
+  {
+    "city": "Brindisi",
+    "country": "IT",
+    "airports": [
+      "BDS"
+    ]
+  },
+  {
+    "city": "Catania",
+    "country": "IT",
+    "airports": [
+      "CTA"
+    ]
+  },
+  {
+    "city": "Palermo",
+    "country": "IT",
+    "airports": [
+      "PMO"
+    ]
+  },
+  {
+    "city": "Cagliari",
+    "country": "IT",
+    "airports": [
+      "CAG"
+    ]
+  },
+  {
+    "city": "Ferno (VA)",
+    "country": "IT",
+    "airports": [
+      "MXP"
+    ]
+  },
+  {
+    "city": "Orio al Serio (BG)",
+    "country": "IT",
+    "airports": [
+      "BGY"
+    ]
+  },
+  {
+    "city": "Caselle Torinese (TO)",
+    "country": "IT",
+    "airports": [
+      "TRN"
+    ]
+  },
+  {
+    "city": "Genova (GE)",
+    "country": "IT",
+    "airports": [
+      "GOA"
+    ]
+  },
+  {
+    "city": "Bologna",
+    "country": "IT",
+    "airports": [
+      "BLQ"
+    ]
+  },
+  {
+    "city": "Caselle (VR)",
+    "country": "IT",
+    "airports": [
+      "VRN"
+    ]
+  },
+  {
+    "city": "Venezia (VE)",
+    "country": "IT",
+    "airports": [
+      "VCE"
+    ]
+  },
+  {
+    "city": "Rome",
+    "country": "IT",
+    "airports": [
+      "FCO"
+    ]
+  },
+  {
+    "city": "Napoli",
+    "country": "IT",
+    "airports": [
+      "NAP"
+    ]
+  },
+  {
+    "city": "Pisa (PI)",
+    "country": "IT",
+    "airports": [
+      "PSA"
+    ]
+  },
+  {
+    "city": "Firenze (FI)",
+    "country": "IT",
+    "airports": [
+      "FLR"
+    ]
+  },
+  {
+    "city": "Zgornji Brnik",
+    "country": "SI",
+    "airports": [
+      "LJU"
+    ]
+  },
+  {
+    "city": "Prague",
+    "country": "CZ",
+    "airports": [
+      "PRG"
+    ]
+  },
+  {
+    "city": "Tel Aviv",
+    "country": "IL",
+    "airports": [
+      "TLV"
+    ]
+  },
+  {
+    "city": "Eilat",
+    "country": "IL",
+    "airports": [
+      "ETM"
+    ]
+  },
+  {
+    "city": "Valletta",
+    "country": "MT",
+    "airports": [
+      "MLA"
+    ]
+  },
+  {
+    "city": "Vienna",
+    "country": "AT",
+    "airports": [
+      "VIE"
+    ]
+  },
+  {
+    "city": "Faro",
+    "country": "PT",
+    "airports": [
+      "FAO"
+    ]
+  },
+  {
+    "city": "Funchal",
+    "country": "PT",
+    "airports": [
+      "FNC"
+    ]
+  },
+  {
+    "city": "Ponta Delgada",
+    "country": "PT",
+    "airports": [
+      "PDL"
+    ]
+  },
+  {
+    "city": "Porto",
+    "country": "PT",
+    "airports": [
+      "OPO"
+    ]
+  },
+  {
+    "city": "Lisbon",
+    "country": "PT",
+    "airports": [
+      "LIS"
+    ]
+  },
+  {
+    "city": "Sarajevo",
+    "country": "BA",
+    "airports": [
+      "SJJ"
+    ]
+  },
+  {
+    "city": "Otopeni",
+    "country": "RO",
+    "airports": [
+      "OTP"
+    ]
+  },
+  {
+    "city": "Geneva",
+    "country": "CH",
+    "airports": [
+      "GVA"
+    ]
+  },
+  {
+    "city": "Zurich",
+    "country": "CH",
+    "airports": [
+      "ZRH"
+    ]
+  },
+  {
+    "city": "Ankara",
+    "country": "TR",
+    "airports": [
+      "ESB"
+    ]
+  },
+  {
+    "city": "Antalya",
+    "country": "TR",
+    "airports": [
+      "AYT"
+    ]
+  },
+  {
+    "city": "Gaziemir",
+    "country": "TR",
+    "airports": [
+      "ADB"
+    ]
+  },
+  {
+    "city": "Dalaman",
+    "country": "TR",
+    "airports": [
+      "DLM"
+    ]
+  },
+  {
+    "city": "Tarsus",
+    "country": "TR",
+    "airports": [
+      "COV"
+    ]
+  },
+  {
+    "city": "Bodrum",
+    "country": "TR",
+    "airports": [
+      "BJV"
+    ]
+  },
+  {
+    "city": "Pendik, Istanbul",
+    "country": "TR",
+    "airports": [
+      "SAW"
+    ]
+  },
+  {
+    "city": "Arnavutköy, Istanbul",
+    "country": "TR",
+    "airports": [
+      "IST"
+    ]
+  },
+  {
+    "city": "Ilinden",
+    "country": "MK",
+    "airports": [
+      "SKP"
+    ]
+  },
+  {
+    "city": "Gibraltar",
+    "country": "GI",
+    "airports": [
+      "GIB"
+    ]
+  },
+  {
+    "city": "Belgrade",
+    "country": "RS",
+    "airports": [
+      "BEG"
+    ]
+  },
+  {
+    "city": "Podgorica",
+    "country": "ME",
+    "airports": [
+      "TGD"
+    ]
+  },
+  {
+    "city": "Bratislava",
+    "country": "SK",
+    "airports": [
+      "BTS"
+    ]
+  },
+  {
+    "city": "Providenciales",
+    "country": "TC",
+    "airports": [
+      "PLS"
+    ]
+  },
+  {
+    "city": "La Romana",
+    "country": "DO",
+    "airports": [
+      "LRM"
+    ]
+  },
+  {
+    "city": "Punta Cana",
+    "country": "DO",
+    "airports": [
+      "PUJ"
+    ]
+  },
+  {
+    "city": "Santo Domingo",
+    "country": "DO",
+    "airports": [
+      "SDQ"
+    ]
+  },
+  {
+    "city": "Guatemala City",
+    "country": "GT",
+    "airports": [
+      "GUA"
+    ]
+  },
+  {
+    "city": "Kingston",
+    "country": "JM",
+    "airports": [
+      "KIN"
+    ]
+  },
+  {
+    "city": "Cozumel",
+    "country": "MX",
+    "airports": [
+      "CZM"
+    ]
+  },
+  {
+    "city": "Durango",
+    "country": "MX",
+    "airports": [
+      "DGO"
+    ]
+  },
+  {
+    "city": "Guadalajara",
+    "country": "MX",
+    "airports": [
+      "GDL"
+    ]
+  },
+  {
+    "city": "Mérida",
+    "country": "MX",
+    "airports": [
+      "MID"
+    ]
+  },
+  {
+    "city": "Ciudad de México",
+    "country": "MX",
+    "airports": [
+      "MEX"
+    ]
+  },
+  {
+    "city": "Monterrey",
+    "country": "MX",
+    "airports": [
+      "MTY"
+    ]
+  },
+  {
+    "city": "Mazatlàn",
+    "country": "MX",
+    "airports": [
+      "MZT"
+    ]
+  },
+  {
+    "city": "Puerto Vallarta",
+    "country": "MX",
+    "airports": [
+      "PVR"
+    ]
+  },
+  {
+    "city": "San José del Cabo",
+    "country": "MX",
+    "airports": [
+      "SJD"
+    ]
+  },
+  {
+    "city": "Mexico City",
+    "country": "MX",
+    "airports": [
+      "NLU"
+    ]
+  },
+  {
+    "city": "Tijuana",
+    "country": "MX",
+    "airports": [
+      "TIJ"
+    ]
+  },
+  {
+    "city": "Cancún",
+    "country": "MX",
+    "airports": [
+      "CUN"
+    ]
+  },
+  {
+    "city": "Tocumen",
+    "country": "PA",
+    "airports": [
+      "PTY"
+    ]
+  },
+  {
+    "city": "Liberia",
+    "country": "CR",
+    "airports": [
+      "LIR"
+    ]
+  },
+  {
+    "city": "San Salvador (San Luis Talpa)",
+    "country": "SV",
+    "airports": [
+      "SAL"
+    ]
+  },
+  {
+    "city": "Port-au-Prince",
+    "country": "HT",
+    "airports": [
+      "PAP"
+    ]
+  },
+  {
+    "city": "Havana",
+    "country": "CU",
+    "airports": [
+      "HAV"
+    ]
+  },
+  {
+    "city": "Matanzas",
+    "country": "CU",
+    "airports": [
+      "VRA"
+    ]
+  },
+  {
+    "city": "George Town",
+    "country": "KY",
+    "airports": [
+      "GCM"
+    ]
+  },
+  {
+    "city": "Nassau",
+    "country": "BS",
+    "airports": [
+      "NAS"
+    ]
+  },
+  {
+    "city": "Belize City",
+    "country": "BZ",
+    "airports": [
+      "BZE"
+    ]
+  },
+  {
+    "city": "Papeete",
+    "country": "PF",
+    "airports": [
+      "PPT"
+    ]
+  },
+  {
+    "city": "Port Vila",
+    "country": "VU",
+    "airports": [
+      "VLI"
+    ]
+  },
+  {
+    "city": "Auckland",
+    "country": "NZ",
+    "airports": [
+      "AKL"
+    ]
+  },
+  {
+    "city": "Christchurch",
+    "country": "NZ",
+    "airports": [
+      "CHC"
+    ]
+  },
+  {
+    "city": "Wellington",
+    "country": "NZ",
+    "airports": [
+      "WLG"
+    ]
+  },
+  {
+    "city": "Manama",
+    "country": "BH",
+    "airports": [
+      "BAH"
+    ]
+  },
+  {
+    "city": "Ad Dammam",
+    "country": "SA",
+    "airports": [
+      "DMM"
+    ]
+  },
+  {
+    "city": "Dhahran",
+    "country": "SA",
+    "airports": [
+      "DHA"
+    ]
+  },
+  {
+    "city": "Jeddah",
+    "country": "SA",
+    "airports": [
+      "JED"
+    ]
+  },
+  {
+    "city": "Medina",
+    "country": "SA",
+    "airports": [
+      "MED"
+    ]
+  },
+  {
+    "city": "Riyadh",
+    "country": "SA",
+    "airports": [
+      "RUH"
+    ]
+  },
+  {
+    "city": "Tehran",
+    "country": "IR",
+    "airports": [
+      "IKA",
+      "THR"
+    ]
+  },
+  {
+    "city": "Mashhad",
+    "country": "IR",
+    "airports": [
+      "MHD"
+    ]
+  },
+  {
+    "city": "Shiraz",
+    "country": "IR",
+    "airports": [
+      "SYZ"
+    ]
+  },
+  {
+    "city": "Amman",
+    "country": "JO",
+    "airports": [
+      "AMM"
+    ]
+  },
+  {
+    "city": "Kuwait City",
+    "country": "KW",
+    "airports": [
+      "KWI"
+    ]
+  },
+  {
+    "city": "Beirut",
+    "country": "LB",
+    "airports": [
+      "BEY"
+    ]
+  },
+  {
+    "city": "Duqm",
+    "country": "OM",
+    "airports": [
+      "DQM"
+    ]
+  },
+  {
+    "city": "Abu Dhabi",
+    "country": "AE",
+    "airports": [
+      "AUH"
+    ]
+  },
+  {
+    "city": "Dubai",
+    "country": "AE",
+    "airports": [
+      "DXB"
+    ]
+  },
+  {
+    "city": "Jebel Ali",
+    "country": "AE",
+    "airports": [
+      "DWC"
+    ]
+  },
+  {
+    "city": "Sharjah",
+    "country": "AE",
+    "airports": [
+      "SHJ"
+    ]
+  },
+  {
+    "city": "Muscat",
+    "country": "OM",
+    "airports": [
+      "MCT"
+    ]
+  },
+  {
+    "city": "Attock",
+    "country": "PK",
+    "airports": [
+      "ISB"
+    ]
+  },
+  {
+    "city": "Karachi",
+    "country": "PK",
+    "airports": [
+      "KHI"
+    ]
+  },
+  {
+    "city": "Lahore",
+    "country": "PK",
+    "airports": [
+      "LHE"
+    ]
+  },
+  {
+    "city": "Baghdad",
+    "country": "IQ",
+    "airports": [
+      "BGW"
+    ]
+  },
+  {
+    "city": "Damascus",
+    "country": "SY",
+    "airports": [
+      "DAM"
+    ]
+  },
+  {
+    "city": "Doha",
+    "country": "QA",
+    "airports": [
+      "DOH"
+    ]
+  },
+  {
+    "city": "Anchorage",
+    "country": "US",
+    "airports": [
+      "ANC"
+    ]
+  },
+  {
+    "city": "Hagåtña",
+    "country": "GU",
+    "airports": [
+      "GUM"
+    ]
+  },
+  {
+    "city": "Honolulu, Oahu",
+    "country": "US",
+    "airports": [
+      "HNL"
+    ]
+  },
+  {
+    "city": "Kahului",
+    "country": "US",
+    "airports": [
+      "OGG"
+    ]
+  },
+  {
+    "city": "Kaohsiung (Xiaogang)",
+    "country": "TW",
+    "airports": [
+      "KHH"
+    ]
+  },
+  {
+    "city": "Taoyuan",
+    "country": "TW",
+    "airports": [
+      "TPE"
+    ]
+  },
+  {
+    "city": "Narita",
+    "country": "JP",
+    "airports": [
+      "NRT"
+    ]
+  },
+  {
+    "city": "Osaka",
+    "country": "JP",
+    "airports": [
+      "KIX",
+      "ITM"
+    ]
+  },
+  {
+    "city": "Sapporo",
+    "country": "JP",
+    "airports": [
+      "CTS"
+    ]
+  },
+  {
+    "city": "Fukuoka",
+    "country": "JP",
+    "airports": [
+      "FUK"
+    ]
+  },
+  {
+    "city": "Kagoshima",
+    "country": "JP",
+    "airports": [
+      "KOJ"
+    ]
+  },
+  {
+    "city": "Tokoname",
+    "country": "JP",
+    "airports": [
+      "NGO"
+    ]
+  },
+  {
+    "city": "Natori",
+    "country": "JP",
+    "airports": [
+      "SDJ"
+    ]
+  },
+  {
+    "city": "Tokyo",
+    "country": "JP",
+    "airports": [
+      "HND"
+    ]
+  },
+  {
+    "city": "Fussa",
+    "country": "JP",
+    "airports": [
+      "OKO"
+    ]
+  },
+  {
+    "city": "Muan (Piseo-ri)",
+    "country": "KR",
+    "airports": [
+      "MWX"
+    ]
+  },
+  {
+    "city": "Jeju City",
+    "country": "KR",
+    "airports": [
+      "CJU"
+    ]
+  },
+  {
+    "city": "Busan",
+    "country": "KR",
+    "airports": [
+      "PUS"
+    ]
+  },
+  {
+    "city": "Seoul",
+    "country": "KR",
+    "airports": [
+      "ICN",
+      "GMP"
+    ]
+  },
+  {
+    "city": "Naha",
+    "country": "JP",
+    "airports": [
+      "OKA"
+    ]
+  },
+  {
+    "city": "Manila (Pasay)",
+    "country": "PH",
+    "airports": [
+      "MNL"
+    ]
+  },
+  {
+    "city": "Davao",
+    "country": "PH",
+    "airports": [
+      "DVO"
+    ]
+  },
+  {
+    "city": "Lapu-Lapu City",
+    "country": "PH",
+    "airports": [
+      "CEB"
+    ]
+  },
+  {
+    "city": "Buenos Aires",
+    "country": "AR",
+    "airports": [
+      "AEP"
+    ]
+  },
+  {
+    "city": "Buenos Aires (Ezeiza)",
+    "country": "AR",
+    "airports": [
+      "EZE"
+    ]
+  },
+  {
+    "city": "Belém",
+    "country": "BR",
+    "airports": [
+      "BEL"
+    ]
+  },
+  {
+    "city": "Brasília",
+    "country": "BR",
+    "airports": [
+      "BSB"
+    ]
+  },
+  {
+    "city": "Belo Horizonte",
+    "country": "BR",
+    "airports": [
+      "CNF"
+    ]
+  },
+  {
+    "city": "Manaus",
+    "country": "BR",
+    "airports": [
+      "MAO"
+    ]
+  },
+  {
+    "city": "Florianópolis",
+    "country": "BR",
+    "airports": [
+      "FLN"
+    ]
+  },
+  {
+    "city": "Fortaleza",
+    "country": "BR",
+    "airports": [
+      "FOR"
+    ]
+  },
+  {
+    "city": "Rio De Janeiro",
+    "country": "BR",
+    "airports": [
+      "GIG"
+    ]
+  },
+  {
+    "city": "São Paulo",
+    "country": "BR",
+    "airports": [
+      "GRU"
+    ]
+  },
+  {
+    "city": "Porto Seguro",
+    "country": "BR",
+    "airports": [
+      "BPS"
+    ]
+  },
+  {
+    "city": "Salvador",
+    "country": "BR",
+    "airports": [
+      "SSA"
+    ]
+  },
+  {
+    "city": "Vitória",
+    "country": "BR",
+    "airports": [
+      "VIX"
+    ]
+  },
+  {
+    "city": "Santiago",
+    "country": "CL",
+    "airports": [
+      "SCL"
+    ]
+  },
+  {
+    "city": "Guayaquil",
+    "country": "EC",
+    "airports": [
+      "GYE"
+    ]
+  },
+  {
+    "city": "Quito",
+    "country": "EC",
+    "airports": [
+      "UIO"
+    ]
+  },
+  {
+    "city": "Asunción",
+    "country": "PY",
+    "airports": [
+      "ASU"
+    ]
+  },
+  {
+    "city": "Encarnación",
+    "country": "PY",
+    "airports": [
+      "ENO"
+    ]
+  },
+  {
+    "city": "Ciudad del Este",
+    "country": "PY",
+    "airports": [
+      "AGT"
+    ]
+  },
+  {
+    "city": "Mariscal Estigarribia",
+    "country": "PY",
+    "airports": [
+      "ESG"
+    ]
+  },
+  {
+    "city": "Bogota",
+    "country": "CO",
+    "airports": [
+      "BOG"
+    ]
+  },
+  {
+    "city": "Santa Cruz",
+    "country": "BO",
+    "airports": [
+      "VVI"
+    ]
+  },
+  {
+    "city": "Zandery",
+    "country": "SR",
+    "airports": [
+      "PBM"
+    ]
+  },
+  {
+    "city": "Matoury",
+    "country": "GF",
+    "airports": [
+      "CAY"
+    ]
+  },
+  {
+    "city": "Lima",
+    "country": "PE",
+    "airports": [
+      "LIM"
+    ]
+  },
+  {
+    "city": "Cusco",
+    "country": "PE",
+    "airports": [
+      "CUZ"
+    ]
+  },
+  {
+    "city": "Ciudad de la Costa",
+    "country": "UY",
+    "airports": [
+      "MVD"
+    ]
+  },
+  {
+    "city": "Caracas",
+    "country": "VE",
+    "airports": [
+      "CCS"
+    ]
+  },
+  {
+    "city": "Fort-de-France",
+    "country": "MQ",
+    "airports": [
+      "FDF"
+    ]
+  },
+  {
+    "city": "Pointe-à-Pitre",
+    "country": "GP",
+    "airports": [
+      "PTP"
+    ]
+  },
+  {
+    "city": "San Juan",
+    "country": "PR",
+    "airports": [
+      "SJU"
+    ]
+  },
+  {
+    "city": "Vieux Fort",
+    "country": "LC",
+    "airports": [
+      "UVF"
+    ]
+  },
+  {
+    "city": "Oranjestad",
+    "country": "AW",
+    "airports": [
+      "AUA"
+    ]
+  },
+  {
+    "city": "Kralendijk, Bonaire",
+    "country": "BQ",
+    "airports": [
+      "BON"
+    ]
+  },
+  {
+    "city": "Willemstad",
+    "country": "CW",
+    "airports": [
+      "CUR"
+    ]
+  },
+  {
+    "city": "Saint Martin",
+    "country": "SX",
+    "airports": [
+      "SXM"
+    ]
+  },
+  {
+    "city": "Almaty",
+    "country": "KZ",
+    "airports": [
+      "ALA"
+    ]
+  },
+  {
+    "city": "Astana",
+    "country": "KZ",
+    "airports": [
+      "NQZ"
+    ]
+  },
+  {
+    "city": "Bishkek",
+    "country": "KG",
+    "airports": [
+      "FRU"
+    ]
+  },
+  {
+    "city": "Baku",
+    "country": "AZ",
+    "airports": [
+      "GYD"
+    ]
+  },
+  {
+    "city": "Yerevan",
+    "country": "AM",
+    "airports": [
+      "EVN"
+    ]
+  },
+  {
+    "city": "Tbilisi",
+    "country": "GE",
+    "airports": [
+      "TBS"
+    ]
+  },
+  {
+    "city": "Artyom",
+    "country": "RU",
+    "airports": [
+      "VVO"
+    ]
+  },
+  {
+    "city": "Boryspil",
+    "country": "UA",
+    "airports": [
+      "KBP"
+    ]
+  },
+  {
+    "city": "Lviv",
+    "country": "UA",
+    "airports": [
+      "LWO"
+    ]
+  },
+  {
+    "city": "St. Petersburg",
+    "country": "RU",
+    "airports": [
+      "LED"
+    ]
+  },
+  {
+    "city": "Minsk",
+    "country": "BY",
+    "airports": [
+      "MSQ"
+    ]
+  },
+  {
+    "city": "Krasnoyarsk",
+    "country": "RU",
+    "airports": [
+      "KJA"
+    ]
+  },
+  {
+    "city": "Novosibirsk",
+    "country": "RU",
+    "airports": [
+      "OVB"
+    ]
+  },
+  {
+    "city": "Rostov-on-Don",
+    "country": "RU",
+    "airports": [
+      "ROV"
+    ]
+  },
+  {
+    "city": "Sochi",
+    "country": "RU",
+    "airports": [
+      "AER"
+    ]
+  },
+  {
+    "city": "Yekaterinburg",
+    "country": "RU",
+    "airports": [
+      "SVX"
+    ]
+  },
+  {
+    "city": "Ashgabat",
+    "country": "TM",
+    "airports": [
+      "ASB"
+    ]
+  },
+  {
+    "city": "Tashkent",
+    "country": "UZ",
+    "airports": [
+      "TAS"
+    ]
+  },
+  {
+    "city": "Moscow",
+    "country": "RU",
+    "airports": [
+      "ZIA",
+      "DME",
+      "SVO",
+      "VKO"
+    ]
+  },
+  {
+    "city": "Kazan",
+    "country": "RU",
+    "airports": [
+      "KZN"
+    ]
+  },
+  {
+    "city": "Saratov",
+    "country": "RU",
+    "airports": [
+      "GSV"
+    ]
+  },
+  {
+    "city": "Ufa",
+    "country": "RU",
+    "airports": [
+      "UFA"
+    ]
+  },
+  {
+    "city": "Samara",
+    "country": "RU",
+    "airports": [
+      "KUF"
+    ]
+  },
+  {
+    "city": "Mumbai",
+    "country": "IN",
+    "airports": [
+      "BOM"
+    ]
+  },
+  {
+    "city": "Rajkot",
+    "country": "IN",
+    "airports": [
+      "HSR"
+    ]
+  },
+  {
+    "city": "Colombo",
+    "country": "LK",
+    "airports": [
+      "CMB"
+    ]
+  },
+  {
+    "city": "Mattala",
+    "country": "LK",
+    "airports": [
+      "HRI"
+    ]
+  },
+  {
+    "city": "Phnom Penh (Pou Senchey)",
+    "country": "KH",
+    "airports": [
+      "PNH"
+    ]
+  },
+  {
+    "city": "Siem Reap",
+    "country": "KH",
+    "airports": [
+      "SAI"
+    ]
+  },
+  {
+    "city": "Kolkata",
+    "country": "IN",
+    "airports": [
+      "CCU"
+    ]
+  },
+  {
+    "city": "Dhaka",
+    "country": "BD",
+    "airports": [
+      "DAC"
+    ]
+  },
+  {
+    "city": "Hong Kong",
+    "country": "HK",
+    "airports": [
+      "HKG"
+    ]
+  },
+  {
+    "city": "New Delhi",
+    "country": "IN",
+    "airports": [
+      "DEL"
+    ]
+  },
+  {
+    "city": "Nossa Senhora do Carmo",
+    "country": "MO",
+    "airports": [
+      "MFM"
+    ]
+  },
+  {
+    "city": "Kathmandu",
+    "country": "NP",
+    "airports": [
+      "KTM"
+    ]
+  },
+  {
+    "city": "Bangalore",
+    "country": "IN",
+    "airports": [
+      "BLR"
+    ]
+  },
+  {
+    "city": "Kochi",
+    "country": "IN",
+    "airports": [
+      "COK"
+    ]
+  },
+  {
+    "city": "Mopa",
+    "country": "IN",
+    "airports": [
+      "GOX"
+    ]
+  },
+  {
+    "city": "Vasco da Gama",
+    "country": "IN",
+    "airports": [
+      "GOI"
+    ]
+  },
+  {
+    "city": "Hyderabad",
+    "country": "IN",
+    "airports": [
+      "HYD"
+    ]
+  },
+  {
+    "city": "Chennai",
+    "country": "IN",
+    "airports": [
+      "MAA"
+    ]
+  },
+  {
+    "city": "Thiruvananthapuram",
+    "country": "IN",
+    "airports": [
+      "TRV"
+    ]
+  },
+  {
+    "city": "Malé",
+    "country": "MV",
+    "airports": [
+      "MLE"
+    ]
+  },
+  {
+    "city": "Bangkok",
+    "country": "TH",
+    "airports": [
+      "DMK",
+      "BKK"
+    ]
+  },
+  {
+    "city": "Chiang Mai",
+    "country": "TH",
+    "airports": [
+      "CNX"
+    ]
+  },
+  {
+    "city": "Phuket",
+    "country": "TH",
+    "airports": [
+      "HKT"
+    ]
+  },
+  {
+    "city": "Hanoi (Soc Son)",
+    "country": "VN",
+    "airports": [
+      "HAN"
+    ]
+  },
+  {
+    "city": "Ho Chi Minh City",
+    "country": "VN",
+    "airports": [
+      "SGN"
+    ]
+  },
+  {
+    "city": "Mandalay",
+    "country": "MM",
+    "airports": [
+      "MDL"
+    ]
+  },
+  {
+    "city": "Yangon",
+    "country": "MM",
+    "airports": [
+      "RGN"
+    ]
+  },
+  {
+    "city": "Ujung Pandang",
+    "country": "ID",
+    "airports": [
+      "UPG"
+    ]
+  },
+  {
+    "city": "Kuta, Badung",
+    "country": "ID",
+    "airports": [
+      "DPS"
+    ]
+  },
+  {
+    "city": "Sentani",
+    "country": "ID",
+    "airports": [
+      "DJJ"
+    ]
+  },
+  {
+    "city": "Balikpapan",
+    "country": "ID",
+    "airports": [
+      "BPN"
+    ]
+  },
+  {
+    "city": "Surabaya",
+    "country": "ID",
+    "airports": [
+      "SUB"
+    ]
+  },
+  {
+    "city": "Bandar Seri Begawan",
+    "country": "BN",
+    "airports": [
+      "BWN"
+    ]
+  },
+  {
+    "city": "Jakarta",
+    "country": "ID",
+    "airports": [
+      "CGK"
+    ]
+  },
+  {
+    "city": "Medan",
+    "country": "ID",
+    "airports": [
+      "KNO"
+    ]
+  },
+  {
+    "city": "Sepang",
+    "country": "MY",
+    "airports": [
+      "KUL"
+    ]
+  },
+  {
+    "city": "Singapore",
+    "country": "SG",
+    "airports": [
+      "SIN"
+    ]
+  },
+  {
+    "city": "Brisbane",
+    "country": "AU",
+    "airports": [
+      "BNE"
+    ]
+  },
+  {
+    "city": "Melbourne",
+    "country": "AU",
+    "airports": [
+      "MEL"
+    ]
+  },
+  {
+    "city": "Adelaide",
+    "country": "AU",
+    "airports": [
+      "ADL"
+    ]
+  },
+  {
+    "city": "Darwin",
+    "country": "AU",
+    "airports": [
+      "DRW"
+    ]
+  },
+  {
+    "city": "Perth",
+    "country": "AU",
+    "airports": [
+      "PER"
+    ]
+  },
+  {
+    "city": "Sydney (Mascot)",
+    "country": "AU",
+    "airports": [
+      "SYD"
+    ]
+  },
+  {
+    "city": "Beijing",
+    "country": "CN",
+    "airports": [
+      "PEK",
+      "PKX"
+    ]
+  },
+  {
+    "city": "Hohhot",
+    "country": "CN",
+    "airports": [
+      "HET"
+    ]
+  },
+  {
+    "city": "Tianjin",
+    "country": "CN",
+    "airports": [
+      "TSN"
+    ]
+  },
+  {
+    "city": "Taiyuan",
+    "country": "CN",
+    "airports": [
+      "TYN"
+    ]
+  },
+  {
+    "city": "Guangzhou (Huadu)",
+    "country": "CN",
+    "airports": [
+      "CAN"
+    ]
+  },
+  {
+    "city": "Changsha (Changsha)",
+    "country": "CN",
+    "airports": [
+      "CSX"
+    ]
+  },
+  {
+    "city": "Guilin (Lingui)",
+    "country": "CN",
+    "airports": [
+      "KWL"
+    ]
+  },
+  {
+    "city": "Nanning (Jiangnan)",
+    "country": "CN",
+    "airports": [
+      "NNG"
+    ]
+  },
+  {
+    "city": "Shenzhen (Bao'an)",
+    "country": "CN",
+    "airports": [
+      "SZX"
+    ]
+  },
+  {
+    "city": "Zhengzhou",
+    "country": "CN",
+    "airports": [
+      "CGO"
+    ]
+  },
+  {
+    "city": "Ezhou",
+    "country": "CN",
+    "airports": [
+      "EHU"
+    ]
+  },
+  {
+    "city": "Wuhan (Huangpi)",
+    "country": "CN",
+    "airports": [
+      "WUH"
+    ]
+  },
+  {
+    "city": "Haikou (Meilan)",
+    "country": "CN",
+    "airports": [
+      "HAK"
+    ]
+  },
+  {
+    "city": "Sanya (Tianya)",
+    "country": "CN",
+    "airports": [
+      "SYX"
+    ]
+  },
+  {
+    "city": "Pyongyang",
+    "country": "KP",
+    "airports": [
+      "FNJ"
+    ]
+  },
+  {
+    "city": "Lanzhou (Yongdeng)",
+    "country": "CN",
+    "airports": [
+      "LHW"
+    ]
+  },
+  {
+    "city": "Xianyang (Weicheng)",
+    "country": "CN",
+    "airports": [
+      "XIY"
+    ]
+  },
+  {
+    "city": "Ulaanbaatar (Sergelen)",
+    "country": "MN",
+    "airports": [
+      "UBN"
+    ]
+  },
+  {
+    "city": "Kunming",
+    "country": "CN",
+    "airports": [
+      "KMG"
+    ]
+  },
+  {
+    "city": "Xiamen",
+    "country": "CN",
+    "airports": [
+      "XMN"
+    ]
+  },
+  {
+    "city": "Nanchang",
+    "country": "CN",
+    "airports": [
+      "KHN"
+    ]
+  },
+  {
+    "city": "Fuzhou (Changle)",
+    "country": "CN",
+    "airports": [
+      "FOC"
+    ]
+  },
+  {
+    "city": "Hangzhou",
+    "country": "CN",
+    "airports": [
+      "HGH"
+    ]
+  },
+  {
+    "city": "Jinan (Licheng)",
+    "country": "CN",
+    "airports": [
+      "TNA"
+    ]
+  },
+  {
+    "city": "Ningbo",
+    "country": "CN",
+    "airports": [
+      "NGB"
+    ]
+  },
+  {
+    "city": "Nanjing",
+    "country": "CN",
+    "airports": [
+      "NKG"
+    ]
+  },
+  {
+    "city": "Shanghai (Pudong)",
+    "country": "CN",
+    "airports": [
+      "PVG"
+    ]
+  },
+  {
+    "city": "Qingdao (Jiaozhou)",
+    "country": "CN",
+    "airports": [
+      "TAO"
+    ]
+  },
+  {
+    "city": "Shanghai (Minhang)",
+    "country": "CN",
+    "airports": [
+      "SHA"
+    ]
+  },
+  {
+    "city": "Wenzhou (Longwan)",
+    "country": "CN",
+    "airports": [
+      "WNZ"
+    ]
+  },
+  {
+    "city": "Yantai",
+    "country": "CN",
+    "airports": [
+      "YNT"
+    ]
+  },
+  {
+    "city": "Chongqing",
+    "country": "CN",
+    "airports": [
+      "CKG"
+    ]
+  },
+  {
+    "city": "Guiyang (Nanming)",
+    "country": "CN",
+    "airports": [
+      "KWE"
+    ]
+  },
+  {
+    "city": "Chengdu (Jianyang)",
+    "country": "CN",
+    "airports": [
+      "TFU"
+    ]
+  },
+  {
+    "city": "Chengdu (Shuangliu)",
+    "country": "CN",
+    "airports": [
+      "CTU"
+    ]
+  },
+  {
+    "city": "Ürümqi",
+    "country": "CN",
+    "airports": [
+      "URC"
+    ]
+  },
+  {
+    "city": "Changchun",
+    "country": "CN",
+    "airports": [
+      "CGQ"
+    ]
+  },
+  {
+    "city": "Harbin",
+    "country": "CN",
+    "airports": [
+      "HRB"
+    ]
+  },
+  {
+    "city": "Dalian (Ganjingzi)",
+    "country": "CN",
+    "airports": [
+      "DLC"
+    ]
+  },
+  {
+    "city": "Hunnan, Shenyang",
+    "country": "CN",
+    "airports": [
+      "SHE"
+    ]
+  }
+]

@@ -84,7 +84,10 @@ export class UsersService {
     return { message: 'История поисков', history };
   }
 
-  async updateProfile(req: Request, updateData: UpdateProfileDto) {
+  async updateProfile(
+    req: Request,
+    updateData: UpdateProfileDto & { oldPass?: string; newPass?: string },
+  ) {
     const user = await this.authenticate(req.headers.authorization);
     this.logger.log(
       `Updating profile for user ID: ${user.id} in ${user.dbRegion}`,
@@ -161,9 +164,24 @@ export class UsersService {
       );
     }
 
-    if (updateData.password) {
+    if (updateData.newPass) {
+      if (!updateData.oldPass) {
+        throw new BadRequestException(
+          'Current password is required to set a new password',
+        );
+      }
+
+      this.logger.log(`Verifying old password for user ${user.id}...`);
+      const isOldPasswordValid = await bcrypt.compare(
+        updateData.oldPass,
+        user.password,
+      );
+      if (!isOldPasswordValid) {
+        throw new ForbiddenException('Incorrect current password');
+      }
+
       this.logger.log(`Hashing new password for user ${user.id}...`);
-      updatePayload.password = await bcrypt.hash(updateData.password, 10);
+      updatePayload.password = await bcrypt.hash(updateData.newPass, 10);
     }
 
     const updatedUser = await userModel.update({

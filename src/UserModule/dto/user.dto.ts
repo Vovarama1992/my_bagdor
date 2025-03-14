@@ -21,6 +21,11 @@ export class UserProfileResponseDto {
   @IsOptional()
   lastName?: string;
 
+  @ApiProperty({ example: 'hashed_password', required: false })
+  @IsString()
+  @IsOptional()
+  password?: string;
+
   @ApiProperty({ example: 'johnny', required: false })
   @IsString()
   @IsOptional()

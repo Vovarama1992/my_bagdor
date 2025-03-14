@@ -35,8 +35,21 @@ export class UsersController {
     description: 'Профиль успешно обновлён',
     type: UserProfileResponseDto,
   })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        oldPass: { type: 'string', example: 'current_password' },
+        newPass: { type: 'string', example: 'new_secure_password' },
+      },
+      required: [], // Если нет обязательных полей, оставляем пустым массивом
+    },
+  })
   @Put('profile')
-  async updateProfile(@Request() req: Req, @Body() body: UpdateProfileDto) {
+  async updateProfile(
+    @Request() req: Req,
+    @Body() body: UpdateProfileDto & { oldPass?: string; newPass?: string },
+  ) {
     return this.usersService.updateProfile(req, body);
   }
 

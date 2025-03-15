@@ -17,6 +17,15 @@ export class AdminGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.get<boolean>(
+      'isPublic',
+      context.getHandler(),
+    );
+    if (isPublic) {
+      console.log('AdminGuard: Пропускаем публичный маршрут');
+      return true;
+    }
+
     const request: Request = context.switchToHttp().getRequest();
     console.log(
       'AdminGuard сработал для запроса:',

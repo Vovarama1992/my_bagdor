@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   UseGuards,
+  SetMetadata,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -20,6 +21,7 @@ import { AdminGuard } from 'guards/admin.guard';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  @SetMetadata('isPublic', true)
   @ApiOperation({ summary: 'Авторизация админа' })
   @ApiResponse({ status: 200, description: 'Успешный вход', type: String })
   @ApiResponse({ status: 401, description: 'Неверные учетные данные' })

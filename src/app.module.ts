@@ -10,6 +10,7 @@ import { FlightModule } from './FlightModule/flight.module';
 import { TelegramModule } from './TelegramModule/telegram.module';
 import { OrderModule } from './OrderModule/order.module';
 import { ReviewModule } from './ReviewModule/review.module';
+import { AdminModule } from './AdminModule/admin.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ReviewModule } from './ReviewModule/review.module';
     AuthModule,
 
     FlightModule,
+    AdminModule,
 
     JwtModule,
     OrderModule,

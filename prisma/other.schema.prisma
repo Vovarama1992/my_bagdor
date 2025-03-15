@@ -34,6 +34,7 @@ model User {
   isPhoneVerified         Boolean     @default(false)
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt
+  dbRegion                DbRegion    @default(PENDING)
   
 
   numberOfOrders          Int         @default(0) // Кол-во заказов
@@ -76,6 +77,7 @@ enum SearchType {
 enum AccountType {
   CUSTOMER
   CARRIER
+  ADMIN
 }
 
 model Flight {

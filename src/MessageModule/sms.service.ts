@@ -7,6 +7,7 @@ export class SmsService {
   private readonly logger = new Logger(SmsService.name);
   private readonly smsApiUrl: string;
   private readonly apiKey: string;
+  private readonly supportEmail: string;
 
   constructor(private configService: ConfigService) {
     this.smsApiUrl = this.configService.get<string>(
@@ -14,6 +15,10 @@ export class SmsService {
       'https://api3.greensms.ru/sms/send',
     );
     this.apiKey = this.configService.get<string>('SMS_API_KEY');
+    this.supportEmail = this.configService.get<string>(
+      'SUPPORT_EMAIL',
+      'support@bagdoor.io',
+    );
 
     if (!this.apiKey) {
       this.logger.error(
@@ -24,18 +29,22 @@ export class SmsService {
     }
   }
 
-  async sendVerificationSms(phone: string, code: string): Promise<void> {
-    const message = `Ваш код подтверждения: ${code}`;
+  async sendVerificationSms(
+    phone: string,
+    name: string,
+    code: string,
+  ): Promise<void> {
+    const message = `Привет ${name}, Это Bagdoor! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами. Код подтверждения: ${code}. Действителен 5 мин. Никому не сообщайте его. При вопросах пишите: ${this.supportEmail}`;
+
     const payload = {
       to: phone,
       txt: message,
-      // Дополнительно, можно указать "from" или "tag", если нужно
     };
 
     try {
       const response = await axios.post(this.smsApiUrl, payload, {
         headers: {
-          Authorization: `Bearer ${this.apiKey}`, // Используем Bearer Token
+          Authorization: `Bearer ${this.apiKey}`,
         },
       });
 

@@ -4,7 +4,7 @@ import {
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { DbRegion, PrismaClient } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -62,7 +62,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('Disconnected from all databases.');
   }
 
-  getDatabase(region: string): PrismaClient {
+  getDatabase(region: DbRegion): PrismaClient {
     this.logger.log(`Fetching database for region: ${region}`);
     if (region.toUpperCase() === 'RU') {
       return this.prismaRU;

@@ -1,0 +1,40 @@
+import { Controller, Post, Delete, Put, Body, Param } from '@nestjs/common';
+import { AdminService } from './admin.service';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { RegisterDto } from 'src/AuthModule/dto/auth.dto';
+import { UpdateProfileDto } from 'src/UserModule/dto/user.dto';
+import { DbRegion } from '@prisma/client';
+
+@ApiTags('Admin')
+@Controller('admin')
+export class AdminController {
+  constructor(private readonly adminService: AdminService) {}
+
+  @ApiOperation({ summary: 'Создать профиль пользователя' })
+  @ApiResponse({ status: 201, description: 'Профиль создан' })
+  @Post('create')
+  async createProfile(@Body() createUserDto: RegisterDto) {
+    return this.adminService.createProfile(createUserDto);
+  }
+
+  @ApiOperation({ summary: 'Удалить профиль пользователя' })
+  @ApiResponse({ status: 200, description: 'Профиль удалён' })
+  @Delete('delete/:id/:dbRegion')
+  async deleteProfile(
+    @Param('id') id: string,
+    @Param('dbRegion') dbRegion: DbRegion,
+  ) {
+    return this.adminService.deleteProfile(Number(id), dbRegion);
+  }
+
+  @ApiOperation({ summary: 'Редактировать профиль пользователя' })
+  @ApiResponse({ status: 200, description: 'Профиль обновлён' })
+  @Put('update/:id/:dbRegion')
+  async updateProfile(
+    @Param('id') id: string,
+    @Param('dbRegion') dbRegion: DbRegion,
+    @Body() updateUserDto: UpdateProfileDto,
+  ) {
+    return this.adminService.updateProfile(Number(id), updateUserDto, dbRegion);
+  }
+}

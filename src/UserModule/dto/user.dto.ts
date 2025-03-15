@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEmail, MinLength } from 'class-validator';
 import { ReviewDto } from './review.dto';
-import { AccountType } from '@prisma/client';
+import { AccountType, DbRegion } from '@prisma/client';
 
 export class UserProfileResponseDto {
   @ApiProperty({ example: 1, required: true })
@@ -15,6 +15,9 @@ export class UserProfileResponseDto {
   @IsString()
   @IsOptional()
   firstName?: string;
+
+  @ApiProperty({ example: 'RU', required: true })
+  dbRegion: DbRegion;
 
   @ApiProperty({ example: 'Doe', required: false })
   @IsString()
@@ -143,6 +146,4 @@ export class UpdateProfileDto {
   password?: string;
 }
 
-export type AuthenticatedUser = UserProfileResponseDto & {
-  dbRegion: 'PENDING' | 'RU' | 'OTHER';
-};
+export type AuthenticatedUser = UserProfileResponseDto;

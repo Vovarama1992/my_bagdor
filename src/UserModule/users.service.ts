@@ -16,7 +16,7 @@ import { RedisService } from 'src/RedisModule/redis.service';
 import { SmsService } from 'src/MessageModule/sms.service';
 import { VerifyEmailDto } from 'src/AuthModule/dto/auth.dto';
 import { EmailService } from 'src/MessageModule/email.service';
-import { SearchType } from '@prisma/client';
+import { DbRegion, SearchType } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -132,6 +132,7 @@ export class UsersService {
 
         await this.smsService.sendVerificationSms(
           updateData.phone,
+          updateData.firstName,
           verificationCode,
         );
         this.logger.log(
@@ -159,6 +160,7 @@ export class UsersService {
         );
         await this.emailService.sendVerificationEmail(
           updateData.email,
+          updateData.firstName,
           verificationCode,
         );
       }
@@ -233,13 +235,21 @@ export class UsersService {
 
         if (phoneCode) {
           this.logger.log(`Resending phone verification code to ${user.phone}`);
-          await this.smsService.sendVerificationSms(user.phone, phoneCode);
+          await this.smsService.sendVerificationSms(
+            user.phone,
+            user.firstName,
+            phoneCode,
+          );
           return { message: 'Verification code sent to phone' };
         }
 
         if (emailCode) {
           this.logger.log(`Resending email verification code to ${email}`);
-          await this.emailService.sendVerificationEmail(email, emailCode);
+          await this.emailService.sendVerificationEmail(
+            email,
+            user.firstName,
+            emailCode,
+          );
           return { message: 'Verification code sent to email' };
         }
 
@@ -320,6 +330,7 @@ export class UsersService {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
+          dbRegion: targetRegion,
           phone: user.phone,
           password: user.password,
           isRegistered: true,
@@ -339,7 +350,7 @@ export class UsersService {
       let existingUser = await dbRU.user.findUnique({
         where: { email: body.email },
       });
-      let targetDB = 'RU';
+      let targetDB: DbRegion = 'RU';
 
       if (!existingUser) {
         existingUser = await dbOther.user.findUnique({
@@ -374,7 +385,7 @@ export class UsersService {
   }
   async saveSearchHistory(
     userId: number,
-    dbRegion: string,
+    dbRegion: DbRegion,
     query: string,
     type: SearchType,
   ) {

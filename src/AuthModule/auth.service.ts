@@ -148,6 +148,7 @@ export class AuthService {
           );
           await this.emailService.sendVerificationEmail(
             email,
+            firstName,
             verificationCode,
           );
 
@@ -191,7 +192,11 @@ export class AuthService {
           300,
         );
         this.logger.log(`Sending verification email...`);
-        await this.emailService.sendVerificationEmail(email, verificationCode);
+        await this.emailService.sendVerificationEmail(
+          email,
+          firstName,
+          verificationCode,
+        );
       }
 
       if (phone) {
@@ -202,7 +207,11 @@ export class AuthService {
           300,
         );
         this.logger.log(`Sending verification SMS...`);
-        await this.smsService.sendVerificationSms(phone, verificationCode);
+        await this.smsService.sendVerificationSms(
+          phone,
+          firstName,
+          verificationCode,
+        );
       }
 
       this.logger.log(`User registration completed.`);

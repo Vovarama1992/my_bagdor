@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Telegraf, Markup, Context } from 'telegraf';
 import { ModerationService } from './moderation.service';
-import { Flight, Order, Review, User } from '@prisma/client';
+import { DbRegion, Flight, Order, Review, User } from '@prisma/client';
 import {
   InputMediaPhoto,
   InputMediaVideo,
@@ -50,7 +50,11 @@ export class TelegramService {
     this.bot.action(/^approve_(\w+)_(\d+)_(\w+)$/, async (ctx) => {
       const [, type, id, dbRegion] = ctx.match;
 
-      await this.moderationService.approveItem(dbRegion, type, parseInt(id));
+      await this.moderationService.approveItem(
+        dbRegion as DbRegion,
+        type,
+        parseInt(id),
+      );
 
       await ctx.answerCbQuery(
         `✅ ${this.getTypeLabel(type)} #${id} подтвержден`,
@@ -61,7 +65,11 @@ export class TelegramService {
     this.bot.action(/^reject_(\w+)_(\d+)_(\w+)$/, async (ctx) => {
       const [, type, id, dbRegion] = ctx.match;
 
-      await this.moderationService.rejectItem(dbRegion, type, parseInt(id));
+      await this.moderationService.rejectItem(
+        dbRegion as DbRegion,
+        type,
+        parseInt(id),
+      );
 
       await ctx.answerCbQuery(`❌ ${this.getTypeLabel(type)} #${id} отклонен`);
       await ctx.deleteMessage();
@@ -101,7 +109,7 @@ export class TelegramService {
   async delegateToModeration(
     entityType: 'order' | 'flight' | 'review',
     id: number,
-    dbRegion: string,
+    dbRegion: DbRegion,
   ) {
     let entity;
 

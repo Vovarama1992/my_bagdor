@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { RegisterDto } from 'src/AuthModule/dto/auth.dto';
+import { LoginDto, RegisterDto } from 'src/AuthModule/dto/auth.dto';
 import { UpdateProfileDto } from 'src/UserModule/dto/user.dto';
 import { DbRegion } from '@prisma/client';
 import { AdminGuard } from 'guards/admin.guard';
@@ -19,6 +19,14 @@ import { AdminGuard } from 'guards/admin.guard';
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  @ApiOperation({ summary: 'Авторизация админа' })
+  @ApiResponse({ status: 200, description: 'Успешный вход', type: String })
+  @ApiResponse({ status: 401, description: 'Неверные учетные данные' })
+  @Post('login')
+  async login(@Body() loginDto: LoginDto) {
+    return this.adminService.loginAdmin(loginDto);
+  }
 
   @ApiOperation({ summary: 'Создать профиль пользователя' })
   @ApiResponse({ status: 201, description: 'Профиль создан' })

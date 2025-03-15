@@ -3,15 +3,17 @@ import {
   NotFoundException,
   Logger,
   ConflictException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
-import { RegisterDto } from 'src/AuthModule/dto/auth.dto';
+import { LoginDto, RegisterDto } from 'src/AuthModule/dto/auth.dto';
 import { UpdateProfileDto } from 'src/UserModule/dto/user.dto';
 import { EmailService } from '../MessageModule/email.service';
 import { SmsService } from '../MessageModule/sms.service';
 import { RedisService } from '../RedisModule/redis.service';
 import * as bcrypt from 'bcryptjs';
 import { DbRegion } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AdminService {
@@ -22,7 +24,47 @@ export class AdminService {
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
     private readonly redisService: RedisService,
+    private readonly jwtService: JwtService,
   ) {}
+
+  async loginAdmin(loginDto: LoginDto) {
+    const { email, password } = loginDto;
+
+    let user = null;
+    let dbRegion: 'RU' | 'OTHER' | 'PENDING' | null = null;
+
+    for (const region of ['RU', 'OTHER', 'PENDING'] as const) {
+      const db = this.prismaService.getDatabase(region);
+      user = await db.user.findFirst({
+        where: { email, accountType: 'ADMIN' },
+      });
+
+      if (user) {
+        dbRegion = region;
+        break;
+      }
+    }
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials or not an admin');
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const token = this.jwtService.sign({
+      id: user.id,
+      role: user.role,
+      dbRegion,
+    });
+
+    this.logger.log(
+      `Admin logged in: id=${user.id}, email=${email}, region=${dbRegion}`,
+    );
+    return { token, message: 'Login successful' };
+  }
 
   async createProfile(createUserDto: RegisterDto) {
     const { email, phone, password, firstName } = createUserDto;

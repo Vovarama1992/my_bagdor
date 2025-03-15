@@ -6,9 +6,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from 'src/PrismaModule/prisma.module';
 import { MessageModule } from 'src/MessageModule/message.module';
 import { RedisModule } from 'src/RedisModule/redis.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [JwtModule, PrismaModule, RedisModule, MessageModule],
+  imports: [JwtModule, PrismaModule, RedisModule, MessageModule, ConfigModule],
   controllers: [AdminController],
   providers: [AdminService],
 })

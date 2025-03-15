@@ -14,6 +14,7 @@ import { RedisService } from '../RedisModule/redis.service';
 import * as bcrypt from 'bcryptjs';
 import { DbRegion } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AdminService {
@@ -25,6 +26,7 @@ export class AdminService {
     private readonly smsService: SmsService,
     private readonly redisService: RedisService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async loginAdmin(loginDto: LoginDto) {
@@ -54,11 +56,18 @@ export class AdminService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = this.jwtService.sign({
-      id: user.id,
-      role: user.role,
-      dbRegion,
-    });
+    const jwtSecret = this.configService.get<string>('JWT_SECRET');
+
+    this.logger.log(`🔑 JWT_SECRET (из process.env): ${jwtSecret}`);
+
+    if (!jwtSecret || jwtSecret === 'НЕ НАЙДЕН') {
+      throw new Error('❌ JWT_SECRET отсутствует!');
+    }
+
+    const token = this.jwtService.sign(
+      { id: user.id, dbRegion },
+      { secret: jwtSecret }, // 🔥 Передаем `secret` явно!
+    );
 
     this.logger.log(
       `Admin logged in: id=${user.id}, email=${email}, region=${dbRegion}`,

@@ -10,9 +10,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       useFactory: async (configService: ConfigService) => {
         const jwtSecret = configService.get<string>('JWT_SECRET');
 
-        // Логируем `JWT_SECRET`
         const logger = new Logger('JwtModule');
-        logger.log(`🔑 JWT_SECRET: ${jwtSecret ? 'ЗАГРУЖЕН' : 'НЕ НАЙДЕН'}`);
+        logger.log(
+          `🔑 JWT_SECRET (из ConfigService): ${jwtSecret || 'НЕ НАЙДЕН'}`,
+        );
 
         if (!jwtSecret) {
           logger.error('❌ JWT_SECRET отсутствует в .env!');
@@ -20,7 +21,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         }
 
         return {
-          secret: jwtSecret,
+          secret: jwtSecret, // 🔹 Проверяем, что `secret` передается
           signOptions: { expiresIn: '24h' },
         };
       },

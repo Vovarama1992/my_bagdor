@@ -162,4 +162,20 @@ export class AdminService {
       data: updateUserDto,
     });
   }
+
+  async getAllUsersFromAllDatabases() {
+    const usersRU = await this.prismaService.getDatabase('RU').user.findMany();
+    const usersOther = await this.prismaService
+      .getDatabase('OTHER')
+      .user.findMany();
+    const usersPending = await this.prismaService
+      .getDatabase('PENDING')
+      .user.findMany();
+
+    return {
+      RU: usersRU,
+      OTHER: usersOther,
+      PENDING: usersPending,
+    };
+  }
 }

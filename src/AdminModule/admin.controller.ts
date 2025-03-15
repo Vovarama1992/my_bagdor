@@ -7,6 +7,7 @@ import {
   Param,
   UseGuards,
   SetMetadata,
+  Get,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -56,5 +57,12 @@ export class AdminController {
     @Body() updateUserDto: UpdateProfileDto,
   ) {
     return this.adminService.updateProfile(Number(id), updateUserDto, dbRegion);
+  }
+
+  @ApiOperation({ summary: 'Получить всех пользователей из всех баз' })
+  @ApiResponse({ status: 200, description: 'Список пользователей' })
+  @Get('users')
+  async getAllUsers() {
+    return this.adminService.getAllUsersFromAllDatabases();
   }
 }

@@ -12,7 +12,7 @@ import { EmailService } from '../MessageModule/email.service';
 import { SmsService } from '../MessageModule/sms.service';
 import { RedisService } from '../RedisModule/redis.service';
 import * as bcrypt from 'bcryptjs';
-import { DbRegion } from '@prisma/client';
+import { DbRegion, User } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
@@ -32,7 +32,7 @@ export class AdminService {
   async loginAdmin(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
-    let user = null;
+    let user: User = null;
     let dbRegion: 'RU' | 'OTHER' | 'PENDING' | null = null;
 
     for (const region of ['RU', 'OTHER', 'PENDING'] as const) {
@@ -65,7 +65,7 @@ export class AdminService {
     }
 
     const token = this.jwtService.sign(
-      { id: user.id, dbRegion },
+      { id: user.id, dbRegion, role: 'ADMIN' },
       { secret: jwtSecret }, // 🔥 Передаем `secret` явно!
     );
 

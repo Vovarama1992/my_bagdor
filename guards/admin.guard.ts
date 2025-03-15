@@ -25,19 +25,6 @@ export class AdminGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: Request = context.switchToHttp().getRequest();
-
-    // Проверяем, установлен ли декоратор @Public()
-    const isPublic = this.reflector.get<boolean>(
-      'isPublic',
-      context.getHandler(),
-    );
-    if (isPublic) {
-      this.logger.log(
-        `AdminGuard: Пропускаем публичный маршрут ${request.url}`,
-      );
-      return true;
-    }
-
     this.logger.log(
       `AdminGuard сработал для запроса: ${request.method} ${request.url}`,
     );
@@ -60,10 +47,13 @@ export class AdminGuard implements CanActivate {
     try {
       const jwtSecret = this.configService.get<string>('JWT_SECRET');
       const decoded = this.jwtService.verify(token, { secret: jwtSecret });
+
       this.logger.log(`AdminGuard: Token decoded: ${JSON.stringify(decoded)}`);
 
       if (!decoded || decoded.role !== 'ADMIN') {
-        this.logger.warn('AdminGuard: Forbidden - user is not an admin');
+        this.logger.warn(
+          `AdminGuard: Forbidden - user is not an admin (role=${decoded.role})`,
+        );
         throw new HttpException(
           'Forbidden: Admin role required',
           HttpStatus.FORBIDDEN,

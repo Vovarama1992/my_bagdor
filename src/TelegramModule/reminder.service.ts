@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+{
+  /*import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Telegraf, Markup } from 'telegraf';
 import { CronJob } from 'cron';
 
@@ -74,4 +75,5 @@ export class PostureReminderService implements OnModuleInit {
 
     this.postureResponses = { yes: 0, no: 0 };
   }
+}*/
 }

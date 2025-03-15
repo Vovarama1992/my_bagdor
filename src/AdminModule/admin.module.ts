@@ -5,9 +5,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { AdminGuard } from 'guards/admin.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from 'src/PrismaModule/prisma.module';
+import { MessageModule } from 'src/MessageModule/message.module';
+import { RedisModule } from 'src/RedisModule/redis.module';
 
 @Module({
-  imports: [JwtModule, PrismaModule],
+  imports: [JwtModule, PrismaModule, RedisModule, MessageModule],
   controllers: [AdminController],
   providers: [
     AdminService,

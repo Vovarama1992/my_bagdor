@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
-import { Flight, Order, Review, User } from '@prisma/client';
+import { DbRegion, Flight, Order, Review, User } from '@prisma/client';
 
 @Injectable()
 export class ModerationService {
@@ -13,7 +13,7 @@ export class ModerationService {
     orders: number;
     flights: number;
   }> {
-    const databases = ['PENDING', 'RU', 'OTHER'];
+    const databases: DbRegion[] = ['PENDING', 'RU', 'OTHER'];
 
     const results = await Promise.all(
       databases.map(async (region) => {
@@ -37,7 +37,7 @@ export class ModerationService {
   }
 
   async getPendingOrders(): Promise<(Order & { user: User })[]> {
-    const databases = ['PENDING', 'RU', 'OTHER'];
+    const databases: DbRegion[] = ['PENDING', 'RU', 'OTHER'];
 
     const orders = await Promise.all(
       databases.map(async (region) => {
@@ -52,7 +52,7 @@ export class ModerationService {
   }
 
   async getPendingFlights(): Promise<(Flight & { user: User })[]> {
-    const databases = ['PENDING', 'RU', 'OTHER'];
+    const databases: DbRegion[] = ['PENDING', 'RU', 'OTHER'];
 
     const flights = await Promise.all(
       databases.map(async (region) => {
@@ -69,7 +69,7 @@ export class ModerationService {
   async getPendingReviews(): Promise<
     (Review & { fromUser: User } & { toUser: User })[]
   > {
-    const databases = ['PENDING', 'RU', 'OTHER'];
+    const databases: DbRegion[] = ['PENDING', 'RU', 'OTHER'];
 
     const reviews = await Promise.all(
       databases.map(async (region) => {
@@ -84,7 +84,7 @@ export class ModerationService {
   }
 
   async findOrderById(
-    dbRegion: string,
+    dbRegion: DbRegion,
     orderId: number,
   ): Promise<(Order & { user: User }) | null> {
     const db = this.prisma.getDatabase(dbRegion);
@@ -95,7 +95,7 @@ export class ModerationService {
   }
 
   async findFlightById(
-    dbRegion: string,
+    dbRegion: DbRegion,
     flightId: number,
   ): Promise<(Flight & { user: User }) | null> {
     const db = this.prisma.getDatabase(dbRegion);
@@ -106,7 +106,7 @@ export class ModerationService {
   }
 
   async findReviewById(
-    dbRegion: string,
+    dbRegion: DbRegion,
     reviewId: number,
   ): Promise<(Review & { fromUser: User; toUser: User }) | null> {
     const db = this.prisma.getDatabase(dbRegion);
@@ -116,7 +116,11 @@ export class ModerationService {
     });
   }
 
-  async approveItem(dbRegion: string, type: string, id: number): Promise<void> {
+  async approveItem(
+    dbRegion: DbRegion,
+    type: string,
+    id: number,
+  ): Promise<void> {
     const db = this.prisma.getDatabase(dbRegion);
 
     try {
@@ -140,7 +144,11 @@ export class ModerationService {
     }
   }
 
-  async rejectItem(dbRegion: string, type: string, id: number): Promise<void> {
+  async rejectItem(
+    dbRegion: DbRegion,
+    type: string,
+    id: number,
+  ): Promise<void> {
     const db = this.prisma.getDatabase(dbRegion);
 
     try {

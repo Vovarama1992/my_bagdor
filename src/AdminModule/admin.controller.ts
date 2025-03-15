@@ -1,10 +1,20 @@
-import { Controller, Post, Delete, Put, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Delete,
+  Put,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RegisterDto } from 'src/AuthModule/dto/auth.dto';
 import { UpdateProfileDto } from 'src/UserModule/dto/user.dto';
 import { DbRegion } from '@prisma/client';
+import { AdminGuard } from 'guards/admin.guard';
 
+@UseGuards(AdminGuard)
 @ApiTags('Admin')
 @Controller('admin')
 export class AdminController {

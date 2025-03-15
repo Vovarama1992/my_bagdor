@@ -2,8 +2,7 @@ import { Module } from '@nestjs/common';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { JwtModule } from '@nestjs/jwt';
-import { AdminGuard } from 'guards/admin.guard';
-import { APP_GUARD } from '@nestjs/core';
+
 import { PrismaModule } from 'src/PrismaModule/prisma.module';
 import { MessageModule } from 'src/MessageModule/message.module';
 import { RedisModule } from 'src/RedisModule/redis.module';
@@ -11,13 +10,6 @@ import { RedisModule } from 'src/RedisModule/redis.module';
 @Module({
   imports: [JwtModule, PrismaModule, RedisModule, MessageModule],
   controllers: [AdminController],
-  providers: [
-    AdminService,
-
-    {
-      provide: APP_GUARD,
-      useClass: AdminGuard,
-    },
-  ],
+  providers: [AdminService],
 })
 export class AdminModule {}

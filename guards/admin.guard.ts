@@ -5,24 +5,28 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from 'src/PrismaModule/prisma.service';
+import { Request } from 'express';
+import { Reflector } from '@nestjs/core';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly reflector: Reflector,
-    private readonly prismaService: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: Request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
+    console.log(
+      'AdminGuard сработал для запроса:',
+      request.method,
+      request.url,
+    );
 
+    const authHeader = request.headers.authorization;
     if (!authHeader) {
+      console.warn('AdminGuard: Authorization header missing');
       throw new HttpException(
         'Authorization header missing',
         HttpStatus.UNAUTHORIZED,
@@ -31,36 +35,16 @@ export class AdminGuard implements CanActivate {
 
     const token = authHeader.split(' ')[1];
     if (!token) {
+      console.warn('AdminGuard: Token missing');
       throw new HttpException('Token missing', HttpStatus.UNAUTHORIZED);
     }
 
     try {
       const decoded = this.jwtService.verify(token);
+      console.log('AdminGuard: Token decoded:', decoded);
 
-      if (typeof decoded !== 'object' || !decoded) {
-        throw new HttpException(
-          'Invalid token structure',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
-      const userId = decoded['userId'];
-      const dbRegion = decoded['dbRegion'];
-
-      if (!userId || !dbRegion) {
-        throw new HttpException(
-          'Invalid token payload',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
-      const userModel = this.prismaService.getUserModel(dbRegion);
-      const user = await userModel.findUnique({ where: { id: userId } });
-      if (!user) {
-        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-      }
-
-      if (user.accountType !== 'ADMIN') {
+      if (!decoded || decoded.role !== 'ADMIN') {
+        console.warn('AdminGuard: Forbidden - user is not an admin');
         throw new HttpException(
           'Forbidden: Admin role required',
           HttpStatus.FORBIDDEN,
@@ -69,6 +53,7 @@ export class AdminGuard implements CanActivate {
 
       return true;
     } catch (error) {
+      console.error('AdminGuard: Invalid token', error.message);
       throw new HttpException(
         'Invalid or expired token',
         HttpStatus.UNAUTHORIZED,

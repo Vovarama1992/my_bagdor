@@ -18,6 +18,12 @@ export class JwtAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request: Request = context.switchToHttp().getRequest();
+    console.log(
+      'JwtAuthGuard сработал для запроса:',
+      request.method,
+      request.url,
+    );
+
     const authHeader = request.headers.authorization;
 
     const isPublic = this.reflector.get<boolean>(
@@ -29,6 +35,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     if (!authHeader) {
+      console.warn('JwtAuthGuard: Authorization header missing');
       throw new HttpException(
         'Authorization header missing',
         HttpStatus.UNAUTHORIZED,
@@ -37,6 +44,7 @@ export class JwtAuthGuard implements CanActivate {
 
     const token = authHeader.split(' ')[1];
     if (!token) {
+      console.warn('JwtAuthGuard: Token missing');
       throw new HttpException('Token missing', HttpStatus.UNAUTHORIZED);
     }
 
@@ -44,6 +52,7 @@ export class JwtAuthGuard implements CanActivate {
       this.jwtService.verify(token);
       return true;
     } catch (error) {
+      console.error('JwtAuthGuard: Invalid token', error.message);
       throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
     }
   }

@@ -110,11 +110,7 @@ export class AdminService {
     );
 
     if (email) {
-      await this.emailService.sendVerificationEmail(
-        email,
-        firstName,
-        verificationCode,
-      );
+      await this.emailService.sendVerificationEmail(email, verificationCode);
     }
     if (phone) {
       await this.smsService.sendVerificationSms(

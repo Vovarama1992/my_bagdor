@@ -4,218 +4,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        :root {
-            --primary-color: #554EFF;
-            --bg-color: #1F1F1F;
-            --text-color: white;
-            --container-width: 90%;
-            --max-container-width: 810px;
-            --content-width: 90%;
-            --max-content-width: 660px;
-            --spacing-base: 1rem;
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root {
-                --bg-color: #FFFFFF;
-                --text-color: #1F1F1F;
-            }
-            
-            body {
-                background-color: #F5F5F5;
-            }
-            
-            .container {
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            }
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #1F1F1F;
-                --text-color: #FFFFFF;
-            }
-            
-            body {
-                background-color: #121212;
-            }
-            
-            .container {
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            }
-        }
-
         body {
-            font-family: Inter, sans-serif;
-            color: var(--text-color);
-            line-height: 1.5;
+            font-family: Arial, sans-serif !important;
+            background-color: #f5f5f5;
+            color: #333;
             margin: 0;
-            padding: calc(var(--spacing-base) * 2);
-            min-height: 100vh;
+            padding: 0;
+        }
+        .wrapper {
+            width: 100%;
+            padding: 20px;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
         }
-        
-        .wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0;
-            width: 100%;
-            max-width: var(--max-container-width);
-        }
-        
-        .logo {
-            color: var(--primary-color);
-            font-size: clamp(1.5rem, 4vw, 2rem);
-            font-weight: 700;
-            text-align: center;
-            padding: calc(var(--spacing-base) * 0.5);
-            width: 100%;
-        }
-        
         .container {
-            width: var(--container-width);
-            max-width: var(--max-container-width);
-            padding: calc(var(--spacing-base) * 2);
-            background: var(--bg-color);
-            border-radius: 0.5rem;
-            transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+            width: 100%;
+            max-width: 600px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
         }
-        
-        .content {
-            width: var(--content-width);
-            max-width: var(--max-content-width);
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: calc(var(--spacing-base) * 1.5);
-            word-wrap: break-word;
-            word-break: keep-all;
-            white-space: normal;
+        .logo {
+            margin-bottom: 20px;
         }
-        
-        .greeting {
-            font-size: clamp(0.875rem, 2.5vw, 1.125rem);
-            font-weight: 500;
-            word-wrap: break-word;
-            word-break: keep-all;
-            white-space: normal;
+        .logo img {
+            max-width: 150px;
+            height: auto;
         }
-        
         .message {
-            font-size: clamp(0.875rem, 2.5vw, 1.125rem);
-            font-weight: 500;
-            word-wrap: break-word;
-            word-break: keep-all;
-            white-space: normal;
-        }
-        
-        .verification-code {
-            font-size: clamp(1.875rem, 6vw, 2.125rem);
-            font-weight: 700;
-            text-align: left;
-            letter-spacing: 0.25rem;
-            padding: calc(var(--spacing-base) * 2) 0;
-            color: #FF4400;
-        }
-        
-        .footer {
-            font-size: clamp(0.875rem, 2.5vw, 1.125rem);
-            font-weight: 500;
+            font-size: 16px;
             line-height: 1.6;
-            word-wrap: break-word;
-            word-break: keep-all;
-            white-space: normal;
-            color: var(--text-color);
+            text-align: left;
+            margin-bottom: 20px;
         }
-        
-        .support-email {
-            color: var(--primary-color);
-            text-decoration: underline;
-            word-break: keep-all;
+        .verification-code {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FF4400;
+            letter-spacing: 2px;
+            margin: 20px 0;
+            display: inline-block;
+            padding: 10px 20px;
+            background: #f5f5f5;
+            border-radius: 5px;
         }
-
-        .message:last-child {
-            margin-top: calc(var(--spacing-base) * 1.5);
+        .footer {
+            font-size: 14px;
+            color: #666;
+            margin-top: 20px;
             text-align: left;
         }
-
-        @media (max-width: 768px) {
-            :root {
-                --container-width: 100%;
-                --content-width: 100%;
-                --spacing-base: 0.875rem;
-            }
-
-            body {
-                padding: var(--spacing-base);
-            }
-
-            .container {
-                padding: calc(var(--spacing-base) * 1.5);
-            }
-            
-            .content {
-                gap: var(--spacing-base);
-            }
-        }
-
-        @media (max-width: 480px) {
-            :root {
-                --spacing-base: 0.75rem;
-            }
-            
-            .verification-code {
-                letter-spacing: 0.15rem;
-                padding: var(--spacing-base) 0;
-            }
-
-            .footer br {
-                display: none;
-            }
-            
-            .message:last-child {
-                margin-top: var(--spacing-base);
-            }
+        .support-email {
+            color: #554EFF;
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
     <div class="wrapper">
-        <div class="logo">
-            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzg1IiBoZWlnaHQ9Ijk0IiB2aWV3Qm94PSIwIDAgMzg1IDk0IiBmaWxsPSJu
-b25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMC4zMzMy
-NTIgMzZWNzEuMzMzNEg2Ljk5OTkyQzEyLjA2NjYgNzEuMzMzNCAxMy42NjY2IDcwLjggMTMuNjY2
-NiA2OS4zMzM0QzEzLjY2NjYgNjYuOCAxMy45MzMzIDY2LjggMTkuNjY2NiA3MC4xMzM0QzI2LjQ2
-NjYgNzQuMTMzNCAzOC4xOTk5IDczLjMzMzQgNDQuNzMzMyA2OC4yNjY3QzU1LjY2NjYgNjAgNTgu
-NDY2NiA0MS42IDUwLjQ2NjYgMzAuMTMzNEM0Mi45OTk5IDE5LjQ2NjcgMjcuMTMzMyAxNi4xMzM0
-IDE3LjUzMzMgMjMuMkwxMy42NjY2IDI2LjEzMzRWMTMuMzMzNFYwLjY2NjY4N0g2Ljk5OTkySDAu
-MzMzMjUyVjM2Wk0zMi43MzMzIDMyLjUzMzRDMzguODY2NiAzNC45MzM0IDQxLjY2NjYgMzkuMiA0
-MS42NjY2IDQ2LjI2NjdDNDEuNjY2NiA1NCAzNy45MzMzIDU4LjY2NjcgMzAuNTk5OSA2MEMxNS4x
-MzMzIDYyLjkzMzQgNy42NjY1OSA0MC42NjY3IDIxLjY2NjYgMzMuNzMzNEMyNi45OTk5IDMwLjkz
-MzQgMjguMzMzMyAzMC45MzM0IDMyLjczMzMgMzIuNTMzNFoiIGfilll=" alt="Логотип" style="max-width: 150px; height: auto;">
-        </div>
         <div class="container">
-            <div class="content">
-                <div class="greeting">Привет,</div>
-                
-                <div class="message">
-                    Это Bagdoor! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами.
-                    <br>Чтобы продолжить процесс регистрации, пожалуйста, подтверди свой адрес электронной почты, введя данный код в приложении:
-                </div>
-                
-                <div class="verification-code">54690</div>
-                
-                <div class="footer">
-                    Код подтверждения действует 5 мин.
-                    <br>В целях безопасности никому не сообщайте этот код.
-                    <br>Если у вас возникли вопросы, напишите в поддержку: 
-                    <a href="mailto:support@bagdoor.io" class="support-email">support@bagdoor.io</a>
-                </div>
-                
-                <div class="message">С любовью, команда Bagdoor</div>
+            <!-- ЛОГОТИП -->
+            <div class="logo">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzg1IiBoZWlnaHQ9Ijk0IiB2aWV3Qm94PSIwIDAgMzg1IDk0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMC4zMzMyNTIgMzZWNzEuMzMzNEg2Ljk5OTkyQzEyLjA2NjYgNzEuMzMzNCAxMy42NjY2IDcwLjggMTMuNjY2NiA2OS4zMzM0QzEzLjY2NjYgNjYuOCAxMy45MzMzIDY2LjggMTkuNjY2NiA3MC4xMzM0QzI2LjQ2NjYgNzQuMTMzNCAzOC4xOTk5IDczLjMzMzQgNDQuNzMzMyA2OC4yNjY3QzU1LjY2NjYgNjAgNTguNDY2NiA0MS42IDUwLjQ2NjYgMzAuMTMzNEM0Mi45OTk5IDE5LjQ2NjcgMjcuMTMzMyAxNi4xMzM0IDE3LjUzMzMgMjMuMkwxMy42NjY2IDI2LjEzMzRWMTMuMzMzNFYwLjY2NjY4N0g2Ljk5OTkySDAuMzMzMjUyVjM2Wk0zMi43MzMzIDMyLjUzMzRDMzguODY2NiAzNC45MzM0IDQxLjY2NjYgMzkuMiA0MS42NjY2IDQ2LjI2NjdDNDEuNjY2NiA1NCAzNy45MzMzIDU4LjY2NjcgMzAuNTk5OSA2MEMxNS4xMzMzIDYyLjkzMzQgNy42NjY1OSA0MC42NjY3IDIxLjY2NjYgMzMuNzMzNEMyNi45OTk5IDMwLjkzMzQgMjguMzMzMyAzMC45MzM0IDMyLjczMzMgMzIuNTMzNFoiIGZpbGw9IiM1NTRFRkYiLz4KPHBhdGggZD0iTTIyNC4zMzMgMTMuMzMzNFYyNi4xMzM0TDIyMC4zMzMgMjMuMkMyMTQuNDY3IDE4LjggMjAzLjY2NyAxOC4yNjY3IDE5Ni42IDIxLjg2NjdDMTgwLjA2NyAzMC4yNjY3IDE3OC4yIDU2LjggMTkzLjI2NyA2OC4yNjY3QzE5OS44IDczLjMzMzQgMjExLjUzMyA3NC4xMzM0IDIxOC4zMzMgNzAuMTMzNEMyMjQuMDY3IDY2LjggMjI0LjMzMyA2Ni44IDIyNC4zMzMgNjkuMzMzNEMyMjQuMzMzIDcwLjggMjI1LjkzMyA3MS4zMzM0IDIzMC4zMzMgNzEuMzMzNEgyMzYuMkwyMzYuNiAzNy4zMzM0QzIzNi44NjcgMTguNjY2NyAyMzYuODY3IDIuNjY2NjkgMjM2LjYgMi4wMDAwMkMyMzYuMzMzIDEuMjAwMDIgMjMzLjQgMC42NjY2ODcgMjMwLjIgMC42NjY2ODdIMjI0LjMzM1YxMy4zMzM0Wk0yMTguNiAzNC42NjY3QzIyMyAzNy42IDIyNC44NjcgNDYgMjIyLjQ2NyA1MS44NjY3QzIyMC40NjcgNTYuNjY2NyAyMTQuNiA2MC42NjY3IDIwOS42NjcgNjAuNjY2N0MyMDUuOCA2MC42NjY3IDE5OS40IDU3LjA2NjcgMTk3LjY2NyA1NC4xMzM0QzE5NS41MzMgNTAgMTk2LjA2NyA0MC40IDE5OC43MzMgMzcuMDY2N0MyMDMuMjY3IDMxLjIgMjExLjggMzAuMjY2NyAyMTguNiAzNC42NjY3WiIgZmlsbD0iIzU1NEVGRiIvPgo8cGF0aCBkPSJNNzMuMjY2NiAyMi4xMzMzQzU3LjUzMzIgMzAuNCA1NS43OTk5IDU2LjkzMzMgNzAuMzMzMiA2OC4xMzMzQzc3LjEzMzIgNzMuMzMzMyA4OC43MzMyIDc0LjI2NjYgOTUuNjY2NiA3MC4xMzMzQzEwMS40IDY2LjggMTAxLjY2NyA2Ni44IDEwMS42NjcgNjkuMzMzM0MxMDEuNjY3IDcwLjggMTAzLjI2NyA3MS4zMzMzIDEwNy42NjcgNzEuMzMzM0gxMTMuNjY3VjQ2VjIwLjY2NjdIMTA3LjY2N0MxMDMuMjY3IDIwLjY2NjcgMTAxLjY2NyAyMS4yIDEwMS42NjcgMjIuNjY2N0MxMDEuNjY3IDI1LjIgMTAxLjI2NyAyNS4yIDk1LjM5OTkgMjJDODguOTk5OSAxOC42NjY3IDc5LjkzMzIgMTguNjY2NyA3My4yNjY2IDIyLjEzMzNaTTk1Ljc5OTkgMzQuNjY2N0MxMDMgMzkuMzMzMyAxMDIuMiA1My40NjY3IDk0LjU5OTkgNThDODIuNTk5OSA2NS4zMzMzIDY5LjY2NjYgNTQuNTMzMyA3NC4wNjY2IDQwLjkzMzNDNzYuODY2NiAzMi4yNjY3IDg3LjUzMzIgMjkuMiA5NS43OTk5IDM0LjY2NjdaIiBmaWxsPSIjNTU0RUZGIi8+Cjwvc3ZnPgo=" alt="Логотип">
+            </div>
+
+            <!-- СООБЩЕНИЕ -->
+            <div class="message">
+                Привет,<br><br>
+                Это <strong>Bagdoor</strong>! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами.<br><br>
+                Чтобы продолжить процесс регистрации, пожалуйста, подтверди свой адрес электронной почты, введя данный код в приложении:
+            </div>
+
+            <!-- КОД ПОДТВЕРЖДЕНИЯ -->
+            <div class="verification-code">54690</div>
+
+            <!-- ПОДВАЛ -->
+            <div class="footer">
+                Код подтверждения действует <strong>5 мин.</strong><br>
+                В целях безопасности никому не сообщайте этот код.<br>
+                Если у вас возникли вопросы, напишите в поддержку: 
+                <a href="mailto:support@bagdoor.io" class="support-email">support@bagdoor.io</a>
             </div>
         </div>
     </div>

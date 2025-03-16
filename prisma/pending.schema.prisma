@@ -35,6 +35,7 @@ model User {
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
   dbRegion               DbRegion    @default(PENDING)
+  tgNick                 String?
   
 
   numberOfOrders         Int         @default(0) // Кол-во заказов

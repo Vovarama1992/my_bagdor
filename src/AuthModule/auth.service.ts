@@ -4,7 +4,6 @@ import {
   Logger,
   HttpException,
   HttpStatus,
-  UnauthorizedException,
   ConflictException,
   BadRequestException,
   InternalServerErrorException,
@@ -23,7 +22,6 @@ import {
 import { RedisService } from 'src/RedisModule/redis.service';
 import { SmsService } from '../MessageModule/sms.service';
 import { EmailService } from '../MessageModule/email.service';
-import { InternalOAuthError } from 'passport-apple';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -111,21 +109,28 @@ export class AuthService {
 
       this.logger.log(`Checking if user exists in any database...`);
 
-      // Проверяем во всех базах данных
-      const existingUser =
-        (await dbPending.user.findFirst({
-          where: { OR: [{ phone }, { email }] },
-        })) ||
-        (await dbRU.user.findFirst({
-          where: { OR: [{ phone }, { email }] },
-        })) ||
-        (await dbOther.user.findFirst({
-          where: { OR: [{ phone }, { email }] },
-        }));
+      const [pendingUser, ruUser, otherUser] = await Promise.all([
+        dbPending.user.findFirst({ where: { OR: [{ phone }, { email }] } }),
+        dbRU.user.findFirst({ where: { OR: [{ phone }, { email }] } }),
+        dbOther.user.findFirst({ where: { OR: [{ phone }, { email }] } }),
+      ]);
+
+      const existingUser = pendingUser || ruUser || otherUser;
 
       if (existingUser) {
+        let conflictField = '';
+        if (existingUser.email === email && existingUser.phone === phone) {
+          conflictField = 'email and phone';
+        } else if (existingUser.email === email) {
+          conflictField = 'email';
+        } else if (existingUser.phone === phone) {
+          conflictField = 'phone';
+        }
+
         if (!existingUser.isEmailVerified) {
-          this.logger.warn(`User exists but not verified: email=${email}`);
+          this.logger.warn(
+            `User exists but not verified: ${conflictField}=${email || phone}`,
+          );
 
           // Генерируем новый код подтверждения
           const verificationCode = Math.floor(
@@ -159,8 +164,12 @@ export class AuthService {
           };
         }
 
-        this.logger.warn(`User already registered: email=${email}`);
-        throw new ForbiddenException('User with this email already exists');
+        this.logger.warn(
+          `User already registered with ${conflictField}: ${email || phone}`,
+        );
+        throw new ForbiddenException(
+          `User with this ${conflictField} already exists`,
+        );
       }
 
       this.logger.log(`Hashing password...`);
@@ -299,7 +308,6 @@ export class AuthService {
       );
 
       if (!user.email && !user.googleId && !user.appleId) {
-        this.logger.warn('OAuth login failed: Missing user identifiers');
         throw new BadRequestException(
           'OAuth login failed: Missing user identifiers',
         );
@@ -308,55 +316,35 @@ export class AuthService {
       const dbPending = this.prismaService.getDatabase('PENDING');
       let dbRegion: 'RU' | 'OTHER' | 'PENDING' | null = null;
 
-      let existingUser = user.googleId
-        ? await dbPending.user.findUnique({
-            where: { googleId: user.googleId },
-          })
-        : user.appleId
-          ? await dbPending.user.findUnique({
-              where: { appleId: user.appleId },
-            })
-          : null;
+      let existingUser = await dbPending.user.findUnique({
+        where: user.googleId
+          ? { googleId: user.googleId }
+          : user.appleId
+            ? { appleId: user.appleId }
+            : { email: user.email },
+      });
 
       if (!existingUser) {
-        try {
-          dbRegion = 'PENDING';
+        dbRegion = 'PENDING';
 
-          const emailExists = await dbPending.user.findUnique({
-            where: { email: user.email },
-          });
-
-          if (emailExists) {
-            this.logger.warn(
-              `User with this email already exists: ${user.email}`,
-            );
-            throw new ConflictException('User with this email already exists.');
-          }
-
-          existingUser = await dbPending.user.create({
-            data: {
-              email: user.email,
-              phone: user.phone && user.phone.trim() !== '' ? user.phone : null,
-              firstName: user.firstName || '',
-              lastName: user.lastName || '',
-              googleId: user.googleId || null,
-              appleId: user.appleId || null,
-              accountType: 'CUSTOMER',
-              isRegistered: false,
-            },
-          });
-
-          this.logger.log(`Created new user: id=${existingUser.id}`);
-        } catch (error) {
-          this.logger.error(`Database error: ${error.message}`, error.stack);
-          if (error.code === 'P2002') {
-            // Prisma уникальный constraint error
-            throw new ConflictException(
-              'User with this phone or email already exists.',
-            );
-          }
-          throw error;
+        if (await dbPending.user.findUnique({ where: { email: user.email } })) {
+          throw new ConflictException('User with this email already exists.');
         }
+
+        existingUser = await dbPending.user.create({
+          data: {
+            email: user.email,
+            phone: user.phone?.trim() || null,
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            googleId: user.googleId || null,
+            appleId: user.appleId || null,
+            accountType: 'CUSTOMER',
+            isRegistered: false,
+          },
+        });
+
+        this.logger.log(`Created new user: id=${existingUser.id}`);
       }
 
       if (!dbRegion) {
@@ -384,23 +372,13 @@ export class AuthService {
     } catch (error) {
       this.logger.error(`OAuth login failed: ${error.message}`, error.stack);
 
-      if (error instanceof InternalOAuthError) {
-        this.logger.error(`OAuth provider error: ${error.oauthError.data}`);
-        throw new UnauthorizedException(
-          error.oauthError.data || 'OAuth provider error',
-        );
-      }
+      const response = {
+        statusCode: error.status || 400,
+        message: error.message || 'OAuth login failed',
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined, // Только в dev
+      };
 
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      if (error.code === 'P2002') {
-        this.logger.warn('User with this email already exists');
-        throw new ConflictException('User with this email already exists');
-      }
-
-      throw new BadRequestException(error.message || 'OAuth login failed');
+      throw new HttpException(response, response.statusCode);
     }
   }
 

@@ -108,6 +108,11 @@ export class UpdateProfileDto {
   @IsOptional()
   nickname?: string;
 
+  @ApiProperty({ example: '@tg', description: 'Тг Никнейм', required: false })
+  @IsString()
+  @IsOptional()
+  tgNick?: string;
+
   @ApiProperty({
     example: '+123456789',
     description: 'Номер телефона',

@@ -34,7 +34,7 @@ export class SmsService {
     name: string,
     code: string,
   ): Promise<void> {
-    const message = `Привет ${name}, Это Bagdoor! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами. Код подтверждения: ${code}. Действителен 5 мин. Никому не сообщайте его. При вопросах пишите: ${this.supportEmail}`;
+    const message = `Привет, это bagdoor! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами. Код подтверждения: ${code}. Действителен 5 мин. Никому не сообщайте его. При вопросах пишите: ${this.supportEmail}`;
 
     const payload = {
       to: phone,

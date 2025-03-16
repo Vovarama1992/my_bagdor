@@ -226,13 +226,39 @@ export class UsersService {
         this.logger.log(`User found in ${region}: ID=${user.id}`);
 
         // Проверяем наличие кода в Redis
-        const phoneCode = await this.redisService.get(
+        let phoneCode = await this.redisService.get(
           `phone_verification:${user.id}`,
         );
-        const emailCode = await this.redisService.get(
+        let emailCode = await this.redisService.get(
           `email_verification:${email}`,
         );
 
+        // Если код отсутствует — генерируем новый
+        if (!emailCode && user.email) {
+          emailCode = Math.floor(10000 + Math.random() * 9000).toString();
+          await this.redisService.set(
+            `email_verification:${email}`,
+            emailCode,
+            300,
+          );
+          this.logger.log(
+            `Generated new email verification code: ${emailCode}`,
+          );
+        }
+
+        if (!phoneCode && user.phone) {
+          phoneCode = Math.floor(10000 + Math.random() * 9000).toString();
+          await this.redisService.set(
+            `phone_verification:${user.id}`,
+            phoneCode,
+            300,
+          );
+          this.logger.log(
+            `Generated new phone verification code: ${phoneCode}`,
+          );
+        }
+
+        // Отправляем код, если он есть
         if (phoneCode) {
           this.logger.log(`Resending phone verification code to ${user.phone}`);
           await this.smsService.sendVerificationSms(
@@ -253,8 +279,12 @@ export class UsersService {
           return { message: 'Verification code sent to email' };
         }
 
-        this.logger.warn(`No verification code found for user ID: ${user.id}`);
-        throw new BadRequestException('Verification code expired or not found');
+        this.logger.warn(
+          `Unexpected error: no code generated for user ID: ${user.id}`,
+        );
+        throw new InternalServerErrorException(
+          'Failed to generate verification code',
+        );
       }
     }
 

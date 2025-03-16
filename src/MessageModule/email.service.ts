@@ -42,8 +42,8 @@ export class EmailService {
 
     // Читаем шаблон
     const templatePath = path.join(
-      __dirname,
-      '..',
+      process.cwd(),
+      'src',
       'templates',
       'email_code.html',
     );

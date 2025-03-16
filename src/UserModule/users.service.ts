@@ -160,7 +160,7 @@ export class UsersService {
         );
         await this.emailService.sendVerificationEmail(
           updateData.email,
-          updateData.firstName,
+
           verificationCode,
         );
       }
@@ -247,7 +247,7 @@ export class UsersService {
         }
 
         if (!phoneCode && user.phone) {
-          phoneCode = Math.floor(10000 + Math.random() * 9000).toString();
+          phoneCode = Math.floor(10000 + Math.random() * 90000).toString();
           await this.redisService.set(
             `phone_verification:${user.id}`,
             phoneCode,
@@ -273,7 +273,7 @@ export class UsersService {
           this.logger.log(`Resending email verification code to ${email}`);
           await this.emailService.sendVerificationEmail(
             email,
-            user.firstName,
+
             emailCode,
           );
           return { message: 'Verification code sent to email' };

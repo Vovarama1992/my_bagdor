@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class EmailService {
@@ -33,46 +35,28 @@ export class EmailService {
     });
   }
 
-  async sendVerificationEmail(
-    email: string,
-    name: string,
-    code: string,
-  ): Promise<void> {
+  async sendVerificationEmail(email: string, code: string): Promise<void> {
     this.logger.log(`Sending verification email to ${email} with code ${code}`);
 
     const subject = 'Подтверждение регистрации';
-    const text = `Привет ${name},
-    
-Это Bagdoor! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами.
 
-Чтобы продолжить процесс регистрации, пожалуйста, подтверди свой адрес электронной почты, введя данный код в приложении:
-${code}
+    // Читаем шаблон
+    const templatePath = path.join(
+      __dirname,
+      '..',
+      'templates',
+      'email_code.html',
+    );
+    let html = fs.readFileSync(templatePath, 'utf8');
 
-Код подтверждения действует 5 мин.
-
-В целях безопасности вашего аккаунта никому не сообщайте следующий код подтверждения.
-
-При возникновении любых вопросов свяжитесь с нашей службой поддержки, отправив электронное письмо на адрес ${this.supportEmail}
-
-С любовью, команда Bagdoor`;
-
-    const html = `
-      <p>Привет,</p>
-      <p>Это <strong>Bagdoor</strong>! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами.</p>
-      <p><strong>Чтобы продолжить процесс регистрации, пожалуйста, подтверди свой адрес электронной почты, введя данный код в приложении:</strong></p>
-      <h2>${code}</h2>
-      <p><i>Код подтверждения действует 5 мин.</i></p>
-      <p>В целях безопасности никому не сообщайте этот код.</p>
-      <p>Если у вас возникли вопросы, напишите в поддержку: <a href="mailto:${this.supportEmail}">${this.supportEmail}</a></p>
-      <p>С любовью, команда Bagdoor</p>
-    `;
+    // Меняем только код подтверждения
+    html = html.replace(/54690/g, code);
 
     try {
       const info = await this.transporter.sendMail({
         from: this.fromEmail,
         to: email,
         subject,
-        text,
         html,
       });
 

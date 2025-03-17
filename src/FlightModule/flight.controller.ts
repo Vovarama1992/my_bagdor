@@ -14,6 +14,7 @@ import {
   Res,
   NotFoundException,
   Logger,
+  HttpException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import {
@@ -84,18 +85,55 @@ export class FlightController {
     return this.flightService.uploadDocument(authHeader, flightId, dbRegion);
   }
 
-  @Get(':flightId/document')
-  async getDocument(@Param('flightId') flightId: string, @Res() res: Response) {
-    const file = fs
-      .readdirSync(DOCUMENTS_PATH)
-      .find((f) => f.startsWith(`flight_${flightId}`));
+  @Get(':dbRegion/:flightId/document')
+  async getDocument(
+    @Param('dbRegion') dbRegion: string,
+    @Param('flightId') flightId: string,
+    @Res() res: Response,
+  ) {
+    const normalizedRegion = dbRegion.toLowerCase(); // Нормализуем регистр
+    this.logger.log(
+      `Fetching document for flightId=${flightId}, region=${normalizedRegion}`,
+    );
 
-    if (!file) {
-      throw new NotFoundException('Документ не найден');
+    try {
+      // 1. Приводим названия файлов к нижнему регистру при сравнении
+      const file = fs
+        .readdirSync(DOCUMENTS_PATH)
+        .find((f) =>
+          f.toLowerCase().startsWith(`flight_${normalizedRegion}_${flightId}`),
+        );
+
+      if (!file) {
+        const errorMsg = `Document not found for flight ${flightId} in region ${normalizedRegion}`;
+        this.logger.warn(errorMsg);
+        throw new NotFoundException({
+          message: errorMsg,
+          flightId,
+          dbRegion: normalizedRegion,
+        });
+      }
+
+      const filePath = path.join(DOCUMENTS_PATH, file);
+      this.logger.log(`Document found: ${filePath}`);
+
+      // 2. Отправляем файл
+      return res.sendFile(filePath);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch document: ${error.message}`,
+        error.stack,
+      );
+
+      throw new HttpException(
+        {
+          message: error.message,
+          details: error.response || error.stack,
+          statusCode: error.status || 500,
+        },
+        error.status || 500,
+      );
     }
-
-    const filePath = path.join(DOCUMENTS_PATH, file);
-    return res.sendFile(filePath);
   }
 
   @ApiOperation({ summary: 'Создать новый рейс (перевозчик)' })

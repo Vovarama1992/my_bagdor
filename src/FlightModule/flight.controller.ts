@@ -13,6 +13,7 @@ import {
   UseInterceptors,
   Res,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
 import {
@@ -37,6 +38,7 @@ const DOCUMENTS_PATH = path.join(process.cwd(), 'storage', 'flight_documents');
 @ApiTags('Flights')
 @Controller('flights')
 export class FlightController {
+  private readonly logger = new Logger(FlightController.name);
   constructor(
     private readonly flightService: FlightService,
     private readonly prismaService: PrismaService,
@@ -54,7 +56,8 @@ export class FlightController {
         filename: (req, file, cb) => {
           const { flightId, dbRegion } = req.params;
           const extension = path.extname(file.originalname);
-          cb(null, `flight_${dbRegion}_${flightId}${extension}`);
+          const filename = `flight_${dbRegion}_${flightId}${extension}`;
+          cb(null, filename);
         },
       }),
     }),
@@ -65,9 +68,18 @@ export class FlightController {
     @Param('flightId') flightId: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    this.logger.log(
+      `Received request to upload document for flightId=${flightId}, region=${dbRegion}`,
+    );
+
     if (!file) {
+      this.logger.warn(`File not provided for flight ${flightId}`);
       throw new BadRequestException('Файл не загружен');
     }
+
+    this.logger.log(
+      `File uploaded: filename=${file.filename}, size=${file.size} bytes`,
+    );
 
     return this.flightService.uploadDocument(authHeader, flightId, dbRegion);
   }

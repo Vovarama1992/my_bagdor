@@ -6,6 +6,7 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
@@ -107,29 +108,85 @@ export class FlightService {
     flightId: string,
     dbRegion: DbRegion,
   ) {
-    const user = await this.authenticate(authHeader);
-    const db = this.prisma.getDatabase(dbRegion);
+    this.logger.log(
+      `Starting document upload for flightId=${flightId}, region=${dbRegion}`,
+    );
 
-    const flight = await db.flight.findUnique({
-      where: { id: Number(flightId) },
-    });
+    try {
+      // 1. Аутентификация пользователя
+      const user = await this.authenticate(authHeader);
+      this.logger.log(`Authenticated user: id=${user.id}, email=${user.email}`);
 
-    if (!flight) {
-      throw new NotFoundException('Рейс не найден');
+      // 2. Получаем базу данных
+      const db = this.prisma.getDatabase(dbRegion);
+      if (!db) {
+        const errorMsg = `Database for region ${dbRegion} not found`;
+        this.logger.error(errorMsg);
+        throw new InternalServerErrorException({ message: errorMsg, dbRegion });
+      }
+
+      // 3. Ищем рейс
+      const flight = await db.flight.findUnique({
+        where: { id: Number(flightId) },
+      });
+
+      if (!flight) {
+        const errorMsg = `Flight not found: id=${flightId} in region=${dbRegion}`;
+        this.logger.warn(errorMsg);
+        throw new NotFoundException({ message: errorMsg, flightId, dbRegion });
+      }
+
+      this.logger.log(
+        `Flight found: id=${flight.id}, ownerId=${flight.userId}`,
+      );
+
+      // 4. Проверяем владельца рейса
+      if (flight.userId !== user.id) {
+        const errorMsg = `User ${user.id} is not the owner of flight ${flight.id}`;
+        this.logger.warn(errorMsg);
+        throw new ForbiddenException({
+          message: errorMsg,
+          userId: user.id,
+          flightId,
+        });
+      }
+
+      // 5. Генерируем URL документа
+      const documentUrl = `${this.baseUrl}/flights/${dbRegion}/${flightId}/document`;
+      this.logger.log(`Generated document URL: ${documentUrl}`);
+
+      // 6. Обновляем запись о рейсе
+      try {
+        await db.flight.update({
+          where: { id: Number(flightId) },
+          data: { documentUrl },
+        });
+        this.logger.log(`Flight document updated successfully: ${documentUrl}`);
+      } catch (error) {
+        const errorMsg = `Failed to update flight document: ${error.message}`;
+        this.logger.error(errorMsg, error.stack);
+        throw new InternalServerErrorException({
+          message: 'Ошибка при обновлении данных рейса',
+          details: error.message,
+        });
+      }
+
+      return { message: 'Документ загружен', documentUrl };
+    } catch (error) {
+      this.logger.error(
+        `Document upload failed: ${error.message}`,
+        error.stack,
+      );
+
+      throw new HttpException(
+        {
+          message: error.message,
+          details: error.response || error.stack,
+          statusCode: error.status || 500,
+        },
+        error.status || 500,
+      );
     }
-
-    if (flight.userId !== user.id) {
-      throw new ForbiddenException('Вы не владелец этого рейса');
-    }
-
-    const documentUrl = `${this.baseUrl}/flights/${dbRegion}/${flightId}/document`;
-
-    await db.flight.update({
-      where: { id: Number(flightId) },
-      data: { documentUrl },
-    });
-
-    return { message: 'Документ загружен', documentUrl };
   }
 
   async searchFlightsForCustomer(

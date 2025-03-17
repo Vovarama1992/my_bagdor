@@ -54,12 +54,16 @@ export class FlightService {
     try {
       const user = await this.authenticate(authHeader);
 
-      // Проверяем, существует ли рейс в FR24
+      const flightDate = new Date(flightData.date);
+      if (isNaN(flightDate.getTime())) {
+        throw new BadRequestException('Некорректный формат даты');
+      }
+
       const flightExists = await this.getFlightsByRouteAndDate(
         authHeader,
         flightData.departure,
         flightData.arrival,
-        flightData.date.toISOString().split('T')[0], // Приводим дату к формату YYYY-MM-DD
+        flightDate.toISOString().split('T')[0],
       );
 
       if (!flightExists || !flightExists.length) {
@@ -76,7 +80,7 @@ export class FlightService {
           departure: flightData.departure,
           dbRegion: user.dbRegion,
           arrival: flightData.arrival,
-          date: flightData.date,
+          date: flightDate, // Теперь это точно объект Date
           description: flightData.description,
           documentUrl: flightData.documentUrl || null,
           status: FlightStatus.PENDING,

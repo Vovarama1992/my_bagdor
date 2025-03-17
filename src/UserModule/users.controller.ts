@@ -89,13 +89,13 @@ export class UsersController {
     description: 'Неверный код подтверждения',
   })
   @ApiResponse({
-    status: 401,
-    description: 'Неавторизованный доступ',
+    status: 404,
+    description: 'Пользователь с таким номером не найден',
   })
   @ApiBody({ type: VerifyPhoneDto })
   @Post('verify-phone')
-  async verifyPhone(@Request() req: Req, @Body() body: { code: string }) {
-    return this.usersService.verifyPhone(req, body.code);
+  async verifyPhone(@Body() body: VerifyPhoneDto) {
+    return this.usersService.verifyPhone(body.phone, body.code);
   }
 
   @ApiOperation({ summary: 'Подтвердить email' })
@@ -108,12 +108,12 @@ export class UsersController {
     description: 'Неверный код подтверждения',
   })
   @ApiResponse({
-    status: 401,
-    description: 'Неавторизованный доступ',
+    status: 404,
+    description: 'Пользователь с таким email не найден',
   })
   @ApiBody({ type: VerifyEmailDto })
   @Post('verify-email')
-  async verifyEmail(@Request() req: Req, @Body() body: VerifyEmailDto) {
-    return this.usersService.verifyEmail(body);
+  async verifyEmail(@Body() body: VerifyEmailDto) {
+    return this.usersService.verifyEmail(body.email, body.code);
   }
 }

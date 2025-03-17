@@ -14,7 +14,6 @@ import { Request } from 'express';
 import { AuthenticatedUser, UpdateProfileDto } from './dto/user.dto';
 import { RedisService } from 'src/RedisModule/redis.service';
 import { SmsService } from 'src/MessageModule/sms.service';
-import { VerifyEmailDto } from 'src/AuthModule/dto/auth.dto';
 import { EmailService } from 'src/MessageModule/email.service';
 import { DbRegion, SearchType } from '@prisma/client';
 
@@ -292,69 +291,78 @@ export class UsersService {
     throw new NotFoundException('User not found');
   }
 
-  async verifyPhone(req: Request, code: string) {
-    const user = await this.authenticate(req.headers.authorization);
-    this.logger.log(
-      `Verifying phone for user ID: ${user.id} in ${user.dbRegion}`,
-    );
+  async verifyPhone(phone: string, code: string) {
+    this.logger.log(`Verifying phone for number: ${phone}`);
 
-    const storedCode = await this.redisService.get(
-      `phone_verification:${user.id}`,
-    );
+    // Ищем пользователя во всех БД
+    for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
+      const userModel = this.prismaService.getUserModel(region);
+      const user = await userModel.findUnique({ where: { phone } });
 
-    if (!storedCode) {
-      this.logger.warn(`No verification code found for user ID: ${user.id}`);
-      throw new BadRequestException(
-        'Verification code expired or does not exist',
-      );
+      if (user) {
+        this.logger.log(`User found in ${region}: ID=${user.id}`);
+
+        const storedCode = await this.redisService.get(
+          `phone_verification:${user.id}`,
+        );
+
+        if (!storedCode) {
+          this.logger.warn(`No verification code found for phone: ${phone}`);
+          throw new BadRequestException(
+            'Verification code expired or does not exist',
+          );
+        }
+
+        if (storedCode !== code) {
+          this.logger.warn(`Invalid verification code for phone: ${phone}`);
+          throw new BadRequestException('Incorrect verification code');
+        }
+
+        await userModel.update({
+          where: { id: user.id },
+          data: { isPhoneVerified: true },
+        });
+
+        await this.redisService.del(`phone_verification:${user.id}`);
+        this.logger.log(`Phone verification completed for user ID: ${user.id}`);
+
+        return { message: 'Phone number successfully verified' };
+      }
     }
 
-    if (storedCode !== code) {
-      this.logger.warn(`Invalid verification code for user ID: ${user.id}`);
-      throw new BadRequestException('Incorrect verification code');
-    }
-
-    const userModel = this.prismaService.getUserModel(user.dbRegion);
-    await userModel.update({
-      where: { id: user.id },
-      data: { isPhoneVerified: true },
-    });
-
-    await this.redisService.del(`phone_verification:${user.id}`);
-    this.logger.log(`Phone verification completed for user ID: ${user.id}`);
-
-    return { message: 'Phone number successfully verified' };
+    this.logger.warn(`User with phone ${phone} not found in any database`);
+    throw new NotFoundException('User not found');
   }
+  async verifyEmail(email: string, code: string) {
+    this.logger.log(`Verifying email for: ${email}`);
 
-  async verifyEmail(body: VerifyEmailDto) {
+    // Проверяем код в Redis
     const storedCode = await this.redisService.get(
-      `email_verification:${body.email}`,
+      `email_verification:${email}`,
     );
-
     this.logger.log(
-      `Retrieving Redis key: email_verification:${body.email}, stored value: ${storedCode}, comparing with input value: ${body.code}`,
+      `Retrieved Redis key: email_verification:${email}, stored value: ${storedCode}, comparing with input value: ${code}`,
     );
 
-    if (!storedCode || storedCode !== body.code) {
+    if (!storedCode || storedCode !== code) {
       this.logger.warn(
-        `Verification failed: expected ${storedCode}, received ${body.code}`,
+        `Verification failed: expected ${storedCode}, received ${code}`,
       );
       throw new BadRequestException('Invalid verification code');
     }
 
     // 1. Ищем в PENDING
     const dbPending = this.prismaService.getDatabase('PENDING');
-    const user = await dbPending.user.findUnique({
-      where: { email: body.email },
-    });
+    const user = await dbPending.user.findUnique({ where: { email } });
 
     if (user) {
-      // 1.1. Переносим пользователя в RU или OTHER
-      const targetRegion = Math.random() < 0.5 ? 'RU' : 'OTHER';
+      // 1.1. Определяем целевой регион (RU или OTHER)
+      const targetRegion: DbRegion = Math.random() < 0.5 ? 'RU' : 'OTHER';
       const finalDB = this.prismaService.getDatabase(targetRegion);
 
       this.logger.log(`Moving user ${user.id} from PENDING to ${targetRegion}`);
 
+      // 1.2. Переносим пользователя из PENDING
       await finalDB.user.create({
         data: {
           firstName: user.firstName,
@@ -369,7 +377,7 @@ export class UsersService {
         },
       });
 
-      // 1.2. Удаляем из PENDING
+      // 1.3. Удаляем из PENDING
       await dbPending.user.delete({ where: { id: user.id } });
       this.logger.log(`User ${user.id} removed from PENDING`);
     } else {
@@ -377,39 +385,33 @@ export class UsersService {
       const dbRU = this.prismaService.getDatabase('RU');
       const dbOther = this.prismaService.getDatabase('OTHER');
 
-      let existingUser = await dbRU.user.findUnique({
-        where: { email: body.email },
-      });
+      let existingUser = await dbRU.user.findUnique({ where: { email } });
       let targetDB: DbRegion = 'RU';
 
       if (!existingUser) {
-        existingUser = await dbOther.user.findUnique({
-          where: { email: body.email },
-        });
+        existingUser = await dbOther.user.findUnique({ where: { email } });
         targetDB = 'OTHER';
       }
 
       if (!existingUser) {
-        this.logger.warn(
-          `User ${body.email} not found in PENDING, RU, or OTHER`,
-        );
-        throw new ForbiddenException('User not found in any database');
+        this.logger.warn(`User ${email} not found in PENDING, RU, or OTHER`);
+        throw new NotFoundException('User not found in any database');
       }
 
-      // 2.1. Обновляем isEmailVerified в RU/OTHER
+      // 2.1. Обновляем флаг isEmailVerified в целевой БД
       this.logger.log(
-        `Updating isEmailVerified for user ${body.email} in ${targetDB}`,
+        `Updating isEmailVerified for user ${email} in ${targetDB}`,
       );
 
       await this.prismaService.getDatabase(targetDB).user.update({
-        where: { email: body.email },
+        where: { email },
         data: { isEmailVerified: true },
       });
     }
 
-    // Удаляем ключ из Redis
-    await this.redisService.del(`email_verification:${body.email}`);
-    this.logger.log(`Deleted Redis key: email_verification:${body.email}`);
+    // Удаляем код из Redis
+    await this.redisService.del(`email_verification:${email}`);
+    this.logger.log(`Deleted Redis key: email_verification:${email}`);
 
     return { message: 'Email verified successfully' };
   }

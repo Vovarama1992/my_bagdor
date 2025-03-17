@@ -30,6 +30,7 @@ import * as path from 'path';
 import { FlightService } from './flight.service';
 import { CreateFlightDto } from './dto/create-flight.dto';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
+import { DbRegion } from '@prisma/client';
 
 const DOCUMENTS_PATH = path.join(process.cwd(), 'storage', 'flight_documents');
 
@@ -40,7 +41,7 @@ export class FlightController {
     private readonly flightService: FlightService,
     private readonly prismaService: PrismaService,
   ) {}
-  @Post(':flightId/upload-document')
+  @Post(':dbRegion/:flightId/upload-document')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -51,23 +52,24 @@ export class FlightController {
           cb(null, DOCUMENTS_PATH);
         },
         filename: (req, file, cb) => {
-          const flightId = req.params.flightId;
+          const { flightId, dbRegion } = req.params;
           const extension = path.extname(file.originalname);
-          cb(null, `flight_${flightId}${extension}`);
+          cb(null, `flight_${dbRegion}_${flightId}${extension}`);
         },
       }),
     }),
   )
   async uploadDocument(
     @Headers('authorization') authHeader: string,
+    @Param('dbRegion') dbRegion: DbRegion,
     @Param('flightId') flightId: string,
-    @UploadedFile() file,
+    @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
       throw new BadRequestException('Файл не загружен');
     }
 
-    return this.flightService.uploadDocument(authHeader, flightId);
+    return this.flightService.uploadDocument(authHeader, flightId, dbRegion);
   }
 
   @Get(':flightId/document')

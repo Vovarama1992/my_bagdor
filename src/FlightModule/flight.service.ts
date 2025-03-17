@@ -12,7 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { RedisService } from 'src/RedisModule/redis.service';
 import { UsersService } from 'src/UserModule/users.service';
-import { FlightStatus, SearchType } from '@prisma/client';
+import { DbRegion, FlightStatus, SearchType } from '@prisma/client';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { CreateFlightDto } from './dto/create-flight.dto';
 import { TelegramService } from 'src/TelegramModule/telegram.service';
@@ -51,53 +51,60 @@ export class FlightService {
   }
 
   async createFlight(authHeader: string, flightData: CreateFlightDto) {
-    const user = await this.authenticate(authHeader);
+    try {
+      const user = await this.authenticate(authHeader);
 
-    if (user.accountType !== 'CARRIER') {
-      throw new BadRequestException('Только перевозчики могут создавать рейсы');
-    }
+      // Проверяем, существует ли рейс в FR24
+      const flightExists = await this.getFlightsByRouteAndDate(
+        authHeader,
+        flightData.departure,
+        flightData.arrival,
+        flightData.date.toISOString().split('T')[0], // Приводим дату к формату YYYY-MM-DD
+      );
 
-    // Проверяем, существует ли рейс в FR24
-    const flightExists = await this.getFlightsByRouteAndDate(
-      authHeader,
-      flightData.departure,
-      flightData.arrival,
-      flightData.date.toISOString().split('T')[0], // Приводим дату к формату YYYY-MM-DD
-    );
+      if (!flightExists || !flightExists.length) {
+        throw new BadRequestException(
+          'Рейс с такими параметрами не найден в AVIATION_EDGE. Проверьте данные',
+        );
+      }
 
-    if (!flightExists || !flightExists.length) {
-      throw new BadRequestException(
-        'Рейс с такими параметрами не найден в AVIATION_EDGE. Проверьте данные',
+      const db = this.prisma.getDatabase(user.dbRegion);
+
+      const flight = await db.flight.create({
+        data: {
+          userId: user.id,
+          departure: flightData.departure,
+          dbRegion: user.dbRegion,
+          arrival: flightData.arrival,
+          date: flightData.date,
+          description: flightData.description,
+          documentUrl: flightData.documentUrl || null,
+          status: FlightStatus.PENDING,
+        },
+      });
+
+      await this.telegramService.delegateToModeration(
+        'flight',
+        flight.id,
+        user.dbRegion,
+      );
+
+      return { message: 'Рейс создан и отправлен на модерацию', flight };
+    } catch (error) {
+      throw new HttpException(
+        error.message,
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-
-    const db = this.prisma.getDatabase(user.dbRegion);
-
-    const flight = await db.flight.create({
-      data: {
-        userId: user.id,
-        departure: flightData.departure,
-        dbRegion: user.dbRegion,
-        arrival: flightData.arrival,
-        date: flightData.date,
-        description: flightData.description,
-        documentUrl: flightData.documentUrl || null,
-        status: FlightStatus.PENDING,
-      },
-    });
-
-    await this.telegramService.delegateToModeration(
-      'flight',
-      flight.id,
-      user.dbRegion,
-    );
-
-    return { message: 'Рейс создан и отправлен на модерацию', flight };
   }
 
-  async uploadDocument(authHeader: string, flightId: string) {
+  async uploadDocument(
+    authHeader: string,
+    flightId: string,
+    dbRegion: DbRegion,
+  ) {
     const user = await this.authenticate(authHeader);
-    const db = this.prisma.getDatabase(user.dbRegion);
+    const db = this.prisma.getDatabase(dbRegion);
 
     const flight = await db.flight.findUnique({
       where: { id: Number(flightId) },
@@ -111,7 +118,7 @@ export class FlightService {
       throw new ForbiddenException('Вы не владелец этого рейса');
     }
 
-    const documentUrl = `${this.baseUrl}/flights/${flightId}/document`;
+    const documentUrl = `${this.baseUrl}/flights/${dbRegion}/${flightId}/document`;
 
     await db.flight.update({
       where: { id: Number(flightId) },

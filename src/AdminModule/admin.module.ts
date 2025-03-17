@@ -7,9 +7,17 @@ import { PrismaModule } from 'src/PrismaModule/prisma.module';
 import { MessageModule } from 'src/MessageModule/message.module';
 import { RedisModule } from 'src/RedisModule/redis.module';
 import { ConfigModule } from '@nestjs/config';
+import { UsersModule } from 'src/UserModule/users.module';
 
 @Module({
-  imports: [JwtModule, PrismaModule, RedisModule, MessageModule, ConfigModule],
+  imports: [
+    JwtModule,
+    PrismaModule,
+    RedisModule,
+    MessageModule,
+    ConfigModule,
+    UsersModule,
+  ],
   controllers: [AdminController],
   providers: [AdminService],
 })

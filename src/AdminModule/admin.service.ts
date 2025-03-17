@@ -4,6 +4,7 @@ import {
   Logger,
   ConflictException,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { LoginDto, RegisterDto } from 'src/AuthModule/dto/auth.dto';
@@ -15,6 +16,7 @@ import * as bcrypt from 'bcryptjs';
 import { DbRegion, User } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { UsersService } from 'src/UserModule/users.service';
 
 @Injectable()
 export class AdminService {
@@ -27,7 +29,12 @@ export class AdminService {
     private readonly redisService: RedisService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly userService: UsersService,
   ) {}
+
+  private async authenticate(authHeader: string) {
+    return this.userService.authenticate(authHeader);
+  }
 
   async loginAdmin(loginDto: LoginDto) {
     const { email, password } = loginDto;
@@ -126,13 +133,29 @@ export class AdminService {
     };
   }
 
-  async deleteProfile(userId: number, dbRegion: DbRegion) {
+  async deleteProfile(userId: number, dbRegion: DbRegion, authHeader: string) {
     const userModel = this.prismaService.getUserModel(dbRegion);
-    const user = await userModel.findUnique({ where: { id: userId } });
 
-    if (!user) {
+    // Получаем текущего пользователя по токену
+    const currentUser = await this.authenticate(authHeader);
+
+    // Получаем данные о пользователе, которого удаляем
+    const userToDelete = await userModel.findUnique({ where: { id: userId } });
+
+    if (!userToDelete) {
       this.logger.warn(`User not found in ${dbRegion}: ${userId}`);
       throw new NotFoundException('User not found');
+    }
+
+    // Проверяем, является ли удаляемый пользователь админом
+    if (
+      userToDelete.accountType === 'ADMIN' &&
+      currentUser.email !== 'vovvarls@gmail.com'
+    ) {
+      this.logger.warn(
+        `Unauthorized attempt to delete an admin by ${currentUser.email}`,
+      );
+      throw new ForbiddenException('You are not authorized to delete admins');
     }
 
     this.logger.log(`Deleting user in ${dbRegion}: ${userId}`);

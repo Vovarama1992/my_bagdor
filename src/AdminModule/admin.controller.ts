@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Delete,
+  Headers,
   Put,
   Body,
   Param,
@@ -42,10 +43,11 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'Профиль удалён' })
   @Delete('delete/:id/:dbRegion')
   async deleteProfile(
+    @Headers('authorization') authHeader: string,
     @Param('id') id: string,
     @Param('dbRegion') dbRegion: DbRegion,
   ) {
-    return this.adminService.deleteProfile(Number(id), dbRegion);
+    return this.adminService.deleteProfile(Number(id), dbRegion, authHeader);
   }
 
   @ApiOperation({ summary: 'Редактировать профиль пользователя' })

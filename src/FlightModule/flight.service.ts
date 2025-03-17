@@ -250,92 +250,6 @@ export class FlightService {
     return { message: 'Рейс помечен как прибыл', flightId };
   }
 
-  async getAirports(authHeader: string) {
-    const user = await this.authenticate(authHeader);
-    await this.usersService.saveSearchHistory(
-      user.id,
-      user.dbRegion,
-      'ALL_AIRPORTS',
-      SearchType.AIRPORT,
-    );
-    return this.fetchWithCache('airports-light', `${this.apiUrl}/api/airports`);
-  }
-
-  async getCities(authHeader: string) {
-    const user = await this.authenticate(authHeader);
-
-    // Сохраняем историю поиска для городов
-    await this.usersService.saveSearchHistory(
-      user.id,
-      user.dbRegion,
-      'ALL_CITIES',
-      SearchType.CITY,
-    );
-
-    // Получаем список аэропортов
-    const airports = await this.fetchWithCache(
-      'airports-light',
-      `${this.apiUrl}/api/airports`,
-    );
-
-    // Извлекаем города из списка аэропортов
-    const cities = airports.map((airport: { city: string }) => airport.city);
-
-    return cities;
-  }
-
-  async getFlightByNumber(authHeader: string, flightNumber: string) {
-    const user = await this.authenticate(authHeader);
-    await this.usersService.saveSearchHistory(
-      user.id,
-      user.dbRegion,
-      flightNumber,
-      SearchType.FLIGHT_NUMBER,
-    );
-    return this.fetchWithCache(
-      `flight:${flightNumber}`,
-      `${this.apiUrl}/api/flights/${flightNumber}`,
-    );
-  }
-
-  async getFlightsByRoute(
-    authHeader: string,
-    departure: string,
-    arrival: string,
-  ) {
-    this.logger.log(`Получение рейсов по маршруту: ${departure} -> ${arrival}`);
-
-    const user = await this.authenticate(authHeader);
-    this.logger.log(
-      `Аутентифицирован пользователь ID: ${user.id}, регион: ${user.dbRegion}`,
-    );
-
-    await this.usersService.saveSearchHistory(
-      user.id,
-      user.dbRegion,
-      `${departure}-${arrival}`,
-      SearchType.CITY,
-    );
-
-    const apiUrl = `${this.apiUrl}/api/live/flight-positions/light?airports=${departure},${arrival}`;
-    this.logger.log(`Запрос к внешнему API: ${apiUrl}`);
-
-    try {
-      const response = await this.fetchWithCache(
-        `route:${departure}-${arrival}`,
-        apiUrl,
-      );
-
-      this.logger.log(
-        `Успешно получены данные от API: ${JSON.stringify(response).slice(0, 500)}...`,
-      );
-      return response;
-    } catch (error) {
-      this.logger.error(`Ошибка при получении данных от API: ${error.message}`);
-      throw error;
-    }
-  }
-
   async getFlightsByRouteAndDate(
     authHeader: string,
     departure: string,
@@ -437,25 +351,50 @@ export class FlightService {
     }
   }
 
-  async getFlightsByDate(authHeader: string, date: string) {
-    const user = await this.authenticate(authHeader);
-    await this.usersService.saveSearchHistory(
-      user.id,
-      user.dbRegion,
-      date,
-      SearchType.FLIGHT_DATE,
+  async getActiveFlights() {
+    const databases = ['RU', 'OTHER', 'PENDING'].map((region) =>
+      this.prisma.getDatabase(region as DbRegion),
     );
-    return this.fetchWithCache(
-      `flights:${date}`,
-      `${this.apiUrl}/api/historic/flights?date=${date}`,
+
+    const flights = await Promise.all(
+      databases.map((db) =>
+        db.flight.findMany({
+          where: { status: 'IN_PROGRESS' },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ),
     );
+
+    return flights.flat(); // Объединяем массивы из всех баз
   }
 
-  async getFlightsFromAirportToday(airportCode: string) {
-    return this.fetchWithCache(
-      `departures:${airportCode}`,
-      `${this.apiUrl}/api/live/flights?departure=${airportCode}`,
+  // 2. Получение всех архивных рейсов (из всех баз)
+  async getArchivedFlights() {
+    const databases = ['RU', 'OTHER', 'PENDING'].map((region) =>
+      this.prisma.getDatabase(region as DbRegion),
     );
+
+    const flights = await Promise.all(
+      databases.map((db) =>
+        db.flight.findMany({
+          where: { status: 'ARCHIVED' },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ),
+    );
+
+    return flights.flat(); // Объединяем массивы из всех баз
+  }
+
+  // 3. Получение МОИХ рейсов (где я исполнитель)
+  async getMyFlights(authHeader: string) {
+    const user = await this.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    return db.flight.findMany({
+      where: { userId: user.id }, // Только те, где user — исполнитель
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   private async fetchWithCache(cacheKey: string, url: string): Promise<any> {

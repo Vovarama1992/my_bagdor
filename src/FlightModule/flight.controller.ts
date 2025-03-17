@@ -15,6 +15,7 @@ import {
   NotFoundException,
   Logger,
   HttpException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import {
@@ -200,55 +201,6 @@ export class FlightController {
     return this.flightService.markFlightAsArrived(authHeader, flightId);
   }
 
-  @ApiOperation({ summary: 'Получить список городов' })
-  @ApiResponse({ status: 200, description: 'Список городов успешно получен' })
-  @Get('cities')
-  async getCities(@Headers('authorization') authHeader: string) {
-    return this.flightService.getCities(authHeader);
-  }
-
-  @ApiOperation({ summary: 'Получить список аэропортов' })
-  @ApiResponse({
-    status: 200,
-    description: 'Список аэропортов успешно получен',
-  })
-  @Get('airports')
-  async getAirports(@Headers('authorization') authHeader: string) {
-    return this.flightService.getAirports(authHeader);
-  }
-
-  @ApiOperation({ summary: 'Получить информацию о рейсе по его номеру' })
-  @ApiParam({ name: 'flightNumber', example: 'SU100' })
-  @ApiResponse({ status: 200, description: 'Данные о рейсе успешно получены' })
-  @Get(':flightNumber')
-  async getFlightByNumber(
-    @Param('flightNumber') flightNumber: string,
-    @Headers('authorization') authHeader: string,
-  ) {
-    return this.flightService.getFlightByNumber(authHeader, flightNumber);
-  }
-
-  @ApiOperation({ summary: 'Получить список рейсов по маршруту' })
-  @ApiParam({
-    name: 'departure',
-    example: 'SVO',
-    description: 'Код аэропорта отправления',
-  })
-  @ApiParam({
-    name: 'arrival',
-    example: 'JFK',
-    description: 'Код аэропорта прибытия',
-  })
-  @ApiResponse({ status: 200, description: 'Список рейсов успешно получен' })
-  @Get('route/:departure/:arrival')
-  async getFlightsByRoute(
-    @Param('departure') departure: string,
-    @Param('arrival') arrival: string,
-    @Headers('authorization') authHeader: string,
-  ) {
-    return this.flightService.getFlightsByRoute(authHeader, departure, arrival);
-  }
-
   @ApiOperation({ summary: 'Получить список рейсов по маршруту и дате' })
   @ApiParam({
     name: 'departure',
@@ -274,6 +226,7 @@ export class FlightController {
     @Param('departure') departure: string,
     @Param('arrival') arrival: string,
     @Param('date') date: string,
+
     @Headers('authorization') authHeader: string,
   ) {
     return this.flightService.getFlightsByRouteAndDate(
@@ -284,34 +237,41 @@ export class FlightController {
     );
   }
 
-  @ApiOperation({ summary: 'Получить список рейсов по дате' })
-  @ApiParam({
-    name: 'date',
-    example: '2025-03-05',
-    description: 'Дата рейсов (YYYY-MM-DD)',
-  })
+  @ApiOperation({ summary: 'Получить все активные рейсы' })
   @ApiResponse({
     status: 200,
-    description: 'Список рейсов на указанную дату успешно получен',
+    description: 'Список активных рейсов',
   })
-  @Get('date/:date')
-  async getFlightsByDate(
-    @Param('date') date: string,
-    @Headers('authorization') authHeader: string,
-  ) {
-    return this.flightService.getFlightsByDate(authHeader, date);
+  @Get('active')
+  async getActiveFlights() {
+    return this.flightService.getActiveFlights();
   }
 
-  @ApiOperation({ summary: 'Получить список вылетов из аэропорта на сегодня' })
-  @ApiParam({
-    name: 'airportCode',
-    example: 'SVO',
-    description: 'Код аэропорта',
+  @ApiOperation({ summary: 'Получить все архивные рейсы' })
+  @ApiResponse({
+    status: 200,
+    description: 'Список архивных рейсов',
   })
-  @ApiResponse({ status: 200, description: 'Список вылетов успешно получен' })
-  @Get('departures/:airportCode')
-  async getFlightsFromAirportToday(@Param('airportCode') airportCode: string) {
-    return this.flightService.getFlightsFromAirportToday(airportCode);
+  @Get('archived')
+  async getArchivedFlights() {
+    return this.flightService.getArchivedFlights();
+  }
+
+  @ApiOperation({ summary: 'Получить мои рейсы (где я исполнитель)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Список рейсов, где пользователь является исполнителем',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  @Get('my')
+  async getMyFlights(@Headers('authorization') authHeader: string) {
+    if (!authHeader) {
+      throw new UnauthorizedException('Missing authorization header');
+    }
+    return this.flightService.getMyFlights(authHeader);
   }
 
   @ApiOperation({ summary: 'Получить список немодерированных рейсов' })

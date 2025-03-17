@@ -97,12 +97,13 @@ export class FlightController {
     );
 
     try {
-      // 1. Приводим названия файлов к нижнему регистру при сравнении
-      const file = fs
-        .readdirSync(DOCUMENTS_PATH)
-        .find((f) =>
-          f.toLowerCase().startsWith(`flight_${normalizedRegion}_${flightId}`),
-        );
+      // 1. Получаем список всех файлов в папке
+      const files = fs.readdirSync(DOCUMENTS_PATH);
+
+      // 2. Ищем файл, игнорируя регистр в `dbRegion`
+      const file = files.find((f) =>
+        f.toLowerCase().startsWith(`flight_${normalizedRegion}_${flightId}`),
+      );
 
       if (!file) {
         const errorMsg = `Document not found for flight ${flightId} in region ${normalizedRegion}`;
@@ -117,7 +118,7 @@ export class FlightController {
       const filePath = path.join(DOCUMENTS_PATH, file);
       this.logger.log(`Document found: ${filePath}`);
 
-      // 2. Отправляем файл
+      // 3. Отправляем файл
       return res.sendFile(filePath);
     } catch (error) {
       this.logger.error(

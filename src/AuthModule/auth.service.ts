@@ -4,7 +4,6 @@ import {
   Logger,
   HttpException,
   HttpStatus,
-  ConflictException,
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -300,7 +299,6 @@ export class AuthService {
       );
     }
   }
-
   async oauthLogin(user: OAuthUserDto) {
     try {
       this.logger.log(
@@ -313,25 +311,37 @@ export class AuthService {
         );
       }
 
-      const dbPending = this.prismaService.getDatabase('PENDING');
-      let dbRegion: 'RU' | 'OTHER' | 'PENDING' | null = null;
+      let dbRegion: 'RU' | 'OTHER' | null = null;
+      let existingUser = null;
 
-      let existingUser = await dbPending.user.findUnique({
-        where: user.googleId
-          ? { googleId: user.googleId }
-          : user.appleId
-            ? { appleId: user.appleId }
-            : { email: user.email },
-      });
+      // 1. Ищем пользователя во всех базах (PENDING больше не нужен)
+      for (const region of ['RU', 'OTHER'] as const) {
+        const db = this.prismaService.getDatabase(region);
+        existingUser = await db.user.findUnique({
+          where: user.googleId
+            ? { googleId: user.googleId }
+            : user.appleId
+              ? { appleId: user.appleId }
+              : { email: user.email },
+        });
 
-      if (!existingUser) {
-        dbRegion = 'PENDING';
-
-        if (await dbPending.user.findUnique({ where: { email: user.email } })) {
-          throw new ConflictException('User with this email already exists.');
+        if (existingUser) {
+          dbRegion = region;
+          break;
         }
+      }
 
-        existingUser = await dbPending.user.create({
+      // 2. Если юзер найден, просто авторизуем его
+      if (existingUser) {
+        this.logger.log(
+          `Existing OAuth user found: id=${existingUser.id}, region=${dbRegion}`,
+        );
+      } else {
+        // 3. Если юзера нет, создаем нового и отправляем сразу в RU/OTHER
+        dbRegion = Math.random() < 0.5 ? 'RU' : 'OTHER';
+
+        const db = this.prismaService.getDatabase(dbRegion);
+        existingUser = await db.user.create({
           data: {
             email: user.email,
             phone: user.phone?.trim() || null,
@@ -340,18 +350,17 @@ export class AuthService {
             googleId: user.googleId || null,
             appleId: user.appleId || null,
             accountType: 'CUSTOMER',
-            isRegistered: false,
+            isRegistered: true, // OAuth-юзеры сразу считаются зарегистрированными
+            isEmailVerified: true, // OAuth-юзеры подтверждены автоматически
           },
         });
 
-        this.logger.log(`Created new user: id=${existingUser.id}`);
+        this.logger.log(
+          `Created new OAuth user: id=${existingUser.id}, region=${dbRegion}`,
+        );
       }
 
-      if (!dbRegion) {
-        dbRegion =
-          existingUser.googleId || existingUser.appleId ? 'PENDING' : 'RU';
-      }
-
+      // 4. Генерируем токен и возвращаем
       const token = this.jwtService.sign({
         id: existingUser.id,
         dbRegion,
@@ -375,7 +384,7 @@ export class AuthService {
       const response = {
         statusCode: error.status || 400,
         message: error.message || 'OAuth login failed',
-        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined, // Только в dev
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
       };
 
       throw new HttpException(response, response.statusCode);

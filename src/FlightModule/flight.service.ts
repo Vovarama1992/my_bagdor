@@ -88,13 +88,7 @@ export class FlightService {
         },
       });
 
-      await this.telegramService.delegateToModeration(
-        'flight',
-        flight.id,
-        user.dbRegion,
-      );
-
-      return { message: 'Рейс создан и отправлен на модерацию', flight };
+      return { message: 'Рейс создан', flight };
     } catch (error) {
       throw new HttpException(
         error.message,
@@ -154,6 +148,12 @@ export class FlightService {
       // 5. Генерируем URL документа
       const documentUrl = `${this.baseUrl}/flights/${dbRegion}/${flightId}/document`;
       this.logger.log(`Generated document URL: ${documentUrl}`);
+
+      await this.telegramService.delegateToModeration(
+        'flight',
+        flight.id,
+        user.dbRegion,
+      );
 
       // 6. Обновляем запись о рейсе
       try {

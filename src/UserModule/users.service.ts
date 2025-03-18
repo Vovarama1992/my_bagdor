@@ -103,7 +103,7 @@ export class UsersService {
         }
       > = { ...updateData };
 
-      if (updateData.phone && updateData.phone !== user.phone) {
+      if (updateData.phone) {
         this.logger.log(
           `Phone number change detected for user ${user.id}. Old phone: ${user.phone}, New phone: ${updateData.phone}`,
         );

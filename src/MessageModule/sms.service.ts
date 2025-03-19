@@ -34,11 +34,13 @@ export class SmsService {
     name: string,
     code: string,
   ): Promise<void> {
-    const message = `Привет, это bagdoor! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами. Код подтверждения: ${code}. Действителен 5 мин. Никому не сообщайте его. При вопросах пишите: ${this.supportEmail}`;
+    const senderName = 'bagdoor.io'; // Имя отправителя, согласованное с операторами
+    const message = `Ваш код подтверждения: ${code}.`;
 
     const payload = {
       to: phone,
       txt: message,
+      from: senderName, // Добавляем имя отправителя
     };
 
     try {

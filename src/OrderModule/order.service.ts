@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { UsersService } from 'src/UserModule/users.service';
-import { CreateOrderDto, AcceptOrderDto } from './dto/order.dto';
+import { CreateOrderDto } from './dto/order.dto';
 import { Flight, FlightStatus, OrderStatus } from '@prisma/client';
 import { TelegramService } from 'src/TelegramModule/telegram.service';
 import { ConfigService } from '@nestjs/config';
@@ -286,99 +286,122 @@ export class OrderService {
     }
   }
 
-  async acceptOrder(
+  async createResponse(
     authHeader: string,
-    orderId: string,
-    acceptOrderDto?: AcceptOrderDto,
+    orderId: number,
+    flightId: number,
+    message?: string,
+    priceOffer?: number,
   ) {
-    try {
-      const user = await this.usersService.authenticate(authHeader);
-      const db = this.prisma.getDatabase(user.dbRegion);
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
 
-      const order = await db.order.findUnique({
-        where: { id: Number(orderId) },
-        include: { flight: true },
+    const [order, flight, existingResponses] = await Promise.all([
+      db.order.findUnique({ where: { id: orderId } }),
+      db.flight.findUnique({ where: { id: flightId, userId: user.id } }),
+      db.response.findMany({ where: { orderId } }),
+    ]);
+
+    if (!order) throw new NotFoundException('Заказ не найден');
+    if (!flight)
+      throw new NotFoundException('Рейс не найден или вам не принадлежит');
+
+    const response = await db.response.create({
+      data: { orderId, flightId, carrierId: user.id, message, priceOffer },
+    });
+
+    if (existingResponses.length === 0) {
+      await db.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.PROCESSED_BY_CARRIER },
       });
-
-      if (!order) throw new NotFoundException('Заказ не найден');
-      if (order.status === OrderStatus.CONFIRMED) {
-        throw new BadRequestException('Заказ уже подтверждён');
-      }
-
-      // === Вариант 1: Заказчик указал рейс при создании ===
-      if (order.status === OrderStatus.PROCESSED_BY_CUSTOMER) {
-        if (!order.flight) {
-          throw new BadRequestException('Ошибка: отсутствует привязанный рейс');
-        }
-        if (order.flight.userId !== user.id) {
-          throw new ForbiddenException(
-            'Вы не являетесь исполнителем этого рейса',
-          );
-        }
-
-        // Перевозчик подтверждает заказ → статус CONFIRMED
-        await db.order.update({
-          where: { id: order.id },
-          data: { status: OrderStatus.CONFIRMED },
-        });
-
-        return { message: 'Перевозчик подтвердил заказ, сделка заключена' };
-      }
-
-      // === Вариант 2: Заказчик создал заказ без указания рейса ===
-      if (order.status === OrderStatus.RAW) {
-        if (!acceptOrderDto?.flightId) {
-          throw new BadRequestException('Не указан рейс для привязки');
-        }
-
-        const flight = await db.flight.findUnique({
-          where: { id: acceptOrderDto.flightId },
-        });
-
-        if (!flight || flight.status !== FlightStatus.CONFIRMED) {
-          throw new BadRequestException('Рейс не найден или не подтверждён');
-        }
-        if (flight.userId !== user.id) {
-          throw new ForbiddenException(
-            'Вы не являетесь владельцем этого рейса',
-          );
-        }
-
-        // Перевозчик назначает заказ на свой рейс → статус PROCESSED_BY_CARRIER
-        await db.order.update({
-          where: { id: order.id },
-          data: {
-            flightId: flight.id,
-            status: OrderStatus.PROCESSED_BY_CARRIER,
-          },
-        });
-
-        return { message: 'Заказ привязан к рейсу перевозчика' };
-      }
-
-      // === Вариант 3: Заказ уже привязан к рейсу перевозчиком (ждёт подтверждения заказчика) ===
-      if (order.status === OrderStatus.PROCESSED_BY_CARRIER) {
-        if (order.userId !== user.id) {
-          throw new ForbiddenException(
-            'Только заказчик может подтвердить этот заказ',
-          );
-        }
-
-        // Заказчик подтверждает → статус CONFIRMED
-        await db.order.update({
-          where: { id: order.id },
-          data: { status: OrderStatus.CONFIRMED },
-        });
-
-        return { message: 'Заказ подтверждён заказчиком' };
-      }
-
-      throw new BadRequestException(
-        'Невозможно обработать заказ с таким статусом',
-      );
-    } catch (error) {
-      this.handleException(error, 'Ошибка при принятии заказа');
     }
+
+    return { message: 'Отклик создан', response };
+  }
+
+  async acceptResponse(authHeader: string, responseId: number) {
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    const response = await db.response.findUnique({
+      where: { id: responseId },
+      include: { order: true },
+    });
+
+    if (!response) throw new NotFoundException('Отклик не найден');
+    if (response.order.userId !== user.id)
+      throw new ForbiddenException('Вы не владелец заказа');
+
+    await db.$transaction([
+      db.response.update({
+        where: { id: responseId },
+        data: { isAccepted: true },
+      }),
+      db.order.update({
+        where: { id: response.orderId },
+        data: {
+          flightId: response.flightId,
+          carrierId: response.carrierId,
+          status: OrderStatus.CONFIRMED,
+        },
+      }),
+    ]);
+
+    return { message: 'Отклик принят, заказ подтверждён' };
+  }
+
+  async acceptOrderByCarrier(authHeader: string, orderId: number) {
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      include: { flight: true },
+    });
+
+    if (!order) throw new NotFoundException('Заказ не найден');
+    if (!order.flight || order.flight.userId !== user.id)
+      throw new ForbiddenException('Заказ не привязан к вашему рейсу');
+
+    if (order.status !== OrderStatus.PROCESSED_BY_CUSTOMER)
+      throw new BadRequestException('Заказ не ожидает подтверждения');
+
+    await db.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.CONFIRMED, carrierId: user.id },
+    });
+
+    return { message: 'Вы приняли предложение заказчика, заказ подтверждён' };
+  }
+
+  async rejectResponse(authHeader: string, responseId: number) {
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    const response = await db.response.findUnique({
+      where: { id: responseId },
+      include: { order: true },
+    });
+
+    if (!response) throw new NotFoundException('Отклик не найден');
+    if (response.order.userId !== user.id)
+      throw new ForbiddenException('Вы не владелец заказа');
+
+    await db.response.delete({ where: { id: responseId } });
+
+    const remainingResponses = await db.response.count({
+      where: { orderId: response.orderId },
+    });
+
+    if (remainingResponses === 0) {
+      await db.order.update({
+        where: { id: response.orderId },
+        data: { status: OrderStatus.RAW },
+      });
+    }
+
+    return { message: 'Отклик отклонён и удалён' };
   }
 
   private handleException(error: any, customMessage: string) {

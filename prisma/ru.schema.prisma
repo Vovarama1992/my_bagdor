@@ -17,38 +17,40 @@ datasource db {
 
 
 model User {
-  id                     Int         @id @default(autoincrement())
-  phone                  String?     @unique
-  email                  String?     @unique
-  firstName              String?
-  lastName               String?
-  nickname               String?
-  password               String?
-  googleId               String?     @unique
-  appleId                String?     @unique
-  telegram               String?
-  accountType            AccountType @default(CUSTOMER)
-  numberOfFlightsPerYear Int         @default(0)
-  isRegistered           Boolean     @default(false)
-  isEmailVerified        Boolean     @default(false)
-  isPhoneVerified        Boolean     @default(false)
-  createdAt              DateTime    @default(now())
-  updatedAt              DateTime    @updatedAt
-  dbRegion               DbRegion    @default(PENDING)
-  tgNick                 String?
+  id                      Int         @id @default(autoincrement())
+  phone                   String?     @unique
+  email                   String?     @unique
+  firstName               String?
+  lastName                String?
+  nickname                String?
+  password                String?
+  googleId                String?     @unique
+  appleId                 String?     @unique
+  telegram                String?
+  accountType             AccountType @default(CUSTOMER)
+  numberOfFlightsPerYear  Int         @default(0)
+  isRegistered            Boolean     @default(false)
+  isEmailVerified         Boolean     @default(false)
+  isPhoneVerified         Boolean     @default(false)
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+  dbRegion                DbRegion    @default(PENDING)
+  tgNick                  String?
   
 
-  numberOfOrders         Int         @default(0) // Кол-во заказов
-  numberOfFlights        Int         @default(0) // Кол-во перелетов
+  numberOfOrders          Int         @default(0) // Кол-во заказов
+  numberOfFlights         Int         @default(0) // Кол-во перелетов
   numberOfDeliveredOrders Int        @default(0) // Кол-во доставленных заказов (доставок)
 
-  flights                Flight[]    // Рейсы, созданные этим пользователем (перевозчиком)
-  orders                 Order[] 
+  flights                 Flight[]    // Рейсы, созданные этим пользователем (перевозчиком)
+  customerOrders          Order[]     @relation("CustomerOrders") 
+  carrierOrders           Order[]     @relation("CarrierOrders") 
 
-  reviewsGiven           Review[]    @relation("ReviewFromUser")
-  reviewsReceived        Review[]    @relation("ReviewToUser")
+  reviewsGiven            Review[]    @relation("ReviewFromUser")
+  reviewsReceived         Review[]    @relation("ReviewToUser")
 
-  searches               UserSearch[] // История поиска пользователя
+  searches                UserSearch[] // История поиска пользователя
+  responses               Response[]
 }
 
 enum DbRegion {
@@ -82,20 +84,21 @@ enum AccountType {
 }
 
 model Flight {
-  id          Int       @id @default(autoincrement())
-  userId      Int       // ID перевозчика
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  departure   String    // Аэропорт отправления (код, например, SVO)
-  arrival     String    // Аэропорт прибытия (код, например, JFK)
-  date        DateTime  // Дата и время рейса
-  description String    // Описание (например, "беру до 5 кг")
-  status      FlightStatus @default(PENDING) // Статус рейса
-  documentUrl String?
-  orders      Order[]   // Связанные заказы
-  createdAt   DateTime  @default(now())
-  dbRegion    DbRegion    @default(PENDING)
-  reviews     Review[]
-  updatedAt   DateTime  @updatedAt
+  id           Int           @id @default(autoincrement())
+  userId       Int           // ID перевозчика
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departure    String        // Аэропорт отправления
+  arrival      String        // Аэропорт прибытия
+  date         DateTime      // Дата и время рейса
+  description  String        // Описание
+  status       FlightStatus  @default(PENDING)
+  documentUrl  String?
+  orders       Order[]       // Связанные заказы
+  responses    Response[]    // Отклики, связанные с рейсом
+  reviews      Review[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  dbRegion     DbRegion      @default(PENDING)
 }
 
 enum FlightStatus {
@@ -108,31 +111,34 @@ enum FlightStatus {
 }
 
 model Order {
-  id            Int         @id @default(autoincrement())
-  userId        Int         // ID заказчика
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  flightId      Int?        // ID рейса (может быть NULL)
-  flight        Flight?     @relation(fields: [flightId], references: [id], onDelete: Cascade)
-  isModerated   Boolean     @default(false) // Прошел ли модерацию
-  isDone        Boolean     @default(false)
-  
-  status        OrderStatus @default(RAW)   // Статус заказа
-  type          OrderType   // 🔹 Тип заказа (документы, личные вещи, покупка из магазина)
-  name          String      // 🔹 Название заказа (например, "Перевезти ноутбук")
-  description   String      // 🔹 Что перевозим
-  price         Float       // 🔹 💰 Стоимость заказа (обязательное поле)
-  reward        Float       // 🔹 🎁 Вознаграждение перевозчику (обязательное поле)
-  deliveryStart DateTime    // 🔹 🚚 Начало периода доставки
-  deliveryEnd   DateTime    // 🔹 🚚 Конец периода доставки
-  departure     String      // 🔹 📍 Откуда (город/аэропорт)
-  arrival       String      // 🔹 📍 Куда (город/аэропорт)
-  mediaUrls     String[]    // 🔹 📸 Список URL на фото/видео заказа
-  dbRegion      DbRegion    @default(PENDING)
+  id             Int          @id @default(autoincrement())
+  userId         Int          // ID заказчика
+  user           User         @relation("CustomerOrders", fields: [userId], references: [id], onDelete: Cascade)
 
-  productLink   String?
+  flightId       Int?
+  flight         Flight?      @relation(fields: [flightId], references: [id], onDelete: Cascade)
 
-  reviews       Review[]
-  createdAt     DateTime    @default(now())
+  carrierId      Int?         // ID перевозчика
+  carrier        User?        @relation("CarrierOrders", fields: [carrierId], references: [id])
+
+  responses      Response[]
+  status         OrderStatus  @default(RAW)
+  type           OrderType
+  name           String
+  description    String
+  price          Float
+  reward         Float
+  deliveryStart  DateTime
+  deliveryEnd    DateTime
+  departure      String
+  arrival        String
+  mediaUrls      String[]
+  productLink    String?
+  isModerated    Boolean      @default(false)
+  isDone         Boolean      @default(false)
+  reviews        Review[]
+  createdAt      DateTime     @default(now())
+  dbRegion       DbRegion     @default(PENDING)
 }
 
 enum OrderType {
@@ -142,12 +148,31 @@ enum OrderType {
 }
 
 enum OrderStatus {
-  RAW                 // Заказ создан, но не привязан к рейсу
-  PROCESSED_BY_CUSTOMER // Заказчик указал рейс при создании
-  PROCESSED_BY_CARRIER  // Перевозчик добавил заказ в свой рейс
-  CONFIRMED           // Сделка заключена, заказ принят
+  RAW                       // Заказ создан, не привязан к рейсу
+  PROCESSED_BY_CUSTOMER     // Заказчик указал рейс при создании
+  PROCESSED_BY_CARRIER      // Перевозчик добавил заказ в свой рейс
+  CONFIRMED                 // Сделка заключена, заказ принят
+  TRANSFERRED_BY_CUSTOMER   // Заказчик отметил передачу заказа
+  RECEIVED_BY_CARRIER       // Перевозчик подтвердил получение
+  IN_TRANSIT                // Заказ в пути (рейс вылетел)
+  LANDED                    // Рейс приземлился
+  TRANSFERRED_BY_CARRIER    // Перевозчик передал заказ
+  RECEIVED_BY_CUSTOMER      // Заказчик подтвердил получение заказа
 }
 
+model Response {
+  id            Int       @id @default(autoincrement())
+  orderId       Int
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  carrierId     Int       // ID перевозчика
+  carrier       User      @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+  flightId      Int
+  flight        Flight    @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  message       String?
+  priceOffer    Float?
+  isAccepted    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+}
 model Review {
   id          Int       @id @default(autoincrement())
   fromUserId  Int

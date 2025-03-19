@@ -20,7 +20,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { OrderService } from './order.service';
-import { CreateOrderDto, AcceptOrderDto } from './dto/order.dto';
+import { CreateOrderDto } from './dto/order.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as fs from 'fs';
@@ -131,20 +131,47 @@ export class OrderController {
     return res.sendFile(filePath);
   }
 
-  @ApiOperation({ summary: 'Подтвердить заказ' })
-  @ApiParam({ name: 'orderId', example: 1, description: 'ID заказа' })
-  @ApiResponse({
-    status: 200,
-    description: 'Заказ подтвержден',
-  })
-  @ApiBody({ type: AcceptOrderDto })
-  @Patch(':orderId/accept')
-  async acceptOrder(
+  @ApiOperation({ summary: 'Перевозчик оставляет отклик на заказ' })
+  @Post(':orderId/response')
+  async createResponse(
     @Headers('authorization') authHeader: string,
-    @Param('orderId') orderId: string,
-    @Body() acceptOrderDto: AcceptOrderDto,
+    @Param('orderId') orderId: number,
+    @Body() dto: { flightId: number; message?: string; priceOffer?: number },
   ) {
-    return this.orderService.acceptOrder(authHeader, orderId, acceptOrderDto);
+    return this.orderService.createResponse(
+      authHeader,
+      orderId,
+      dto.flightId,
+      dto.message,
+      dto.priceOffer,
+    );
+  }
+
+  @ApiOperation({ summary: 'Заказчик принимает отклик' })
+  @Post('responses/:responseId/accept')
+  async acceptResponse(
+    @Headers('authorization') authHeader: string,
+    @Param('responseId') responseId: number,
+  ) {
+    return this.orderService.acceptResponse(authHeader, responseId);
+  }
+
+  @ApiOperation({ summary: 'Перевозчик принимает предложение заказчика' })
+  @Patch(':orderId/accept-customer-order')
+  async acceptCustomerOrder(
+    @Headers('authorization') authHeader: string,
+    @Param('orderId') orderId: number,
+  ) {
+    return this.orderService.acceptOrderByCarrier(authHeader, orderId);
+  }
+
+  @ApiOperation({ summary: 'Заказчик отклоняет отклик' })
+  @Delete('responses/:responseId/reject')
+  async rejectResponse(
+    @Headers('authorization') authHeader: string,
+    @Param('responseId') responseId: number,
+  ) {
+    return this.orderService.rejectResponse(authHeader, responseId);
   }
 
   @ApiOperation({

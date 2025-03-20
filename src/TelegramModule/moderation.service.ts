@@ -1,6 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
-import { DbRegion, Flight, Order, Review, User } from '@prisma/client';
+import {
+  DbRegion,
+  Flight,
+  ModerationStatus,
+  Order,
+  Review,
+  User,
+} from '@prisma/client';
 
 @Injectable()
 export class ModerationService {
@@ -19,7 +26,9 @@ export class ModerationService {
       databases.map(async (region) => {
         const db = this.prisma.getDatabase(region);
         return {
-          orders: await db.order.count({ where: { isModerated: false } }),
+          orders: await db.order.count({
+            where: { moderationStatus: ModerationStatus.PENDING },
+          }),
           flights: await db.flight.count({ where: { status: 'PENDING' } }),
           reviews: await db.review.count({ where: { isModerated: false } }),
         };
@@ -43,7 +52,7 @@ export class ModerationService {
       databases.map(async (region) => {
         const db = this.prisma.getDatabase(region);
         return db.order.findMany({
-          where: { isModerated: false },
+          where: { moderationStatus: ModerationStatus.PENDING },
           include: { user: true },
         });
       }),
@@ -134,7 +143,10 @@ export class ModerationService {
         await db.review.update({ where: { id }, data: { isModerated: true } });
         this.logger.log(`REVIEW ${id} approved in ${dbRegion}`);
       } else if (type === 'order') {
-        await db.order.update({ where: { id }, data: { isModerated: true } });
+        await db.order.update({
+          where: { id },
+          data: { moderationStatus: ModerationStatus.APPROVED },
+        });
         this.logger.log(`ORDER ${id} approved in ${dbRegion}`);
       }
     } catch (e) {
@@ -159,7 +171,10 @@ export class ModerationService {
         await db.review.delete({ where: { id } });
         this.logger.log(`REVIEW ${id} rejected in ${dbRegion}`);
       } else if (type === 'order') {
-        await db.order.delete({ where: { id } });
+        await db.order.update({
+          where: { id },
+          data: { moderationStatus: ModerationStatus.REJECTED },
+        });
         this.logger.log(`ORDER ${id} rejected in ${dbRegion}`);
       }
     } catch (e) {

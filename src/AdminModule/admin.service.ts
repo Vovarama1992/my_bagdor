@@ -101,10 +101,7 @@ export class AdminService {
     });
 
     this.logger.log(`Created new user: id=${newUser.id}, region=PENDING`);
-
-    const verificationCode = Math.floor(
-      10000 + Math.random() * 900000,
-    ).toString();
+    const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
     await this.redisService.set(
       `email_verification:${email}`,
       verificationCode,

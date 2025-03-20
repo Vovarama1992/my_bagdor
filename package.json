@@ -8,7 +8,7 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "prisma:generate": "npx prisma generate --schema=prisma/pending.schema.prisma && npx prisma generate --schema=prisma/ru.schema.prisma && npx prisma generate --schema=prisma/other.schema.prisma",
+    "prisma:generate": "npx prisma generate --schema=prisma/schema.prisma",
     "start": "nest start",
     "start:dev": "npx nest start --watch",
     "start:debug": "nest start --debug --watch",

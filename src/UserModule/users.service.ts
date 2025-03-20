@@ -146,7 +146,7 @@ export class UsersService {
         updatePayload.isEmailVerified = false;
 
         const verificationCode = Math.floor(
-          10000 + Math.random() * 9000,
+          1000 + Math.random() * 9000,
         ).toString();
         await this.redisService.del(`email_verification:${user.email}`);
         await this.redisService.set(

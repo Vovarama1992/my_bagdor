@@ -213,6 +213,19 @@ export class OrderController {
     return this.orderService.markOrderAsDelivered(authHeader, orderId);
   }
 
+  @ApiOperation({ summary: 'Добавить заказ в избранное' })
+  @ApiResponse({
+    status: 200,
+    description: 'Заказ добавлен в избранное',
+  })
+  @Patch(':orderId/favorite')
+  async addFavoriteOrder(
+    @Headers('authorization') authHeader: string,
+    @Param('orderId') orderId: string,
+  ) {
+    return this.orderService.addFavoriteOrder(authHeader, Number(orderId));
+  }
+
   @ApiOperation({ summary: 'Получить список немодерированных заказов' })
   @ApiResponse({ status: 200, description: 'Список заказов без модерации' })
   @Get('pending-moderation')
@@ -240,5 +253,20 @@ export class OrderController {
     @Param('orderId') orderId: string,
   ) {
     return this.orderService.rejectOrderModeration(authHeader, orderId);
+  }
+
+  @ApiOperation({ summary: 'Редактировать заказ' })
+  @ApiResponse({
+    status: 200,
+    description: 'Заказ успешно отредактирован',
+  })
+  @ApiBody({ type: CreateOrderDto })
+  @Patch(':orderId/edit')
+  async editOrder(
+    @Headers('authorization') authHeader: string,
+    @Param('orderId') orderId: string,
+    @Body() updateData: CreateOrderDto,
+  ) {
+    return this.orderService.editOrder(authHeader, Number(orderId), updateData);
   }
 }

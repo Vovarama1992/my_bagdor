@@ -8,7 +8,12 @@ import {
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { UsersService } from 'src/UserModule/users.service';
 import { CreateOrderDto } from './dto/order.dto';
-import { Flight, FlightStatus, OrderStatus } from '@prisma/client';
+import {
+  Flight,
+  FlightStatus,
+  ModerationStatus,
+  OrderStatus,
+} from '@prisma/client';
 import { TelegramService } from 'src/TelegramModule/telegram.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -126,12 +131,39 @@ export class OrderService {
     }
   }
 
+  async addFavoriteOrder(authHeader: string, orderId: number) {
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    const existingFavorite = await db.favoriteOrder.findFirst({
+      where: {
+        userId: user.id,
+        orderId: orderId,
+      },
+    });
+
+    if (existingFavorite) {
+      throw new BadRequestException('Этот заказ уже в избранном');
+    }
+
+    await db.favoriteOrder.create({
+      data: {
+        userId: user.id,
+        orderId: orderId,
+      },
+    });
+
+    return { message: 'Заказ добавлен в избранное' };
+  }
+
   async getUnmoderatedOrders(authHeader: string) {
     try {
       const { dbRegion } = await this.usersService.authenticate(authHeader);
       const db = this.prisma.getDatabase(dbRegion);
 
-      const orders = await db.order.findMany({ where: { isModerated: false } });
+      const orders = await db.order.findMany({
+        where: { moderationStatus: ModerationStatus.PENDING },
+      });
 
       return orders.length
         ? orders
@@ -203,6 +235,34 @@ export class OrderService {
     }
   }
 
+  async editOrder(
+    authHeader: string,
+    orderId: number,
+    updateData: CreateOrderDto,
+  ) {
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Заказ не найден');
+    }
+
+    if (order.userId !== user.id) {
+      throw new ForbiddenException('Вы не можете редактировать этот заказ');
+    }
+
+    const updatedOrder = await db.order.update({
+      where: { id: orderId },
+      data: updateData,
+    });
+
+    return { message: 'Заказ успешно отредактирован', order: updatedOrder };
+  }
+
   async approveOrderModeration(authHeader: string, orderId: string) {
     try {
       const { dbRegion } = await this.usersService.authenticate(authHeader);
@@ -215,7 +275,7 @@ export class OrderService {
 
       await db.order.update({
         where: { id: Number(orderId) },
-        data: { isModerated: true },
+        data: { moderationStatus: ModerationStatus.APPROVED },
       });
 
       return { message: `Заказ ${orderId} подтвержден` };

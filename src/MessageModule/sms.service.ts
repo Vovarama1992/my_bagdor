@@ -35,7 +35,7 @@ export class SmsService {
     code: string,
   ): Promise<void> {
     const senderName = 'bagdoor.io'; // Имя отправителя, согласованное с операторами
-    const message = `Ваш код подтверждения: ${code}.`;
+    const message = `Ваш код подтверждения: ${code}`;
 
     const payload = {
       to: phone,

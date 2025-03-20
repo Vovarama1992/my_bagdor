@@ -8,12 +8,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
+datasource db_ru {
   provider = "postgresql"
-  url      = env("DATABASE_URL_OTHER")
+  url      = env("DATABASE_URL_RU")
 }
-
-
 
 
 model User {
@@ -36,6 +34,8 @@ model User {
   updatedAt               DateTime    @updatedAt
   dbRegion                DbRegion    @default(PENDING)
   tgNick                  String?
+  favoriteOrders          FavoriteOrder[]
+  
   
 
   numberOfOrders          Int         @default(0) // Кол-во заказов
@@ -111,34 +111,50 @@ enum FlightStatus {
 }
 
 model Order {
-  id             Int          @id @default(autoincrement())
-  userId         Int          // ID заказчика
-  user           User         @relation("CustomerOrders", fields: [userId], references: [id], onDelete: Cascade)
+  id                Int          @id @default(autoincrement())
+  userId            Int          // ID заказчика
+  user              User         @relation("CustomerOrders", fields: [userId], references: [id], onDelete: Cascade)
 
-  flightId       Int?
-  flight         Flight?      @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  flightId          Int?
+  flight            Flight?      @relation(fields: [flightId], references: [id], onDelete: Cascade)
 
-  carrierId      Int?         // ID перевозчика
-  carrier        User?        @relation("CarrierOrders", fields: [carrierId], references: [id])
+  carrierId         Int?         // ID перевозчика
+  carrier           User?        @relation("CarrierOrders", fields: [carrierId], references: [id])
 
-  responses      Response[]
-  status         OrderStatus  @default(RAW)
-  type           OrderType
-  name           String
-  description    String
-  price          Float
-  reward         Float
-  deliveryStart  DateTime
-  deliveryEnd    DateTime
-  departure      String
-  arrival        String
-  mediaUrls      String[]
-  productLink    String?
-  isModerated    Boolean      @default(false)
-  isDone         Boolean      @default(false)
-  reviews        Review[]
-  createdAt      DateTime     @default(now())
-  dbRegion       DbRegion     @default(PENDING)
+  responses         Response[]
+  favoriteOrders    FavoriteOrder[]
+  status            OrderStatus  @default(RAW)
+  type              OrderType
+  name              String
+  description       String
+  price             Float
+  reward            Float
+  deliveryStart     DateTime
+  deliveryEnd       DateTime
+  departure         String
+  arrival           String
+  mediaUrls         String[]
+  productLink       String?
+  moderationStatus  ModerationStatus @default(PENDING) // Статус модерации
+  moderationReason  String? 
+  isDone            Boolean      @default(false)
+  disputeStatus     DisputeStatus    @default(NO_DISPUTE) // Статус спора
+  disputeResult     String? 
+  reviews           Review[]
+  createdAt         DateTime     @default(now())
+  dbRegion          DbRegion     @default(PENDING)
+}
+
+enum ModerationStatus {
+  PENDING    // Ожидает проверки
+  APPROVED   // Одобрено
+  REJECTED   // Отклонено
+}
+
+enum DisputeStatus {
+  NO_DISPUTE    // Спора нет
+  OPEN          // Спор начат
+  RESOLVED      // Спор завершён
 }
 
 enum OrderType {
@@ -170,6 +186,7 @@ model Response {
   flight        Flight    @relation(fields: [flightId], references: [id], onDelete: Cascade)
   message       String?
   priceOffer    Float?
+  taxesAndFees  Float?    // Новое поле для стоимости сборов
   isAccepted    Boolean   @default(false)
   createdAt     DateTime  @default(now())
 }
@@ -195,3 +212,13 @@ model Review {
   comment     String    
   createdAt   DateTime  @default(now())
 }
+
+model FavoriteOrder {
+  id         Int    @id @default(autoincrement())
+  userId     Int
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId    Int
+  order      Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+}
+

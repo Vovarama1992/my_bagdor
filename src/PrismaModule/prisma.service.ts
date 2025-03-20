@@ -4,7 +4,7 @@ import {
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { DbRegion, PrismaClient } from '@prisma/client';
+import { PrismaClient, DbRegion } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -17,9 +17,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {
     this.logger.log('Initializing Prisma clients...');
 
+    // Создаем клиента для каждой базы данных
     this.prismaPending = new PrismaClient({
       datasources: {
-        db: { url: this.configService.get<string>('DATABASE_URL_PENDING') },
+        db: {
+          url: this.configService.get<string>('DATABASE_URL_PENDING'),
+        },
       },
     });
 
@@ -35,15 +38,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    this.logger.log(
-      `DATABASE_URL_PENDING: ${this.configService.get<string>('DATABASE_URL_PENDING')}`,
-    );
-    this.logger.log(
-      `DATABASE_URL_RU: ${this.configService.get<string>('DATABASE_URL_RU')}`,
-    );
-    this.logger.log(
-      `DATABASE_URL_OTHER: ${this.configService.get<string>('DATABASE_URL_OTHER')}`,
-    );
+    this.logger.log('Prisma clients initialized');
   }
 
   async onModuleInit() {
@@ -64,9 +59,9 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   getDatabase(region: DbRegion): PrismaClient {
     this.logger.log(`Fetching database for region: ${region}`);
-    if (region.toUpperCase() === 'RU') {
+    if (region === 'RU') {
       return this.prismaRU;
-    } else if (region.toUpperCase() === 'OTHER') {
+    } else if (region === 'OTHER') {
       return this.prismaOther;
     }
     return this.prismaPending;

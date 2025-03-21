@@ -99,7 +99,7 @@ export class AuthService {
 
   async register(body: RegisterDto) {
     try {
-      const { firstName, lastName, email, phone, password } = body;
+      const { firstName, lastName, email, phone, password, tgNick } = body;
       this.logger.log(`Registering user: email=${email}, phone=${phone}`);
 
       const dbPending = this.prismaService.getDatabase('PENDING');
@@ -179,6 +179,7 @@ export class AuthService {
         data: {
           firstName,
           lastName,
+          tgNick,
           email,
           phone: phone || null,
           password: hashedPassword,

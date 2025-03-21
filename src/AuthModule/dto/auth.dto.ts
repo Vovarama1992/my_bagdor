@@ -24,6 +24,11 @@ export class RegisterDto {
   @IsOptional()
   nickname?: string;
 
+  @ApiProperty({ example: '@tg', required: false })
+  @IsString()
+  @IsOptional()
+  tgNick?: string;
+
   @ApiProperty({ example: '+79991234567', required: false })
   @IsString()
   @IsOptional()

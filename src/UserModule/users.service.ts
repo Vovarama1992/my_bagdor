@@ -108,6 +108,26 @@ export class UsersService {
           `Phone number change detected for user ${user.id}. Old phone: ${user.phone}, New phone: ${updateData.phone}`,
         );
 
+        for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
+          const model = this.prismaService.getUserModel(region);
+          const existing = await model.findUnique({
+            where: { phone: updateData.phone },
+          });
+
+          if (existing && existing.id !== user.id) {
+            this.logger.warn(
+              `Attempt to update phone to existing number ${updateData.phone} in region ${region}`,
+            );
+            throw new BadRequestException(
+              'This phone number is already in use',
+            );
+          }
+        }
+
+        this.logger.log(
+          `Phone number change detected for user ${user.id}. Old phone: ${user.phone}, New phone: ${updateData.phone}`,
+        );
+
         updatePayload.isPhoneVerified = false;
         this.logger.log(`isPhoneVerified set to false for user ${user.id}`);
 

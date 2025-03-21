@@ -23,16 +23,13 @@ import {
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/order.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import * as fs from 'fs';
-import * as path from 'path';
+
 import { Response } from 'express';
 import { ResponseService } from './response.service';
 import { DisputeService } from './dispute.service';
 import { DbRegion } from '@prisma/client';
 import { AdminGuard } from 'guards/admin.guard';
-
-const MEDIA_STORAGE_PATH = path.join(process.cwd(), 'storage', 'order_media');
+import { S3Service } from './sc3.service';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -41,6 +38,7 @@ export class OrderController {
     private readonly orderService: OrderService,
     private readonly responseService: ResponseService,
     private readonly disputeService: DisputeService,
+    private readonly s3Service: S3Service,
   ) {}
 
   @ApiOperation({ summary: 'Создать заказ' })
@@ -57,33 +55,11 @@ export class OrderController {
     return this.orderService.createOrder(authHeader, createOrderDto);
   }
 
-  @ApiOperation({ summary: 'Загрузить медиафайлы для заказа' })
+  @ApiOperation({ summary: 'Загрузить медиафайлы для заказа в S3' })
   @ApiParam({ name: 'orderId', example: 1, description: 'ID заказа' })
   @ApiResponse({ status: 200, description: 'Файлы загружены' })
   @Post(':orderId/upload-media')
-  @UseInterceptors(
-    FilesInterceptor('files', 10, {
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          const orderId = req.params.orderId;
-          const orderPath = path.join(MEDIA_STORAGE_PATH, `order_${orderId}`);
-
-          if (!fs.existsSync(orderPath)) {
-            fs.mkdirSync(orderPath, { recursive: true });
-          }
-
-          cb(null, orderPath);
-        },
-        filename: (req, file, cb) => {
-          const orderId = req.params.orderId;
-          const timestamp = Date.now();
-          const random = Math.round(Math.random() * 1e9);
-          const extension = path.extname(file.originalname);
-          cb(null, `order_${orderId}_${timestamp}_${random}${extension}`);
-        },
-      }),
-    }),
-  )
+  @UseInterceptors(FilesInterceptor('files', 10))
   async uploadMedia(
     @Headers('authorization') authHeader: string,
     @Param('orderId') orderId: string,
@@ -93,35 +69,29 @@ export class OrderController {
       throw new BadRequestException('Файлы не загружены');
     }
 
-    return this.orderService.uploadMedia(
-      authHeader,
-      orderId,
-      files.map((file) => file.filename),
+    const uploadedFiles = await Promise.all(
+      files.map((file) =>
+        this.s3Service.processAndUpload(authHeader, Number(orderId), file),
+      ),
     );
+
+    return { message: 'Файлы загружены', files: uploadedFiles };
   }
 
-  @ApiOperation({ summary: 'Получить медиафайл заказа' })
-  @ApiParam({ name: 'orderId', example: 1, description: 'ID заказа' })
-  @ApiParam({
-    name: 'fileName',
-    example: 'order_1_12345678.jpg',
-    description: 'Имя файла',
-  })
-  @ApiResponse({ status: 200, description: 'Медиафайл отправлен' })
   @Get(':orderId/media/:fileName')
-  async getMedia(
+  async getOrderMedia(
+    @Headers('authorization') authHeader: string,
     @Param('orderId') orderId: string,
     @Param('fileName') fileName: string,
     @Res() res: Response,
   ) {
-    const orderPath = path.join(MEDIA_STORAGE_PATH, `order_${orderId}`);
-    const filePath = path.join(orderPath, fileName);
+    const stream = await this.s3Service.getOrderMediaStream(
+      authHeader,
+      +orderId,
+      fileName,
+    );
 
-    if (!fs.existsSync(filePath)) {
-      throw new BadRequestException('Файл не найден');
-    }
-
-    return res.sendFile(filePath);
+    stream.pipe(res);
   }
 
   @Patch(':orderId/attach-to-flight')

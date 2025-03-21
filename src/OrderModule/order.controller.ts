@@ -84,23 +84,6 @@ export class OrderController {
       }),
     }),
   )
-  @Patch(':orderId/attach-to-flight')
-  @ApiOperation({ summary: 'Добавить заказ к рейсу' })
-  @ApiParam({ name: 'orderId', example: 1 })
-  @ApiBody({ schema: { example: { flightId: 42 } } })
-  @ApiResponse({ status: 200, description: 'Заказ привязан к рейсу' })
-  async attachOrderToFlight(
-    @Headers('authorization') authHeader: string,
-    @Param('orderId') orderId: string,
-    @Body() updateData: { flightId: number },
-  ) {
-    return this.orderService.attachOrderToFlight(
-      authHeader,
-      Number(orderId),
-      updateData,
-    );
-  }
-
   async uploadMedia(
     @Headers('authorization') authHeader: string,
     @Param('orderId') orderId: string,
@@ -139,6 +122,23 @@ export class OrderController {
     }
 
     return res.sendFile(filePath);
+  }
+
+  @Patch(':orderId/attach-to-flight')
+  @ApiOperation({ summary: 'Добавить заказ к рейсу' })
+  @ApiParam({ name: 'orderId', example: 1 })
+  @ApiBody({ schema: { example: { flightId: 42 } } })
+  @ApiResponse({ status: 200, description: 'Заказ привязан к рейсу' })
+  async attachOrderToFlight(
+    @Headers('authorization') authHeader: string,
+    @Param('orderId') orderId: string,
+    @Body() updateData: { flightId: number },
+  ) {
+    return this.orderService.attachOrderToFlight(
+      authHeader,
+      Number(orderId),
+      updateData,
+    );
   }
 
   @ApiOperation({ summary: 'Перевозчик оставляет отклик на заказ' })

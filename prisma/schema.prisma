@@ -129,6 +129,7 @@ model Order {
   name              String
   description       String
   price             Float
+  weight            Float?
   reward            Float
   deliveryStart     DateTime
   deliveryEnd       DateTime
@@ -186,6 +187,7 @@ model Response {
   flightId      Int
   flight        Flight    @relation(fields: [flightId], references: [id], onDelete: Cascade)
   message       String?
+  taxesAndFees  Float? 
   priceOffer    Float?
   taxesAndFees  Float?    // Новое поле для стоимости сборов
   isAccepted    Boolean   @default(false)

@@ -8,6 +8,9 @@ import { ConfigModule } from '@nestjs/config';
 import { DeliveryController } from './delivery-stage.controller';
 import { DeliveryStageService } from './delivery-stage.service';
 import { MessageModule } from 'src/MessageModule/message.module';
+import { ResponseService } from './response.service';
+import { DisputeService } from './dispute.service';
+import { AdminGuard } from 'guards/admin.guard';
 
 @Module({
   imports: [
@@ -18,6 +21,12 @@ import { MessageModule } from 'src/MessageModule/message.module';
     MessageModule,
   ],
   controllers: [OrderController, DeliveryController],
-  providers: [OrderService, DeliveryStageService],
+  providers: [
+    OrderService,
+    DeliveryStageService,
+    ResponseService,
+    DisputeService,
+    AdminGuard,
+  ],
 })
 export class OrderModule {}

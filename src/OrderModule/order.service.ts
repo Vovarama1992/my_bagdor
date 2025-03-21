@@ -35,10 +35,21 @@ export class OrderService {
       const user = await this.usersService.authenticate(authHeader);
       const db = this.prisma.getDatabase(user.dbRegion);
 
+      if (
+        createOrderDto.type === 'STORE_PURCHASE' &&
+        !createOrderDto.productLink
+      ) {
+        throw new BadRequestException(
+          'Product link is required for STORE_PURCHASE orders',
+        );
+      }
+
       const order = await db.order.create({
         data: {
           userId: user.id,
+          productLink: createOrderDto.productLink || null,
           type: createOrderDto.type,
+          weight: createOrderDto.weight,
           name: createOrderDto.name,
           dbRegion: user.dbRegion,
           description: createOrderDto.description,
@@ -63,45 +74,33 @@ export class OrderService {
     }
   }
 
-  async updateOrder(
+  async attachOrderToFlight(
     authHeader: string,
     orderId: number,
     updateData: { flightId: number },
   ) {
-    try {
-      const user = await this.usersService.authenticate(authHeader);
-      const db = this.prisma.getDatabase(user.dbRegion);
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
 
-      const order = await db.order.findUnique({ where: { id: orderId } });
+    const order = await db.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Заказ не найден');
+    if (order.userId !== user.id)
+      throw new ForbiddenException('Вы не можете редактировать этот заказ');
 
-      if (!order) {
-        throw new BadRequestException('Заказ не найден');
-      }
+    const flight = await db.flight.findUnique({
+      where: { id: updateData.flightId },
+    });
+    if (!flight) throw new NotFoundException('Рейс не найден');
 
-      if (order.userId !== user.id) {
-        throw new ForbiddenException('Вы не можете редактировать этот заказ');
-      }
+    const updatedOrder = await db.order.update({
+      where: { id: orderId },
+      data: {
+        flightId: flight.id,
+        status: OrderStatus.PROCESSED_BY_CUSTOMER,
+      },
+    });
 
-      const flight = await db.flight.findUnique({
-        where: { id: updateData.flightId },
-      });
-
-      if (!flight) {
-        throw new BadRequestException('Рейс не найден');
-      }
-
-      const updatedOrder = await db.order.update({
-        where: { id: orderId },
-        data: {
-          flightId: flight.id,
-          status: OrderStatus.PROCESSED_BY_CUSTOMER,
-        },
-      });
-
-      return { message: 'Заказ обновлён', order: updatedOrder };
-    } catch (error) {
-      this.handleException(error, 'Ошибка при обновлении заказа');
-    }
+    return { message: 'Заказ успешно привязан к рейсу', order: updatedOrder };
   }
 
   async uploadMedia(authHeader: string, orderId: string, fileNames: string[]) {
@@ -176,7 +175,17 @@ export class OrderService {
     }
   }
 
-  async getOrdersForCustomer(authHeader: string) {
+  async getOrdersByCustomer(authHeader: string) {
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    return db.order.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getOrdersWaitingForCustomer(authHeader: string) {
     try {
       const user = await this.usersService.authenticate(authHeader);
       const db = this.prisma.getDatabase(user.dbRegion);
@@ -197,7 +206,17 @@ export class OrderService {
     }
   }
 
-  async getOrdersForCarrier(authHeader: string) {
+  async getOrdersByCarrier(authHeader: string) {
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    return db.order.findMany({
+      where: { carrierId: user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getOrdersWaitingForCarrier(authHeader: string) {
     try {
       const user = await this.usersService.authenticate(authHeader);
       const db = this.prisma.getDatabase(user.dbRegion);
@@ -233,6 +252,18 @@ export class OrderService {
         'Ошибка при получении заказов для перевозчика',
       );
     }
+  }
+
+  async getFavoriteOrders(authHeader: string) {
+    const user = await this.usersService.authenticate(authHeader);
+    const db = this.prisma.getDatabase(user.dbRegion);
+
+    const favorites = await db.favoriteOrder.findMany({
+      where: { userId: user.id },
+      include: { order: true },
+    });
+
+    return favorites.map((f) => f.order);
   }
 
   async editOrder(
@@ -346,69 +377,17 @@ export class OrderService {
     }
   }
 
-  async createResponse(
-    authHeader: string,
-    orderId: number,
-    flightId: number,
-    message?: string,
-    priceOffer?: number,
-  ) {
+  async getArchivedOrders(authHeader: string) {
     const user = await this.usersService.authenticate(authHeader);
     const db = this.prisma.getDatabase(user.dbRegion);
 
-    const [order, flight, existingResponses] = await Promise.all([
-      db.order.findUnique({ where: { id: orderId } }),
-      db.flight.findUnique({ where: { id: flightId, userId: user.id } }),
-      db.response.findMany({ where: { orderId } }),
-    ]);
-
-    if (!order) throw new NotFoundException('Заказ не найден');
-    if (!flight)
-      throw new NotFoundException('Рейс не найден или вам не принадлежит');
-
-    const response = await db.response.create({
-      data: { orderId, flightId, carrierId: user.id, message, priceOffer },
+    return db.order.findMany({
+      where: {
+        OR: [{ userId: user.id }, { carrierId: user.id }],
+        isDone: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
-
-    if (existingResponses.length === 0) {
-      await db.order.update({
-        where: { id: orderId },
-        data: { status: OrderStatus.PROCESSED_BY_CARRIER },
-      });
-    }
-
-    return { message: 'Отклик создан', response };
-  }
-
-  async acceptResponse(authHeader: string, responseId: number) {
-    const user = await this.usersService.authenticate(authHeader);
-    const db = this.prisma.getDatabase(user.dbRegion);
-
-    const response = await db.response.findUnique({
-      where: { id: responseId },
-      include: { order: true },
-    });
-
-    if (!response) throw new NotFoundException('Отклик не найден');
-    if (response.order.userId !== user.id)
-      throw new ForbiddenException('Вы не владелец заказа');
-
-    await db.$transaction([
-      db.response.update({
-        where: { id: responseId },
-        data: { isAccepted: true },
-      }),
-      db.order.update({
-        where: { id: response.orderId },
-        data: {
-          flightId: response.flightId,
-          carrierId: response.carrierId,
-          status: OrderStatus.CONFIRMED,
-        },
-      }),
-    ]);
-
-    return { message: 'Отклик принят, заказ подтверждён' };
   }
 
   async acceptOrderByCarrier(authHeader: string, orderId: number) {
@@ -433,35 +412,6 @@ export class OrderService {
     });
 
     return { message: 'Вы приняли предложение заказчика, заказ подтверждён' };
-  }
-
-  async rejectResponse(authHeader: string, responseId: number) {
-    const user = await this.usersService.authenticate(authHeader);
-    const db = this.prisma.getDatabase(user.dbRegion);
-
-    const response = await db.response.findUnique({
-      where: { id: responseId },
-      include: { order: true },
-    });
-
-    if (!response) throw new NotFoundException('Отклик не найден');
-    if (response.order.userId !== user.id)
-      throw new ForbiddenException('Вы не владелец заказа');
-
-    await db.response.delete({ where: { id: responseId } });
-
-    const remainingResponses = await db.response.count({
-      where: { orderId: response.orderId },
-    });
-
-    if (remainingResponses === 0) {
-      await db.order.update({
-        where: { id: response.orderId },
-        data: { status: OrderStatus.RAW },
-      });
-    }
-
-    return { message: 'Отклик отклонён и удалён' };
   }
 
   private handleException(error: any, customMessage: string) {

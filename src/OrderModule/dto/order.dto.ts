@@ -24,6 +24,14 @@ export class CreateOrderDto {
   @IsEnum(OrderType)
   type: OrderType;
 
+  @ApiPropertyOptional({
+    example: 2.5,
+    description: 'Примерный вес (в кг)',
+  })
+  @IsOptional()
+  @IsNumber()
+  weight?: number;
+
   @ApiProperty({
     example: 'Перевезти ноутбук',
     description: 'Название заказа',

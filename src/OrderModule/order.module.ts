@@ -11,10 +11,12 @@ import { MessageModule } from 'src/MessageModule/message.module';
 import { ResponseService } from './response.service';
 import { DisputeService } from './dispute.service';
 import { AdminGuard } from 'guards/admin.guard';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
     PrismaModule,
+    JwtModule,
     UsersModule,
     TelegramModule,
     ConfigModule,

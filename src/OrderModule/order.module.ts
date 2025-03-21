@@ -12,6 +12,7 @@ import { ResponseService } from './response.service';
 import { DisputeService } from './dispute.service';
 import { AdminGuard } from 'guards/admin.guard';
 import { JwtModule } from '@nestjs/jwt';
+import { S3Service } from './sc3.service';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { JwtModule } from '@nestjs/jwt';
     ResponseService,
     DisputeService,
     AdminGuard,
+    S3Service,
   ],
 })
 export class OrderModule {}

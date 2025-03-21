@@ -112,7 +112,7 @@ export class UsersService {
         this.logger.log(`isPhoneVerified set to false for user ${user.id}`);
 
         const verificationCode = Math.floor(
-          10000 + Math.random() * 9000,
+          1000 + Math.random() * 9000,
         ).toString();
         this.logger.log(
           `Generated verification code: ${verificationCode} for user ${user.id}`,
@@ -246,7 +246,7 @@ export class UsersService {
         }
 
         if (!phoneCode && user.phone) {
-          phoneCode = Math.floor(10000 + Math.random() * 90000).toString();
+          phoneCode = Math.floor(1000 + Math.random() * 9000).toString();
           await this.redisService.set(
             `phone_verification:${user.id}`,
             phoneCode,

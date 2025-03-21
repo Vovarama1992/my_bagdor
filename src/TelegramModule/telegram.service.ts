@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Telegraf, Markup, Context } from 'telegraf';
+import { Telegraf, Markup } from 'telegraf';
 import { ModerationService } from './moderation.service';
 import { DbRegion, Flight, Order, Review, User } from '@prisma/client';
 import {
@@ -13,7 +13,6 @@ export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
   private readonly bot: Telegraf;
   private readonly moderatorChatId: string;
-  private ctx: Context;
 
   constructor(
     private configService: ConfigService,
@@ -23,20 +22,14 @@ export class TelegramService {
     this.moderatorChatId = this.configService.get<string>('TELEGRAM_CHAT_ID');
 
     if (!botToken || !this.moderatorChatId) {
-      this.logger.warn('Telegram bot credentials are missing in .env');
+      this.logger.warn('Telegram bot credentials are missing');
       return;
     }
 
     this.bot = new Telegraf(botToken);
-    this.logger.log('Telegram bot initialized');
 
     this.bot.start(async (ctx) => {
-      this.ctx = ctx;
-      await this.showMainMenu(this.ctx);
-    });
-
-    this.bot.action('moderate_reviews', async () => {
-      await this.showPendingReviews();
+      await this.showMainMenu(ctx.chat.id);
     });
 
     this.bot.action('moderate_orders', async () => {
@@ -47,15 +40,17 @@ export class TelegramService {
       await this.showPendingFlights();
     });
 
+    this.bot.action('moderate_reviews', async () => {
+      await this.showPendingReviews();
+    });
+
     this.bot.action(/^approve_(\w+)_(\d+)_(\w+)$/, async (ctx) => {
       const [, type, id, dbRegion] = ctx.match;
-
       await this.moderationService.approveItem(
         dbRegion as DbRegion,
         type,
-        parseInt(id),
+        Number(id),
       );
-
       await ctx.answerCbQuery(
         `✅ ${this.getTypeLabel(type)} #${id} подтвержден`,
       );
@@ -64,13 +59,11 @@ export class TelegramService {
 
     this.bot.action(/^reject_(\w+)_(\d+)_(\w+)$/, async (ctx) => {
       const [, type, id, dbRegion] = ctx.match;
-
       await this.moderationService.rejectItem(
         dbRegion as DbRegion,
         type,
-        parseInt(id),
+        Number(id),
       );
-
       await ctx.answerCbQuery(`❌ ${this.getTypeLabel(type)} #${id} отклонен`);
       await ctx.deleteMessage();
     });
@@ -78,233 +71,189 @@ export class TelegramService {
     this.bot.launch();
   }
 
-  private async showMainMenu(ctx: Context) {
-    const pendingCounts = await this.moderationService.getPendingCounts();
-    await ctx.reply(
-      '📌 *Меню модерации*',
+  private async showMainMenu(chatId: number | string) {
+    const pending = await this.moderationService.getPendingCounts();
+    await this.bot.telegram.sendMessage(
+      chatId,
+      '📌 Главное меню модерации',
       Markup.inlineKeyboard([
         [
           Markup.button.callback(
-            `📜 Отзывы (${pendingCounts.reviews})`,
-            'moderate_reviews',
-          ),
-        ],
-        [
-          Markup.button.callback(
-            `📦 Заказы (${pendingCounts.orders})`,
+            `📦 Заказы (${pending.orders})`,
             'moderate_orders',
           ),
         ],
         [
           Markup.button.callback(
-            `✈️ Рейсы (${pendingCounts.flights})`,
+            `✈️ Рейсы (${pending.flights})`,
             'moderate_flights',
+          ),
+        ],
+        [
+          Markup.button.callback(
+            `📝 Отзывы (${pending.reviews})`,
+            'moderate_reviews',
           ),
         ],
       ]),
     );
   }
 
-  // Метод для делегирования сущности на модерацию
   async delegateToModeration(
     entityType: 'order' | 'flight' | 'review',
     id: number,
     dbRegion: DbRegion,
   ) {
-    let entity;
+    const chatId = this.moderatorChatId;
 
-    // В зависимости от типа сущности, получаем данные
+    // Присылаем сообщение-уведомление о новом объекте
+    await this.bot.telegram.sendMessage(
+      chatId,
+      `🔔 Новый ${this.getTypeLabel(entityType)} ожидает модерации. Откройте меню.`,
+    );
+
     if (entityType === 'order') {
-      entity = await this.moderationService.findOrderById(dbRegion, id);
-      if (!entity || !entity.user) {
-        this.logger.warn(`Order ${id} not found or user is missing`);
-        return;
-      }
-      await this.sendOrderForModeration(entity);
+      const order = await this.moderationService.findOrderById(dbRegion, id);
+      if (order && order.user) await this.sendOrder(order);
     } else if (entityType === 'flight') {
-      entity = await this.moderationService.findFlightById(dbRegion, id);
-      if (!entity || !entity.user) {
-        this.logger.warn(`Flight ${id} not found or user is missing`);
-        return;
-      }
-      await this.sendFlightForModeration(entity);
+      const flight = await this.moderationService.findFlightById(dbRegion, id);
+      if (flight && flight.user) await this.sendFlight(flight);
     } else if (entityType === 'review') {
-      entity = await this.moderationService.findReviewById(dbRegion, id);
-      if (!entity || !entity.fromUser || !entity.toUser) {
-        this.logger.warn(`Review ${id} not found or user data is missing`);
-        return;
-      }
-      await this.sendReviewForModeration(entity);
+      const review = await this.moderationService.findReviewById(dbRegion, id);
+      if (review && review.fromUser && review.toUser)
+        await this.sendReview(review);
     }
   }
 
-  async showPendingOrders() {
+  private async showPendingOrders() {
     const orders = await this.moderationService.getPendingOrders();
-    for (const order of orders) {
-      await this.sendOrderForModeration(order); // передаем ctx
-    }
+    for (const order of orders) await this.sendOrder(order);
   }
 
-  async showPendingFlights() {
+  private async showPendingFlights() {
     const flights = await this.moderationService.getPendingFlights();
-    for (const flight of flights) {
-      await this.sendFlightForModeration(flight); // передаем ctx
-    }
+    for (const flight of flights) await this.sendFlight(flight);
   }
 
-  async showPendingReviews() {
+  private async showPendingReviews() {
     const reviews = await this.moderationService.getPendingReviews();
-    for (const review of reviews) {
-      await this.sendReviewForModeration(review); // передаем ctx
-    }
+    for (const review of reviews) await this.sendReview(review);
   }
 
-  private async sendOrderForModeration(order: Order & { user: User }) {
-    const message = `📦 *Новый заказ на модерации*
-  🆔 *ID заказа:* ${order.id}
-  👤 *Заказчик:* ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})
-  📌 *Название:* ${order.name}
-  📜 *Описание:* ${order.description}
-  💰 *Стоимость:* ${order.price} ₽
-  🎁 *Вознаграждение:* ${order.reward} ₽
-  📅 *Доставка:* ${new Date(order.deliveryStart).toLocaleDateString()} – ${new Date(order.deliveryEnd).toLocaleDateString()}
-  📍 *Маршрут:* ${order.departure} → ${order.arrival}`;
+  private async sendOrder(order: Order & { user: User }) {
+    const caption = `📦 *Новый заказ на модерации*
+🆔 ID: ${order.id}
+👤 ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})
+📌 ${order.name}
+📜 ${order.description}
+💰 ${order.price} ₽
+🎁 ${order.reward} ₽
+📍 ${order.departure} → ${order.arrival}`;
 
-    if (order.mediaUrls?.length > 0) {
-      const mediaGroup: (InputMediaPhoto | InputMediaVideo)[] =
-        order.mediaUrls.map((url, index) => {
-          if (url.endsWith('.mp4')) {
-            return {
+    if (order.mediaUrls?.length) {
+      const media = order.mediaUrls.map((url, i) =>
+        url.endsWith('.mp4')
+          ? ({
               type: 'video',
               media: url,
-              caption: index === 0 ? message : undefined,
-            } as InputMediaVideo;
-          } else {
-            return {
+              caption: i === 0 ? caption : undefined,
+            } as InputMediaVideo)
+          : ({
               type: 'photo',
               media: url,
-              caption: index === 0 ? message : undefined,
-            } as InputMediaPhoto;
-          }
-        });
+              caption: i === 0 ? caption : undefined,
+            } as InputMediaPhoto),
+      );
 
-      await this.bot.telegram.sendMediaGroup(this.moderatorChatId, mediaGroup);
+      await this.bot.telegram.sendMediaGroup(this.moderatorChatId, media);
     } else {
-      await this.bot.telegram.sendMessage(this.moderatorChatId, message);
+      await this.bot.telegram.sendMessage(this.moderatorChatId, caption, {
+        parse_mode: 'Markdown',
+      });
     }
 
-    await this.bot.telegram.sendMessage(
-      this.moderatorChatId,
-      'Выберите действие:',
-      Markup.inlineKeyboard([
-        [
-          Markup.button.callback(
-            '✅ Подтвердить',
-            `approve_order_${order.id}_${order.dbRegion}`,
-          ),
-        ],
-        [
-          Markup.button.callback(
-            '❌ Отклонить',
-            `reject_order_${order.id}_${order.dbRegion}`,
-          ),
-        ],
-      ]),
-    );
+    await this.sendModerationActions('order', order.id, order.dbRegion);
   }
 
-  private async sendFlightForModeration(flight: Flight & { user: User }) {
-    const message = `✈️ *Новый рейс на модерации*
-  🆔 *ID рейса:* ${flight.id}
-  👤 *Перевозчик:* ${flight.user.firstName} ${flight.user.lastName} (ID: ${flight.userId})
-  📍 *Маршрут:* ${flight.departure} → ${flight.arrival}
-  📅 *Дата:* ${new Date(flight.date).toLocaleString()}
-  `;
+  private async sendFlight(flight: Flight & { user: User }) {
+    const caption = `✈️ *Новый рейс на модерации*
+🆔 ID: ${flight.id}
+👤 ${flight.user.firstName} ${flight.user.lastName} (ID: ${flight.userId})
+📍 ${flight.departure} → ${flight.arrival}
+📅 ${new Date(flight.date).toLocaleString()}`;
 
     if (flight.documentUrl) {
       await this.bot.telegram.sendDocument(
         this.moderatorChatId,
         flight.documentUrl,
-        { caption: message }, // Прикрепляем файл к сообщению
+        {
+          caption,
+          parse_mode: 'Markdown',
+        },
       );
     } else {
-      await this.bot.telegram.sendMessage(this.moderatorChatId, message);
+      await this.bot.telegram.sendMessage(this.moderatorChatId, caption, {
+        parse_mode: 'Markdown',
+      });
     }
 
-    await this.bot.telegram.sendMessage(
-      this.moderatorChatId,
-      'Выберите действие:',
-      Markup.inlineKeyboard([
-        [
-          Markup.button.callback(
-            '✅ Подтвердить',
-            `approve_flight_${flight.id}_${flight.dbRegion}`,
-          ),
-        ],
-        [
-          Markup.button.callback(
-            '❌ Отклонить',
-            `reject_flight_${flight.id}_${flight.dbRegion}`,
-          ),
-        ],
-      ]),
-    );
+    await this.sendModerationActions('flight', flight.id, flight.dbRegion);
   }
 
-  private async sendReviewForModeration(
-    review: Review & { fromUser: User } & { toUser: User },
-  ) {
-    const message = `📝 *Новый отзыв на модерации*
-  👤 *От кого:* ${review.fromUser.firstName} ${review.fromUser.lastName} (ID: ${review.fromUserId})
-  👤 *Кому:* ${review.toUser.firstName} ${review.toUser.lastName} (ID: ${review.toUserId})
-  ⭐ *Оценка:* ${review.rating}/5
-  💬 *Комментарий:* ${review.comment}`;
+  private async sendReview(review: Review & { fromUser: User; toUser: User }) {
+    const caption = `📝 *Новый отзыв*
+👤 От: ${review.fromUser.firstName} ${review.fromUser.lastName}
+👤 Кому: ${review.toUser.firstName} ${review.toUser.lastName}
+⭐ ${review.rating}/5
+💬 ${review.comment}`;
 
-    await this.bot.telegram.sendMessage(
-      this.moderatorChatId,
-      message,
-      Markup.inlineKeyboard([
+    await this.bot.telegram.sendMessage(this.moderatorChatId, caption, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
         [
           Markup.button.callback(
             '✅ Опубликовать',
             `approve_review_${review.id}_${review.dbRegion}`,
           ),
-        ],
-        [
           Markup.button.callback(
             '❌ Отклонить',
             `reject_review_${review.id}_${review.dbRegion}`,
           ),
         ],
       ]),
+    });
+  }
+
+  private async sendModerationActions(
+    type: string,
+    id: number,
+    dbRegion: DbRegion,
+  ) {
+    await this.bot.telegram.sendMessage(
+      this.moderatorChatId,
+      'Выберите действие:',
+      Markup.inlineKeyboard([
+        [
+          Markup.button.callback(
+            `✅ Подтвердить`,
+            `approve_${type}_${id}_${dbRegion}`,
+          ),
+          Markup.button.callback(
+            `❌ Отклонить`,
+            `reject_${type}_${id}_${dbRegion}`,
+          ),
+        ],
+      ]),
     );
   }
 
-  private async sendMedia(mediaUrls: string[]) {
-    const mediaGroup: (InputMediaPhoto | InputMediaVideo)[] = mediaUrls.map(
-      (url) => {
-        if (url.endsWith('.mp4')) {
-          return { type: 'video', media: url };
-        } else {
-          return { type: 'photo', media: url };
-        }
-      },
-    );
-
-    await this.bot.telegram.sendMediaGroup(this.moderatorChatId, mediaGroup);
-  }
-
-  private getTypeLabel(type: string): string {
-    return type === 'order' ? 'Заказ' : type === 'flight' ? 'Рейс' : 'Отзыв';
-  }
-
-  private getOrderTypeLabel(type: string): string {
+  private getTypeLabel(type: string) {
     return (
       {
-        DOCUMENTS: '📄 Документы',
-        STORE_PURCHASE: '🛍 Покупка из магазина',
-        PERSONAL_ITEMS: '🎒 Личные вещи',
-      }[type] || 'Неизвестный тип'
+        order: 'Заказ',
+        flight: 'Рейс',
+        review: 'Отзыв',
+      }[type] ?? 'Объект'
     );
   }
 }

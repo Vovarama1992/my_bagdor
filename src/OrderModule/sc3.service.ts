@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { S3 } from 'aws-sdk';
 import * as sharp from 'sharp';
@@ -17,6 +18,8 @@ const execPromise = util.promisify(exec);
 
 @Injectable()
 export class S3Service {
+  private readonly logger = new Logger(S3Service.name);
+
   private s3: S3;
   private bucketName: string;
   private endpoint: string;
@@ -26,15 +29,29 @@ export class S3Service {
     private readonly usersService: UsersService,
     private readonly prismaService: PrismaService,
   ) {
+    const endpoint = this.configService.get<string>('S3_ENDPOINT');
+    const accessKeyId = this.configService.get<string>('S3_ACCESS_KEY');
+    const secretAccessKey = this.configService.get<string>('S3_SECRET_KEY');
+    const region = this.configService.get<string>('S3_REGION');
+    const bucketName = this.configService.get<string>('S3_BUCKET_NAME');
+
+    this.logger.log(`S3 Config Loaded:
+      endpoint: ${endpoint},
+      accessKeyId: ${accessKeyId?.slice(0, 4)}****,
+      secretAccessKey: ${secretAccessKey ? '***hidden***' : 'not provided'},
+      region: ${region},
+      bucketName: ${bucketName}
+    `);
+
     this.s3 = new S3({
-      endpoint: this.configService.get<string>('S3_ENDPOINT'),
-      accessKeyId: this.configService.get<string>('S3_ACCESS_KEY'),
-      secretAccessKey: this.configService.get<string>('S3_SECRET_KEY'),
-      region: this.configService.get<string>('S3_REGION'),
+      endpoint,
+      accessKeyId,
+      secretAccessKey,
+      region,
     });
 
-    this.bucketName = this.configService.get<string>('S3_BUCKET_NAME');
-    this.endpoint = this.configService.get<string>('S3_ENDPOINT');
+    this.bucketName = bucketName;
+    this.endpoint = endpoint;
   }
 
   async processAndUpload(

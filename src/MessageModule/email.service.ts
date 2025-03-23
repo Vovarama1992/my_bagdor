@@ -40,7 +40,6 @@ export class EmailService {
 
     const subject = 'Подтверждение регистрации';
 
-    // Читаем шаблон
     const templatePath = path.join(
       process.cwd(),
       'src',
@@ -48,9 +47,15 @@ export class EmailService {
       'email_code.html',
     );
     let html = fs.readFileSync(templatePath, 'utf8');
-
-    // Меняем только код подтверждения
     html = html.replace(/54690/g, code);
+
+    // Логотип (в той же папке, что и шаблон)
+    const logoPath = path.join(
+      process.cwd(),
+      'src',
+      'templates',
+      'logosss.svg',
+    );
 
     try {
       const info = await this.transporter.sendMail({
@@ -58,6 +63,13 @@ export class EmailService {
         to: email,
         subject,
         html,
+        attachments: [
+          {
+            filename: 'logosss.svg',
+            path: logoPath,
+            cid: 'logo',
+          },
+        ],
       });
 
       this.logger.log(`Email sent: ${info.messageId}`);

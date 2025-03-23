@@ -4,18 +4,18 @@
   <meta charset="UTF-8" />
   <title>Email</title>
 </head>
-<body style="margin:0;padding:0;background-color:#121212;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#121212;padding:40px 0;">
+<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5;padding:40px 0;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;background-color:#1F1F1F;border-radius:8px;padding:40px;box-shadow:0 4px 12px rgba(0,0,0,0.5);">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;background-color:#ffffff;border-radius:8px;padding:40px;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
           <tr>
             <td align="center" style="padding-bottom:24px;">
               <img src="cid:logo" alt="Логотип" style="max-width:150px;height:auto;" />
             </td>
           </tr>
           <tr>
-            <td style="color:#ffffff;font-size:16px;line-height:1.6;">
+            <td style="color:#1f1f1f;font-size:16px;line-height:1.6;">
               <p style="margin:0 0 16px;">Привет,</p>
 
               <p style="margin:0 0 16px;">
@@ -35,7 +35,9 @@
 
               <p style="margin:0 0 16px;">
                 При возникновении любых вопросов свяжитесь с нашей службой поддержки, отправив электронное письмо на адрес
-                <a href="mailto:support@bagdoor.io" style="color:#554EFF;text-decoration:underline;">support@bagdoor.io</a>
+                <a href="mailto:support@bagdoor.io" style="color:#554EFF !important; text-decoration:underline;" target="_blank" rel="noopener noreferrer">
+                  support@bagdoor.io
+                </a>
               </p>
 
               <p style="margin:32px 0 0;">
@@ -43,9 +45,9 @@
                 команда bagdoor
               </p>
 
-              <!-- 🔒 Анти-Gmail-сворачивание: уникальный ID и дата -->
+              <!-- Анти-сворачивание в Gmail -->
               <div style="display:none !important; font-size:0; line-height:0;">
-                ID: email-{{RANDOM_ID}} | {{CURRENT_DATE}}
+                email-id-{{RANDOM_ID}} / {{CURRENT_DATE}}
               </div>
             </td>
           </tr>

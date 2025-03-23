@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
-      --primary-color: #554eff;
-      --bg-color: #1f1f1f;
+      --primary-color: #554EFF;
+      --bg-color: #1F1F1F;
       --text-color: white;
       --container-width: 90%;
       --max-container-width: 810px;
@@ -17,11 +17,11 @@
 
     @media (prefers-color-scheme: light) {
       :root {
-        --bg-color: #ffffff;
-        --text-color: #1f1f1f;
+        --bg-color: #FFFFFF;
+        --text-color: #1F1F1F;
       }
       body {
-        background-color: #f5f5f5;
+        background-color: #F5F5F5;
       }
       .container {
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -30,8 +30,8 @@
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg-color: #1f1f1f;
-        --text-color: #ffffff;
+        --bg-color: #1F1F1F;
+        --text-color: #FFFFFF;
       }
       body {
         background-color: #121212;
@@ -63,6 +63,9 @@
     }
 
     .logo {
+      color: var(--primary-color);
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 700;
       text-align: center;
       padding: calc(var(--spacing-base) * 0.5);
       width: 100%;
@@ -89,7 +92,11 @@
       white-space: normal;
     }
 
-    .greeting,
+    .greeting {
+      font-size: clamp(0.875rem, 2.5vw, 1.125rem);
+      font-weight: 500;
+    }
+
     .message {
       font-size: clamp(0.875rem, 2.5vw, 1.125rem);
       font-weight: 500;
@@ -101,7 +108,7 @@
       text-align: left;
       letter-spacing: 0.25rem;
       padding: calc(var(--spacing-base) * 2) 0;
-      color: #ff4400;
+      color: #FF4400;
     }
 
     .footer {
@@ -165,7 +172,7 @@
 <body>
   <div class="wrapper">
     <div class="logo">
-      <img src="cid:logo" alt="Логотип" style="max-width: 150px; height: auto;" />
+      <img src="cid:logo" alt="Логотип" style="max-width: 150px; height: auto;">
     </div>
     <div class="container">
       <div class="content">
@@ -173,15 +180,15 @@
 
         <div class="message">
           Это Bagdoor! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами.
-          <br />Чтобы продолжить процесс регистрации, пожалуйста, подтверди свой адрес электронной почты, введя данный код в приложении:
+          <br>Чтобы продолжить процесс регистрации, пожалуйста, подтверди свой адрес электронной почты, введя данный код в приложении:
         </div>
 
         <div class="verification-code">54690</div>
 
         <div class="footer">
           Код подтверждения действует 5 мин.
-          <br />В целях безопасности вашего аккаунта никому не сообщайте следующий код подтверждения.
-          <br />При возникновении любых вопросов свяжитесь с нашей службой поддержки, отправив электронное письмо на адрес
+          <br>В целях безопасности вашего аккаунта никому не сообщайте следующий код подтверждения.
+          <br>При возникновении любых вопросов свяжитесь с нашей службой поддержки, отправив электронное письмо на адрес
           <a href="mailto:support@bagdoor.io" class="support-email">support@bagdoor.io</a>
         </div>
 

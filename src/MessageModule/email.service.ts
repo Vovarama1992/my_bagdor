@@ -50,7 +50,7 @@ export class EmailService {
       process.cwd(),
       'src',
       'templates',
-      'logosss.svg',
+      'logosss.png',
     );
 
     this.logger.log(`Reading email template from: ${templatePath}`);
@@ -80,11 +80,12 @@ export class EmailService {
         html,
         attachments: [
           {
-            filename: 'logosss.svg',
-            path: logoPath,
+            filename: 'logosss.png',
+            path: path.join(process.cwd(), 'src', 'templates', 'logosss.png'),
             cid: 'logo',
+            contentType: 'image/png',
           },
-        ],
+        ]
       });
 
       this.logger.log(`Email sent: ${info.messageId}`);

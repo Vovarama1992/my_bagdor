@@ -314,16 +314,15 @@ export class UsersService {
   async verifyPhone(phone: string, code: string) {
     this.logger.log(`Verifying phone for number: ${phone}`);
 
-    // Ищем пользователя во всех БД
     for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
       const userModel = this.prismaService.getUserModel(region);
-      const user = await userModel.findUnique({ where: { phone } });
+      const foundUser = await userModel.findUnique({ where: { phone } });
 
-      if (user) {
-        this.logger.log(`User found in ${region}: ID=${user.id}`);
+      if (foundUser) {
+        this.logger.log(`User found in ${region}: ID=${foundUser.id}`);
 
         const storedCode = await this.redisService.get(
-          `phone_verification:${user.id}`,
+          `phone_verification:${foundUser.id}`,
         );
 
         if (!storedCode) {
@@ -338,13 +337,58 @@ export class UsersService {
           throw new BadRequestException('Incorrect verification code');
         }
 
-        await userModel.update({
-          where: { id: user.id },
-          data: { isPhoneVerified: true },
-        });
+        if (region === 'PENDING') {
+          const dbPending = this.prismaService.getDatabase('PENDING');
+          const userInPending = await dbPending.user.findUnique({
+            where: { phone },
+          });
 
-        await this.redisService.del(`phone_verification:${user.id}`);
-        this.logger.log(`Phone verification completed for user ID: ${user.id}`);
+          if (userInPending) {
+            let targetRegion: DbRegion = 'RU';
+            if (phone?.startsWith('+7')) {
+              targetRegion = 'RU';
+            } else {
+              targetRegion = 'OTHER';
+            }
+            const finalDB = this.prismaService.getDatabase(targetRegion);
+
+            this.logger.log(
+              `Moving user ${userInPending.id} from PENDING to ${targetRegion}`,
+            );
+
+            await finalDB.user.create({
+              data: {
+                firstName: userInPending.firstName,
+                lastName: userInPending.lastName,
+                email: userInPending.email,
+                dbRegion: targetRegion,
+                phone: userInPending.phone,
+                password: userInPending.password,
+                isRegistered: true,
+                isEmailVerified: true,
+                isPhoneVerified: true,
+                accountType: userInPending.accountType,
+              },
+            });
+
+            await dbPending.user.delete({ where: { id: userInPending.id } });
+            this.logger.log(`User ${userInPending.id} removed from PENDING`);
+          }
+        } else {
+          await this.prismaService.getDatabase(region).user.update({
+            where: { phone },
+            data: { isPhoneVerified: true },
+          });
+
+          this.logger.log(
+            `Phone verified flag updated for user ${foundUser.id} in ${region}`,
+          );
+        }
+
+        await this.redisService.del(`phone_verification:${foundUser.id}`);
+        this.logger.log(
+          `Phone verification completed for user ID: ${foundUser.id}`,
+        );
 
         return { message: 'Phone number successfully verified' };
       }
@@ -353,10 +397,10 @@ export class UsersService {
     this.logger.warn(`User with phone ${phone} not found in any database`);
     throw new NotFoundException('User not found');
   }
+
   async verifyEmail(email: string, code: string) {
     this.logger.log(`Verifying email for: ${email}`);
 
-    // Проверяем код в Redis
     const storedCode = await this.redisService.get(
       `email_verification:${email}`,
     );
@@ -371,70 +415,25 @@ export class UsersService {
       throw new BadRequestException('Invalid verification code');
     }
 
-    // 1. Ищем в PENDING
-    const dbPending = this.prismaService.getDatabase('PENDING');
-    const user = await dbPending.user.findUnique({ where: { email } });
+    for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
+      const db = this.prismaService.getDatabase(region);
+      const user = await db.user.findUnique({ where: { email } });
 
-    if (user) {
-      // 1.1. Определяем целевой регион (RU или OTHER)
-      const targetRegion: DbRegion = Math.random() < 0.5 ? 'RU' : 'OTHER';
-      const finalDB = this.prismaService.getDatabase(targetRegion);
+      if (user) {
+        await db.user.update({
+          where: { email },
+          data: { isEmailVerified: true },
+        });
 
-      this.logger.log(`Moving user ${user.id} from PENDING to ${targetRegion}`);
-
-      // 1.2. Переносим пользователя из PENDING
-      await finalDB.user.create({
-        data: {
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          dbRegion: targetRegion,
-          phone: user.phone,
-          password: user.password,
-          isRegistered: true,
-          isEmailVerified: true,
-          accountType: user.accountType,
-        },
-      });
-
-      // 1.3. Удаляем из PENDING
-      await dbPending.user.delete({ where: { id: user.id } });
-      this.logger.log(`User ${user.id} removed from PENDING`);
-    } else {
-      // 2. Если в PENDING нет, ищем в RU или OTHER
-      const dbRU = this.prismaService.getDatabase('RU');
-      const dbOther = this.prismaService.getDatabase('OTHER');
-
-      let existingUser = await dbRU.user.findUnique({ where: { email } });
-      let targetDB: DbRegion = 'RU';
-
-      if (!existingUser) {
-        existingUser = await dbOther.user.findUnique({ where: { email } });
-        targetDB = 'OTHER';
+        this.logger.log(`Email verified for user ${user.id} in ${region}`);
+        return { message: 'Email verified successfully' };
       }
-
-      if (!existingUser) {
-        this.logger.warn(`User ${email} not found in PENDING, RU, or OTHER`);
-        throw new NotFoundException('User not found in any database');
-      }
-
-      // 2.1. Обновляем флаг isEmailVerified в целевой БД
-      this.logger.log(
-        `Updating isEmailVerified for user ${email} in ${targetDB}`,
-      );
-
-      await this.prismaService.getDatabase(targetDB).user.update({
-        where: { email },
-        data: { isEmailVerified: true },
-      });
     }
 
-    // Удаляем код из Redis
-    await this.redisService.del(`email_verification:${email}`);
-    this.logger.log(`Deleted Redis key: email_verification:${email}`);
-
-    return { message: 'Email verified successfully' };
+    this.logger.warn(`User with email ${email} not found in any database`);
+    throw new NotFoundException('User not found');
   }
+
   async saveSearchHistory(
     userId: number,
     dbRegion: DbRegion,

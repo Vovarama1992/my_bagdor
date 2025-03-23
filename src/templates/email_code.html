@@ -1,93 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            font-family: Arial, sans-serif !important;
-            background-color: #f5f5f5;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-        .wrapper {
-            width: 100%;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            text-align: center;
-        }
-        .logo {
-            margin-bottom: 20px;
-        }
-        .logo img {
-            max-width: 150px;
-            height: auto;
-        }
-        .message {
-            font-size: 16px;
-            line-height: 1.6;
-            text-align: left;
-            margin-bottom: 20px;
-        }
-        .verification-code {
-            font-size: 24px;
-            font-weight: bold;
-            color: #FF4400;
-            letter-spacing: 2px;
-            margin: 20px 0;
-            display: inline-block;
-            padding: 10px 20px;
-            background: #f5f5f5;
-            border-radius: 5px;
-        }
-        .footer {
-            font-size: 14px;
-            color: #666;
-            margin-top: 20px;
-            text-align: left;
-        }
-        .support-email {
-            color: #554EFF;
-            text-decoration: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Template</title>
 </head>
-<body>
-    <div class="wrapper">
-        <div class="container">
-            <!-- ЛОГОТИП -->
-            <div class="logo">
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzg1IiBoZWlnaHQ9Ijk0IiB2aWV3Qm94PSIwIDAgMzg1IDk0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMC4zMzMyNTIgMzZWNzEuMzMzNEg2Ljk5OTkyQzEyLjA2NjYgNzEuMzMzNCAxMy42NjY2IDcwLjggMTMuNjY2NiA2OS4zMzM0QzEzLjY2NjYgNjYuOCAxMy45MzMzIDY2LjggMTkuNjY2NiA3MC4xMzM0QzI2LjQ2NjYgNzQuMTMzNCAzOC4xOTk5IDczLjMzMzQgNDQuNzMzMyA2OC4yNjY3QzU1LjY2NjYgNjAgNTguNDY2NiA0MS42IDUwLjQ2NjYgMzAuMTMzNEM0Mi45OTk5IDE5LjQ2NjcgMjcuMTMzMyAxNi4xMzM0IDE3LjUzMzMgMjMuMkwxMy42NjY2IDI2LjEzMzRWMTMuMzMzNFYwLjY2NjY4N0g2Ljk5OTkySDAuMzMzMjUyVjM2Wk0zMi43MzMzIDMyLjUzMzRDMzguODY2NiAzNC45MzM0IDQxLjY2NjYgMzkuMiA0MS42NjY2IDQ2LjI2NjdDNDEuNjY2NiA1NCAzNy45MzMzIDU4LjY2NjcgMzAuNTk5OSA2MEMxNS4xMzMzIDYyLjkzMzQgNy42NjY1OSA0MC42NjY3IDIxLjY2NjYgMzMuNzMzNEMyNi45OTk5IDMwLjkzMzQgMjguMzMzMyAzMC45MzM0IDMyLjczMzMgMzIuNTMzNFoiIGZpbGw9IiM1NTRFRkYiLz4K..." alt="Логотип" style="display: block; max-width: 150px; height: auto;">
-            </div>
-
-            <!-- СООБЩЕНИЕ -->
-            <div class="message">
-                Привет,<br><br>
-                Это <strong>Bagdoor</strong>! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами.<br><br>
-                Чтобы продолжить процесс регистрации, пожалуйста, подтверди свой адрес электронной почты, введя данный код в приложении:
-            </div>
-
-            <!-- КОД ПОДТВЕРЖДЕНИЯ -->
-            <div class="verification-code">54690</div>
-
-            <!-- ПОДВАЛ -->
-            <div class="footer">
-                Код подтверждения действует <strong>5 мин.</strong><br>
-                В целях безопасности никому не сообщайте этот код.<br>
-                Если у вас возникли вопросы, напишите в поддержку: 
-                <a href="mailto:support@bagdoor.io" class="support-email">support@bagdoor.io</a>
-            </div>
-        </div>
+<body style="font-family: Inter, sans-serif; color: white; line-height: 1.5; margin: 0; padding: 32px; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start;">
+  <div style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 810px;">
+    <div style="color: #554EFF; font-size: 24px; font-weight: 700; text-align: center; padding: 8px; width: 100%;">
+      <img src="example.logo" alt="Логотип" style="max-width: 150px; height: auto;">
     </div>
+    <div style="width: 90%; max-width: 810px; padding: 32px; background: #1F1F1F; border-radius: 8px; transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;">
+      <div style="width: 90%; max-width: 660px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; word-wrap: break-word; word-break: keep-all; white-space: normal;">
+        <div style="font-size: 14px; font-weight: 500; word-wrap: break-word; word-break: keep-all; white-space: normal;">
+          Привет Виктор,
+        </div>
+        <div style="font-size: 14px; font-weight: 500; word-wrap: break-word; word-break: keep-all; white-space: normal;">
+          Это Bagdoor! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами.
+          <br>Чтобы продолжить процесс регистрации, пожалуйста, подтверди свой адрес электронной почты, введя данный код в приложении:
+        </div>
+        <div style="font-size: 30px; font-weight: 700; text-align: left; letter-spacing: 4px; padding: 32px 0; color: #FF4400;">
+          54690
+        </div>
+        <div style="font-size: 14px; font-weight: 500; line-height: 1.6; word-wrap: break-word; word-break: keep-all; white-space: normal; color: white;">
+          Код подтверждения действует 5 мин.
+          <br>В целях безопасности вашего аккаунта никому не сообщайте следующий код подтверждения.
+          <br>При возникновении любых вопросов свяжитесь с нашей службой поддержки, отправив электронное письмо на адрес
+          <a href="mailto:support@bagdoor.io" style="color: #554EFF; text-decoration: underline; word-break: keep-all;">support@bagdoor.io</a>
+        </div>
+        <div style="font-size: 14px; font-weight: 500; word-wrap: break-word; word-break: keep-all; white-space: normal; margin-top: 24px; text-align: left;">
+          С любовью, команда bagdoor
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

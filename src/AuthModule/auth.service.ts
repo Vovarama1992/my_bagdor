@@ -338,7 +338,11 @@ export class AuthService {
         );
       } else {
         // 3. Если юзера нет, создаем нового и отправляем сразу в RU/OTHER
-        dbRegion = Math.random() < 0.5 ? 'RU' : 'OTHER';
+        if (user.phone?.startsWith('+7')) {
+          dbRegion = 'RU';
+        } else {
+          dbRegion = 'OTHER';
+        }
 
         const db = this.prismaService.getDatabase(dbRegion);
         existingUser = await db.user.create({

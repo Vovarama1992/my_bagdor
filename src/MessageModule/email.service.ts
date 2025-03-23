@@ -46,16 +46,31 @@ export class EmailService {
       'templates',
       'email_code.html',
     );
-    let html = fs.readFileSync(templatePath, 'utf8');
-    html = html.replace(/54690/g, code);
-
-    // Логотип (в той же папке, что и шаблон)
     const logoPath = path.join(
       process.cwd(),
       'src',
       'templates',
       'logosss.svg',
     );
+
+    this.logger.log(`Reading email template from: ${templatePath}`);
+    this.logger.log(`Reading logo from: ${logoPath}`);
+
+    let html: string;
+    try {
+      html = fs.readFileSync(templatePath, 'utf8');
+    } catch (e) {
+      this.logger.error(`Failed to read email template: ${e.message}`);
+      return;
+    }
+
+    html = html.replace(/54690/g, code);
+
+    if (!fs.existsSync(logoPath)) {
+      this.logger.warn(`Logo file does not exist at path: ${logoPath}`);
+    } else {
+      this.logger.log(`Logo file found at path: ${logoPath}`);
+    }
 
     try {
       const info = await this.transporter.sendMail({

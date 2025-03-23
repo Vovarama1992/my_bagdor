@@ -85,7 +85,7 @@ export class EmailService {
             cid: 'logo',
             contentType: 'image/png',
           },
-        ]
+        ],
       });
 
       this.logger.log(`Email sent: ${info.messageId}`);

@@ -1,59 +1,67 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Email</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bagdoor - Код подтверждения</title>
+    <style>
+@media only screen and (max-width: 480px) {
+  .email-container {
+    padding: 10px !important;
+  }
+
+  .email-content {
+    padding: 20px !important;
+    border-radius: 15px !important;
+  }
+
+  .code-text {
+    font-size: 30px !important;
+    line-height: 45px !important;
+  }
+
+  .text-content {
+    font-size: 16px !important;
+    line-height: 26px !important;
+  }
+}
+</style>
 </head>
-<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5;padding:40px 0;">
-    <tr>
-      <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;background-color:#ffffff;border-radius:8px;padding:40px;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
-          <tr>
-            <td align="center" style="padding-bottom:24px;">
-              <img src="cid:logo" alt="Логотип" style="max-width:150px;height:auto;" />
-            </td>
-          </tr>
-          <tr>
-            <td style="color:#1f1f1f;font-size:16px;line-height:1.6;">
-              <p style="margin:0 0 16px;">Привет,</p>
-
-              <p style="margin:0 0 16px;">
-                Это <strong style="color:#554EFF;">Bagdoor</strong>! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами.
-                Чтобы продолжить процесс регистрации, пожалуйста, подтверди свой адрес электронной почты, введя данный код в приложении:
-              </p>
-
-              <p style="font-size:28px;font-weight:bold;color:#FF4400;margin:32px 0;letter-spacing:4px;">54690</p>
-
-              <p style="margin:0 0 16px;">
-                Код подтверждения действует <strong>5 мин</strong>.
-              </p>
-
-              <p style="margin:0 0 16px;">
-                В целях безопасности вашего аккаунта никому не сообщайте следующий код подтверждения.
-              </p>
-
-              <p style="margin:0 0 16px;">
-                При возникновении любых вопросов свяжитесь с нашей службой поддержки, отправив электронное письмо на адрес
-                <a href="mailto:support@bagdoor.io" style="color:#554EFF !important; text-decoration:underline;" target="_blank" rel="noopener noreferrer">
-                  support@bagdoor.io
+<body style="margin: 0; padding: 0; font-family: 'Inter', Arial, sans-serif; background-color: #232329;">
+    <div class="email-container" style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; box-sizing: border-box;">
+        <div class="email-content" style="background: #1A1B1E; border-radius: 23px; padding: 35px; margin-bottom: 20px; box-sizing: border-box;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <a href="https://example.com">
+                  <img src="cid:logo" alt="Bagdoor логотип" style="height: 30px; width: auto;">
                 </a>
-              </p>
-
-              <p style="margin:32px 0 0;">
-                С любовью,<br />
-                команда bagdoor
-              </p>
-
-              <!-- Анти-сворачивание в Gmail -->
-              <div style="display:none !important; font-size:0; line-height:0;">
-                email-id-{{RANDOM_ID}} / {{CURRENT_DATE}}
-              </div>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
+            </div>
+            
+            <div style="color: white; font-size: 15px; line-height: 30px; margin-bottom: 20px;">
+                <div style="text-align: left; margin-bottom: 15px;" class="text-content">Привет,</div>
+                
+                <div style="margin-bottom: 25px;" class="text-content">
+                    <span style="color: white; font-size: 15px; line-height: 30px;">Это </span>
+                    <span style="color: white; font-size: 15px; font-weight: 700; line-height: 30px;">Bagdoor</span>
+                    <span style="color: white; font-size: 15px; line-height: 30px;">! Спасибо за регистрацию в нашем приложении! Мы рады, что ты теперь с нами.<br>
+                    Чтобы продолжить процесс регистрации, пожалуйста, подтверди свой адрес электронной почты, введя данный код в приложении:</span>
+                </div>
+                
+                <div class="code-text" style="text-align: left; color: #FF4400; font-size: 25px; font-weight: 700; line-height: 54px; margin: 30px 0;">
+                    54690
+                </div>
+                
+                <div style="margin-bottom: 25px;" class="text-content">
+                    <span style="color: white; font-size: 15px; line-height: 30px;">Код подтверждения действует 5 мин.<br>
+                    В целях безопасности вашего аккаунта никому не сообщайте следующий код подтверждения. <br>
+                    При возникновении любых вопросов свяжитесь с нашей службой поддержки, отправив электронное письмо на адрес </span>
+                    <a href="mailto:support@bagdoor.io" style="color: #554EFF; font-size: 15px; text-decoration: underline; line-height: 30px;">support@bagdoor.io</a>
+                </div>
+                
+                <div style="margin-top: 40px; color: white; font-size: 15px; line-height: 30px;" class="text-content">
+                    С любовью, команда bagdoor
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

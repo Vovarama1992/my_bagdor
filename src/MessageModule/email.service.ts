@@ -9,6 +9,72 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter;
   private fromEmail: string;
+
+  constructor(private configService: ConfigService) {
+    const smtpHost = this.configService.get<string>('SMTP_HOST');
+    const smtpPort = this.configService.get<number>('SMTP_PORT');
+    const smtpUser = this.configService.get<string>('SMTP_USER');
+    const smtpPass = this.configService.get<string>('SMTP_PASS');
+    this.fromEmail = this.configService.get<string>('EMAIL_FROM');
+
+    this.transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+  }
+
+  async sendVerificationEmail(email: string, code: string): Promise<void> {
+    const subject = 'Подтверждение регистрации';
+
+    const templatePath = path.join(
+      process.cwd(),
+      'src',
+      'templates',
+      'email_code.html',
+    );
+
+    let html: string;
+    try {
+      html = fs.readFileSync(templatePath, 'utf8');
+    } catch (e) {
+      this.logger.error(`Failed to read email template: ${e.message}`);
+      return;
+    }
+
+    console.log(code);
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromEmail,
+        to: email,
+        subject,
+        html,
+      });
+
+      this.logger.log(`Email sent: ${info.messageId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send email: ${error.message}`, error.stack);
+    }
+  }
+}
+
+{
+  /*import { Injectable, Logger } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
+import { ConfigService } from '@nestjs/config';
+import * as fs from 'fs';
+import * as path from 'path';
+
+@Injectable()
+export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
+  private transporter;
+  private fromEmail: string;
   private readonly supportEmail = 'support@bagdoor.io';
 
   constructor(private configService: ConfigService) {
@@ -93,4 +159,5 @@ export class EmailService {
       this.logger.error(`Failed to send email: ${error.message}`, error.stack);
     }
   }
+}*/
 }

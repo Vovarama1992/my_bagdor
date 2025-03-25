@@ -143,28 +143,23 @@ export class S3Service {
   }
 
   private async convertVideoToWebm(filePath: string): Promise<Buffer> {
-    const outputPath = filePath.replace(path.extname(filePath), '.webm');
+    try {
+      if (!filePath) throw new Error('filePath is undefined');
 
-    const probeCommand = `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 ${filePath}`;
-    const { stdout } = await execPromise(probeCommand);
-    const [widthStr, heightStr] = stdout.trim().split(',');
-    const width = parseInt(widthStr, 10);
-    const height = parseInt(heightStr, 10);
-    const maxSize = 1200;
+      const outputPath = filePath.replace(path.extname(filePath), '.webm');
+      const command = `ffmpeg -i "${filePath}" -vf "scale='min(1200,iw)':-2" -r 30 -c:v libvpx -b:v 1M -c:a libvorbis "${outputPath}"`;
 
-    let scaleOption = '';
-    if (width >= height) {
-      scaleOption = `scale=${maxSize}:-2`; // ширина фикс, высота пропорционально
-    } else {
-      scaleOption = `scale=-2:${maxSize}`; // высота фикс, ширина пропорционально
+      this.logger.log(`FFmpeg command: ${command}`);
+
+      await execPromise(command);
+
+      const buffer = await fs.readFile(outputPath);
+      await fs.unlink(outputPath);
+      return buffer;
+    } catch (err) {
+      this.logger.error('Ошибка в convertVideoToWebm', err.stack);
+      throw err;
     }
-
-    const command = `ffmpeg -i ${filePath} -vf "${scaleOption},fps=30" -c:v libvpx -b:v 1M -c:a libvorbis ${outputPath}`;
-    await execPromise(command);
-
-    const buffer = await fs.readFile(outputPath);
-    await fs.unlink(outputPath);
-    return buffer;
   }
 
   private async uploadToS3(buffer: Buffer, key: string): Promise<string> {

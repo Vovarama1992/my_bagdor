@@ -66,8 +66,6 @@ export class OrderController {
   ) {
     this.logger.log(`Начало загрузки файлов для заказа #${orderId}`);
     this.logger.log(`Количество файлов: ${files?.length}`);
-    this.logger.log(`Тип files: ${typeof files}`);
-    this.logger.log(`Files JSON: ${JSON.stringify(files)}`);
 
     if (!files || files.length === 0) {
       this.logger.warn('Файлы не загружены');

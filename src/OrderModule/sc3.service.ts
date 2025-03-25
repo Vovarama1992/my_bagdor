@@ -73,8 +73,19 @@ export class S3Service {
       }
 
       const ext = path.extname(file.originalname).toLowerCase();
-      const fileName = `${Date.now()}_${file.originalname}`;
+      this.logger.log(`Расширение файла: ${ext}`);
+
+      const baseName = path.basename(file.originalname, ext);
+      const finalExt = ['.jpg', '.jpeg', '.png'].includes(ext)
+        ? '.webp'
+        : ['.mp4', '.mov', '.avi'].includes(ext)
+          ? '.webm'
+          : ext;
+
+      const fileName = `${Date.now()}_${baseName}${finalExt}`;
       const key = `${user.dbRegion}/orders/${orderId}/${fileName}`;
+
+      this.logger.log(`Итоговый путь (key): ${key}`);
 
       let buffer = file.buffer;
 

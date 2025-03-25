@@ -1,6 +1,9 @@
 # Используем официальный Node.js образ
 FROM node:18
 
+# Устанавливаем ffmpeg
+RUN apt-get update && apt-get install -y ffmpeg
+
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
@@ -14,9 +17,7 @@ RUN npm install --unsafe-perm --allow-root
 COPY . .
 
 # Генерируем Prisma Client для всех схем
-RUN npx prisma generate --schema=prisma/pending.schema.prisma && \
-    npx prisma generate --schema=prisma/ru.schema.prisma && \
-    npx prisma generate --schema=prisma/other.schema.prisma
+RUN npm run prisma:generate
 
 # Собираем приложение
 RUN npm run build

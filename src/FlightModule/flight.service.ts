@@ -9,6 +9,8 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { RedisService } from 'src/RedisModule/redis.service';
@@ -17,6 +19,7 @@ import { DbRegion, FlightStatus, SearchType } from '@prisma/client';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { CreateFlightDto } from './dto/create-flight.dto';
 import { TelegramService } from 'src/TelegramModule/telegram.service';
+import { CheckFlightJobDto } from './dto/check-flight-job.dto';
 
 @Injectable()
 export class FlightService {
@@ -33,6 +36,8 @@ export class FlightService {
     private readonly usersService: UsersService,
     private readonly prisma: PrismaService,
     private readonly telegramService: TelegramService,
+    @InjectQueue('flightCheckQueue')
+    private readonly flightCheckQueue: Queue,
   ) {
     // Используем новый API
     this.apiUrl = this.configService.get<string>(
@@ -75,18 +80,39 @@ export class FlightService {
 
       const db = this.prisma.getDatabase(user.dbRegion);
 
+      const firstMatch = flightExists[0];
+      const iataNumber = firstMatch?.flight?.iataNumber || null;
+
       const flight = await db.flight.create({
         data: {
           userId: user.id,
           departure: flightData.departure,
           dbRegion: user.dbRegion,
           arrival: flightData.arrival,
-          date: flightDate, // Теперь это точно объект Date
+          date: flightDate,
           description: flightData.description,
           documentUrl: flightData.documentUrl || null,
           status: FlightStatus.PENDING,
+          iataNumber,
         },
       });
+
+      const now = Date.now();
+      const delayCheckTime = new Date(flightDate);
+      delayCheckTime.setMinutes(delayCheckTime.getMinutes() + 20); // через 20 мин после вылета
+
+      await this.flightCheckQueue.add(
+        'check-flight',
+        {
+          flightId: flight.id,
+          region: user.dbRegion,
+        } as CheckFlightJobDto,
+        {
+          delay: Math.max(delayCheckTime.getTime() - now, 0),
+          attempts: 3,
+          backoff: 10 * 60 * 1000,
+        },
+      );
 
       return { message: 'Рейс создан', flight };
     } catch (error) {
@@ -248,6 +274,34 @@ export class FlightService {
     });
 
     return { message: 'Рейс помечен как прибыл', flightId };
+  }
+
+  async getAllLiveFlights(authHeader: string) {
+    this.logger.log(`Получение всех онлайн-рейсов (в воздухе)`);
+
+    const user = await this.authenticate(authHeader);
+    this.logger.log(
+      `Аутентифицирован пользователь ID: ${user.id}, регион: ${user.dbRegion}`,
+    );
+
+    const cacheKey = `live:all`;
+    const url = `${this.apiUrl}/flights?key=${this.apiKey}`;
+
+    try {
+      const liveFlights = await this.fetchWithCache(cacheKey, url);
+
+      const validFlights = Array.isArray(liveFlights) ? liveFlights : [];
+
+      this.logger.log(`Получено ${validFlights.length} рейсов в воздухе`);
+
+      return validFlights;
+    } catch (error) {
+      this.logger.error(`Ошибка получения живых рейсов: ${error.message}`);
+      throw new HttpException(
+        'Ошибка получения данных о живых рейсах',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
   }
 
   async getFlightsByRouteAndDate(

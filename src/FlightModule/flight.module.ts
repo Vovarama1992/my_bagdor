@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
+import { BullModule } from '@nestjs/bull';
 import { ConfigModule } from '@nestjs/config';
 import { FlightService } from './flight.service';
 import { FlightController } from './flight.controller';
@@ -10,6 +11,9 @@ import { PrismaModule } from 'src/PrismaModule/prisma.module';
 
 @Module({
   imports: [
+    BullModule.registerQueue({
+      name: 'flightCheckQueue',
+    }),
     HttpModule,
     PrismaModule,
     ConfigModule,

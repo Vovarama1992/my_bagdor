@@ -247,6 +247,23 @@ export class FlightController {
     return this.flightService.getActiveFlights();
   }
 
+  @ApiOperation({ summary: 'Получить все рейсы в воздухе (онлайн)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Список рейсов в реальном времени',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  @Get('live')
+  async getLiveFlights(@Headers('authorization') authHeader: string) {
+    if (!authHeader) {
+      throw new UnauthorizedException('Missing authorization header');
+    }
+    return this.flightService.getAllLiveFlights(authHeader);
+  }
+
   @ApiOperation({ summary: 'Получить все архивные рейсы' })
   @ApiResponse({
     status: 200,

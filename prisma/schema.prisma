@@ -86,22 +86,22 @@ enum AccountType {
 
 model Flight {
   id           Int           @id @default(autoincrement())
-  userId       Int           // ID перевозчика
+  userId       Int
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  departure    String        // Аэропорт отправления
-  arrival      String        // Аэропорт прибытия
-  date         DateTime      // Дата и время рейса
-  description  String        // Описание
+  departure    String
+  arrival      String
+  date         DateTime
+  description  String
   status       FlightStatus  @default(PENDING)
   documentUrl  String?
-  orders       Order[]       // Связанные заказы
-  responses    Response[]    // Отклики, связанные с рейсом
+  iataNumber   String?       // 👈 новое необязательное поле
+  orders       Order[]
+  responses    Response[]
   reviews      Review[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   dbRegion     DbRegion      @default(PENDING)
 }
-
 enum FlightStatus {
   PENDING      // Ожидает подтверждения
   CONFIRMED    // Подтверждён, открыт для заказов

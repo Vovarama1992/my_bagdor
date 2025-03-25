@@ -11,11 +11,18 @@ import { TelegramModule } from './TelegramModule/telegram.module';
 import { OrderModule } from './OrderModule/order.module';
 import { ReviewModule } from './ReviewModule/review.module';
 import { AdminModule } from './AdminModule/admin.module';
+import { BullModule } from '@nestjs/bull';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    BullModule.forRoot({
+      redis: {
+        host: process.env.REDIS_HOST || 'redis-service',
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      },
     }),
 
     AuthModule,

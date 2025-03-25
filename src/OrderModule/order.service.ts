@@ -74,35 +74,6 @@ export class OrderService {
     }
   }
 
-  async attachOrderToFlight(
-    authHeader: string,
-    orderId: number,
-    updateData: { flightId: number },
-  ) {
-    const user = await this.usersService.authenticate(authHeader);
-    const db = this.prisma.getDatabase(user.dbRegion);
-
-    const order = await db.order.findUnique({ where: { id: orderId } });
-    if (!order) throw new NotFoundException('Заказ не найден');
-    if (order.userId !== user.id)
-      throw new ForbiddenException('Вы не можете редактировать этот заказ');
-
-    const flight = await db.flight.findUnique({
-      where: { id: updateData.flightId },
-    });
-    if (!flight) throw new NotFoundException('Рейс не найден');
-
-    const updatedOrder = await db.order.update({
-      where: { id: orderId },
-      data: {
-        flightId: flight.id,
-        status: OrderStatus.PROCESSED_BY_CUSTOMER,
-      },
-    });
-
-    return { message: 'Заказ успешно привязан к рейсу', order: updatedOrder };
-  }
-
   async uploadMedia(authHeader: string, orderId: string, fileNames: string[]) {
     try {
       const user = await this.usersService.authenticate(authHeader);

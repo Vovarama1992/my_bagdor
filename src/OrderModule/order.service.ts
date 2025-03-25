@@ -166,12 +166,10 @@ export class OrderService {
         include: { flight: true },
       });
 
-      if (!orders.length)
-        throw new NotFoundException(
-          'Нет заказов, ожидающих вашего подтверждения',
-        );
-
-      return { message: 'Заказы, ожидающие подтверждения заказчиком', orders };
+      return {
+        message: 'Заказы, ожидающие подтверждения заказчиком',
+        orders,
+      };
     } catch (error) {
       this.handleException(error, 'Ошибка при получении заказов для заказчика');
     }

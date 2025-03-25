@@ -11,10 +11,6 @@ import {
 import { OrderType } from '@prisma/client';
 
 export class CreateOrderDto {
-  @ApiProperty({ example: 1, description: 'ID заказчика', required: true })
-  @IsInt()
-  userId: number;
-
   @ApiProperty({
     example: 'DOCUMENTS',
     description: 'Тип заказа (документы, личные вещи, покупка из магазина)',

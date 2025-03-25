@@ -7,11 +7,11 @@ import {
   Headers,
   Get,
   Delete,
-  Res,
   BadRequestException,
   UploadedFiles,
   UseInterceptors,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,8 +23,6 @@ import {
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/order.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-
-import { Response } from 'express';
 import { ResponseService } from './response.service';
 import { DisputeService } from './dispute.service';
 import { DbRegion } from '@prisma/client';
@@ -34,6 +32,7 @@ import { S3Service } from './sc3.service';
 @ApiTags('Orders')
 @Controller('orders')
 export class OrderController {
+  private readonly logger = new Logger(OrderController.name);
   constructor(
     private readonly orderService: OrderService,
     private readonly responseService: ResponseService,
@@ -65,33 +64,45 @@ export class OrderController {
     @Param('orderId') orderId: string,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
+    this.logger.log(`Начало загрузки файлов для заказа #${orderId}`);
+    this.logger.log(`Количество файлов: ${files?.length}`);
+
     if (!files || files.length === 0) {
+      this.logger.warn('Файлы не загружены');
       throw new BadRequestException('Файлы не загружены');
     }
 
     const uploadedFiles = await Promise.all(
-      files.map((file) =>
-        this.s3Service.processAndUpload(authHeader, Number(orderId), file),
-      ),
+      files.map(async (file) => {
+        try {
+          this.logger.log(`Обработка файла: ${file.originalname}`);
+          const url = await this.s3Service.processAndUpload(
+            authHeader,
+            Number(orderId),
+            file,
+          );
+          this.logger.log(`Файл загружен: ${url}`);
+          return url;
+        } catch (error) {
+          this.logger.error(
+            `Ошибка при загрузке файла ${file.originalname}`,
+            error.stack,
+          );
+          throw error;
+        }
+      }),
     );
 
+    this.logger.log(`Все файлы успешно загружены для заказа #${orderId}`);
     return { message: 'Файлы загружены', files: uploadedFiles };
   }
 
-  @Get(':orderId/media/:fileName')
-  async getOrderMedia(
+  @Get(':orderId/media-files')
+  async getOrderMediaFiles(
     @Headers('authorization') authHeader: string,
     @Param('orderId') orderId: string,
-    @Param('fileName') fileName: string,
-    @Res() res: Response,
   ) {
-    const stream = await this.s3Service.getOrderMediaStream(
-      authHeader,
-      +orderId,
-      fileName,
-    );
-
-    stream.pipe(res);
+    return this.s3Service.getOrderMediaFiles(authHeader, +orderId);
   }
 
   @ApiOperation({ summary: 'Перевозчик оставляет отклик на заказ' })

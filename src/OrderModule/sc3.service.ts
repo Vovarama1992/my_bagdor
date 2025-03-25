@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   Logger,
+  HttpException,
 } from '@nestjs/common';
 import { S3 } from 'aws-sdk';
 import * as sharp from 'sharp';
@@ -59,35 +60,63 @@ export class S3Service {
     orderId: number,
     file: Express.Multer.File,
   ): Promise<string> {
-    const user = await this.usersService.authenticate(authHeader);
-    const db = this.prismaService.getDatabase(user.dbRegion);
+    try {
+      this.logger.log(
+        `Загрузка файла ${file.originalname} для заказа #${orderId}`,
+      );
 
-    const order = await db.order.findUnique({ where: { id: orderId } });
-    if (!order) throw new NotFoundException('Заказ не найден');
-    if (order.userId !== user.id) throw new ForbiddenException('Нет доступа');
+      const user = await this.usersService.authenticate(authHeader);
+      const db = this.prismaService.getDatabase(user.dbRegion);
 
-    const ext = path.extname(file.originalname).toLowerCase();
-    const fileName = `${Date.now()}_${file.originalname}`;
-    const key = `${user.dbRegion}/orders/${orderId}/${fileName}`;
+      const order = await db.order.findUnique({ where: { id: orderId } });
+      if (!order) {
+        this.logger.warn(`Заказ #${orderId} не найден`);
+        throw new NotFoundException('Заказ не найден');
+      }
 
-    let buffer = file.buffer;
+      if (order.userId !== user.id) {
+        this.logger.warn(
+          `Пользователь ${user.id} не имеет доступа к заказу #${orderId}`,
+        );
+        throw new ForbiddenException('Нет доступа');
+      }
 
-    if (['.jpg', '.jpeg', '.png'].includes(ext)) {
-      buffer = await sharp(file.buffer).toFormat('webp').toBuffer();
-    } else if (['.mp4', '.mov', '.avi'].includes(ext)) {
-      buffer = await this.convertVideoToWebm(file.path);
+      const ext = path.extname(file.originalname).toLowerCase();
+      const fileName = `${Date.now()}_${file.originalname}`;
+      const key = `${user.dbRegion}/orders/${orderId}/${fileName}`;
+
+      this.logger.log(`Обработка файла с расширением ${ext}, key: ${key}`);
+
+      let buffer = file.buffer;
+
+      if (['.jpg', '.jpeg', '.png'].includes(ext)) {
+        this.logger.log('Конвертация изображения в WEBP');
+        buffer = await sharp(file.buffer).toFormat('webp').toBuffer();
+      } else if (['.mp4', '.mov', '.avi'].includes(ext)) {
+        this.logger.log('Конвертация видео в WEBM');
+        buffer = await this.convertVideoToWebm(file.path);
+      }
+
+      const url = await this.uploadToS3(buffer, key);
+      this.logger.log(`Файл загружен в S3: ${url}`);
+
+      await db.order.update({
+        where: { id: orderId },
+        data: {
+          mediaUrls: { push: [url] },
+        },
+      });
+
+      this.logger.log(`URL добавлен в order.mediaUrls`);
+
+      return url;
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при загрузке файла ${file.originalname} для заказа #${orderId}`,
+        error.stack,
+      );
+      this.handleException(error);
     }
-
-    const url = await this.uploadToS3(buffer, key);
-
-    await db.order.update({
-      where: { id: orderId },
-      data: {
-        mediaUrls: { push: [url] },
-      },
-    });
-
-    return url;
   }
 
   private async convertVideoToWebm(filePath: string): Promise<Buffer> {
@@ -124,23 +153,77 @@ export class S3Service {
         : 'application/octet-stream';
   }
 
-  async getOrderMediaStream(
+  async getOrderMediaFiles(
     authHeader: string,
     orderId: number,
-    fileName: string,
-  ): Promise<NodeJS.ReadableStream> {
-    const user = await this.usersService.authenticate(authHeader);
-    const db = this.prismaService.getDatabase(user.dbRegion);
+  ): Promise<{ buffer: Buffer; contentType: string; fileName: string }[]> {
+    try {
+      this.logger.log(`Получение медиафайлов для заказа #${orderId}`);
 
-    const order = await db.order.findUnique({ where: { id: orderId } });
-    if (!order) throw new NotFoundException('Заказ не найден');
-    if (order.userId !== user.id && order.carrierId !== user.id) {
-      throw new ForbiddenException('Нет доступа к файлам этого заказа');
+      const user = await this.usersService.authenticate(authHeader);
+      const db = this.prismaService.getDatabase(user.dbRegion);
+
+      const order = await db.order.findUnique({ where: { id: orderId } });
+      if (!order) {
+        this.logger.warn(`Заказ #${orderId} не найден`);
+        throw new NotFoundException('Заказ не найден');
+      }
+
+      if (order.userId !== user.id && order.carrierId !== user.id) {
+        this.logger.warn(
+          `Пользователь ${user.id} не имеет доступа к заказу #${orderId}`,
+        );
+        throw new ForbiddenException('Нет доступа к файлам этого заказа');
+      }
+
+      const files = await Promise.all(
+        (order.mediaUrls ?? []).map(async (url) => {
+          try {
+            const key =
+              url.split(`/${this.bucketName}/`)[1] ?? url.split('.com/')[1];
+
+            this.logger.log(`Загрузка файла из S3: ${key}`);
+
+            const { Body, ContentType } = await this.s3
+              .getObject({ Bucket: this.bucketName, Key: key })
+              .promise();
+
+            return {
+              buffer: Body as Buffer,
+              contentType: ContentType || 'application/octet-stream',
+              fileName: key.split('/').pop()!,
+            };
+          } catch (err) {
+            this.logger.error(
+              `Ошибка при получении файла из S3: ${url}`,
+              err.stack,
+            );
+            throw err;
+          }
+        }),
+      );
+
+      this.logger.log(`Медиафайлы для заказа #${orderId} успешно получены`);
+      return files;
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при получении медиафайлов заказа #${orderId}`,
+        error.stack,
+      );
+      this.handleException(error);
     }
+  }
 
-    const key = `${user.dbRegion}/orders/${orderId}/${fileName}`;
-    return this.s3
-      .getObject({ Bucket: this.bucketName, Key: key })
-      .createReadStream();
+  handleException(error: any) {
+    const status = error?.status || 500;
+
+    throw new HttpException(
+      {
+        code: status,
+        status: 'error',
+        stack: error.stack || 'no stack trace',
+      },
+      status,
+    );
   }
 }

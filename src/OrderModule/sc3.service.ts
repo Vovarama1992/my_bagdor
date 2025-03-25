@@ -87,7 +87,7 @@ export class S3Service {
 
       this.logger.log(`Итоговый путь (key): ${key}`);
 
-      let buffer = file.buffer;
+      let buffer: Buffer;
 
       if (['.jpg', '.jpeg', '.png'].includes(ext)) {
         this.logger.log(
@@ -105,10 +105,18 @@ export class S3Service {
           .toBuffer();
       } else if (['.mp4', '.mov', '.avi'].includes(ext)) {
         this.logger.log('Обработка видео с ресайзом и fps=30');
-        buffer = await this.convertVideoToWebm(file.path);
+
+        const tmpPath = `/tmp/${Date.now()}_${file.originalname}`;
+        await fs.writeFile(tmpPath, file.buffer);
+
+        buffer = await this.convertVideoToWebm(tmpPath);
+
+        await fs.unlink(tmpPath);
+      } else {
+        this.logger.warn(`Неизвестный формат файла, загружаем как есть`);
+        buffer = file.buffer;
       }
 
-      // 🛠 Формируем URL вручную, корректно
       const cleanedEndpoint = this.endpoint.replace(/^https?:\/\//, '');
       const url = `https://${this.bucketName}.${cleanedEndpoint}/${key}`;
 

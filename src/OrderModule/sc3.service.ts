@@ -20,7 +20,6 @@ const execPromise = util.promisify(exec);
 @Injectable()
 export class S3Service {
   private readonly logger = new Logger(S3Service.name);
-
   private s3: S3;
   private bucketName: string;
   private endpoint: string;
@@ -35,14 +34,6 @@ export class S3Service {
     const secretAccessKey = this.configService.get<string>('S3_SECRET_KEY');
     const region = this.configService.get<string>('S3_REGION');
     const bucketName = this.configService.get<string>('S3_BUCKET_NAME');
-
-    this.logger.log(`S3 Config Loaded:
-      endpoint: ${endpoint},
-      accessKeyId: ${accessKeyId?.slice(0, 4)}****,
-      secretAccessKey: ${secretAccessKey ? '***hidden***' : 'not provided'},
-      region: ${region},
-      bucketName: ${bucketName}
-    `);
 
     this.s3 = new S3({
       endpoint,
@@ -85,15 +76,24 @@ export class S3Service {
       const fileName = `${Date.now()}_${file.originalname}`;
       const key = `${user.dbRegion}/orders/${orderId}/${fileName}`;
 
-      this.logger.log(`Обработка файла с расширением ${ext}, key: ${key}`);
-
       let buffer = file.buffer;
 
       if (['.jpg', '.jpeg', '.png'].includes(ext)) {
-        this.logger.log('Конвертация изображения в WEBP');
-        buffer = await sharp(file.buffer).toFormat('webp').toBuffer();
+        this.logger.log(
+          'Обработка изображения с ресайзом до 1200px и конвертацией в WEBP',
+        );
+        const metadata = await sharp(file.buffer).metadata();
+        const resizeOptions =
+          metadata.width >= metadata.height
+            ? { width: 1200 }
+            : { height: 1200 };
+
+        buffer = await sharp(file.buffer)
+          .resize(resizeOptions)
+          .toFormat('webp')
+          .toBuffer();
       } else if (['.mp4', '.mov', '.avi'].includes(ext)) {
-        this.logger.log('Конвертация видео в WEBM');
+        this.logger.log('Обработка видео с ресайзом и fps=30');
         buffer = await this.convertVideoToWebm(file.path);
       }
 
@@ -121,8 +121,22 @@ export class S3Service {
 
   private async convertVideoToWebm(filePath: string): Promise<Buffer> {
     const outputPath = filePath.replace(path.extname(filePath), '.webm');
-    const command = `ffmpeg -i ${filePath} -c:v libvpx -b:v 1M -c:a libvorbis ${outputPath}`;
 
+    const probeCommand = `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 ${filePath}`;
+    const { stdout } = await execPromise(probeCommand);
+    const [widthStr, heightStr] = stdout.trim().split(',');
+    const width = parseInt(widthStr, 10);
+    const height = parseInt(heightStr, 10);
+    const maxSize = 1200;
+
+    let scaleOption = '';
+    if (width >= height) {
+      scaleOption = `scale=${maxSize}:-2`; // ширина фикс, высота пропорционально
+    } else {
+      scaleOption = `scale=-2:${maxSize}`; // высота фикс, ширина пропорционально
+    }
+
+    const command = `ffmpeg -i ${filePath} -vf "${scaleOption},fps=30" -c:v libvpx -b:v 1M -c:a libvorbis ${outputPath}`;
     await execPromise(command);
 
     const buffer = await fs.readFile(outputPath);
@@ -216,7 +230,6 @@ export class S3Service {
 
   handleException(error: any) {
     const status = error?.status || 500;
-
     throw new HttpException(
       {
         code: status,

@@ -3,7 +3,6 @@ import {
   IsInt,
   IsString,
   IsNumber,
-  IsArray,
   IsDateString,
   IsEnum,
   IsOptional,
@@ -99,15 +98,6 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   productLink?: string;
-
-  @ApiProperty({
-    example: ['https://example.com/photo1.jpg'],
-    description: 'Ссылки на медиафайлы',
-    required: false,
-  })
-  @IsArray()
-  @IsString({ each: true })
-  mediaUrls?: string[];
 }
 
 export class AcceptOrderDto {

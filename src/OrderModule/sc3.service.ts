@@ -108,7 +108,11 @@ export class S3Service {
         buffer = await this.convertVideoToWebm(file.path);
       }
 
-      const url = await this.uploadToS3(buffer, key);
+      // 🛠 Формируем URL вручную, корректно
+      const cleanedEndpoint = this.endpoint.replace(/^https?:\/\//, '');
+      const url = `https://${this.bucketName}.${cleanedEndpoint}/${key}`;
+
+      await this.uploadToS3(buffer, key);
       this.logger.log(`Файл загружен в S3: ${url}`);
 
       await db.order.update({

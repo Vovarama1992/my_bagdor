@@ -22,6 +22,7 @@ import { RedisService } from 'src/RedisModule/redis.service';
 import { SmsService } from '../MessageModule/sms.service';
 import { EmailService } from '../MessageModule/email.service';
 import { ConfigService } from '@nestjs/config';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -242,7 +243,7 @@ export class AuthService {
         `Logging in user: email=${body.email || ''}, phone=${body.phone || ''}`,
       );
 
-      let user = null;
+      let user: User;
       let dbRegion: 'RU' | 'OTHER' | 'PENDING' | null = null;
 
       for (const region of ['RU', 'OTHER', 'PENDING'] as const) {
@@ -266,7 +267,7 @@ export class AuthService {
         throw new ForbiddenException('Invalid credentials');
       }
 
-      if (dbRegion === 'PENDING') {
+      if (!user.isEmailVerified) {
         this.logger.warn(
           `User found in PENDING: email=${body.email || ''}, phone=${body.phone || ''}`,
         );

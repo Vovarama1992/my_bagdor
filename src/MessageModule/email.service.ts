@@ -24,13 +24,13 @@ export class EmailService {
     this.transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: false, // строго для STARTTLS (порт 587)
+      secure: true, // обязательно для 465 (SSL)
       auth: {
         user: smtpUser,
         pass: smtpPass,
       },
-      logger: true, // Включает внутренние логи nodemailer
-      debug: true, // Печатает всю SMTP-переписку
+      logger: true,
+      debug: true,
     });
   }
 

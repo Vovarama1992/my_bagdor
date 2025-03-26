@@ -94,13 +94,16 @@ export class UsersService {
       );
 
       const userModel = this.prismaService.getUserModel(user.dbRegion);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { oldPass, newPass, ...safeData } = updateData;
+
       const updatePayload: Partial<
         UpdateProfileDto & {
           isPhoneVerified?: boolean;
           isEmailVerified?: boolean;
           password?: string;
         }
-      > = { ...updateData };
+      > = { ...safeData };
 
       if (updateData.phone) {
         this.logger.log(

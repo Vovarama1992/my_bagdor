@@ -61,7 +61,8 @@ export class EmailService {
       return;
     }
 
-    html = html.replace(/54690/g, code); // Заменяем хардкод на реальный код
+    html = html.replace(/54690/g, code);
+    html += `<div style="display:none;">id-${Date.now()}</div>`;
 
     const attachments = [];
     if (fs.existsSync(logoPath)) {

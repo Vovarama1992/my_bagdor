@@ -57,14 +57,13 @@ export class UsersService {
       const userModel = this.prismaService.getUserModel(dbRegion);
       const user = await userModel.findUnique({ where: { id } });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...userWithoutPass } = user;
 
       if (!user) {
         this.logger.warn(`User ${id} not found in ${dbRegion}`);
         throw new NotFoundException('User not found');
       }
 
-      return { ...userWithoutPass, dbRegion };
+      return { ...user, dbRegion };
     } catch (error) {
       this.logger.error(`Token verification failed: ${error.message}`);
       throw new UnauthorizedException('Invalid or expired token');
@@ -314,6 +313,35 @@ export class UsersService {
   async verifyPhone(phone: string, code: string) {
     this.logger.log(`Verifying phone for number: ${phone}`);
 
+    const testPhones = [
+      '+70000000001',
+      '+70000000002',
+      '+70000000003',
+      '+70000000004',
+      '+70000000005',
+    ];
+
+    if (testPhones.includes(phone) && code === '1111') {
+      for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
+        const db = this.prismaService.getDatabase(region);
+        const user = await db.user.findUnique({ where: { phone } });
+
+        if (user) {
+          await db.user.update({
+            where: { phone },
+            data: { isPhoneVerified: true },
+          });
+          this.logger.log(`Test phone ${phone} verified in DB (${region})`);
+          return {
+            message: 'Phone number successfully verified (test bypass)',
+          };
+        }
+      }
+
+      this.logger.warn(`Test phone ${phone} not found in any database`);
+      throw new NotFoundException('User not found');
+    }
+
     for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
       const userModel = this.prismaService.getUserModel(region);
       const foundUser = await userModel.findUnique({ where: { phone } });
@@ -400,6 +428,33 @@ export class UsersService {
 
   async verifyEmail(email: string, code: string) {
     this.logger.log(`Verifying email for: ${email}`);
+
+    const testEmails = [
+      'test1@example.com',
+      'test2@example.com',
+      'test3@example.com',
+      'test4@example.com',
+      'test5@example.com',
+    ];
+
+    if (testEmails.includes(email) && code === '1111') {
+      for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
+        const db = this.prismaService.getDatabase(region);
+        const user = await db.user.findUnique({ where: { email } });
+
+        if (user) {
+          await db.user.update({
+            where: { email },
+            data: { isEmailVerified: true },
+          });
+          this.logger.log(`Test email ${email} verified in DB (${region})`);
+          return { message: 'Email verified successfully (test bypass)' };
+        }
+      }
+
+      this.logger.warn(`Test email ${email} not found in any database`);
+      throw new NotFoundException('User not found');
+    }
 
     const storedCode = await this.redisService.get(
       `email_verification:${email}`,

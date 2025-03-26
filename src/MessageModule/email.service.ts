@@ -17,19 +17,26 @@ export class EmailService {
     const smtpPass = this.configService.get<string>('SMTP_PASS');
     this.fromEmail = this.configService.get<string>('EMAIL_FROM');
 
+    this.logger.log(
+      `Initializing transporter with host ${smtpHost}, port ${smtpPort}`,
+    );
+
     this.transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: smtpPort === 465,
+      secure: false, // строго для STARTTLS (порт 587)
       auth: {
         user: smtpUser,
         pass: smtpPass,
       },
+      logger: true, // Включает внутренние логи nodemailer
+      debug: true, // Печатает всю SMTP-переписку
     });
   }
 
   async sendVerificationEmail(email: string, code: string): Promise<void> {
     const subject = 'Подтверждение регистрации';
+    this.logger.log(`Preparing to send verification email to: ${email}`);
 
     const templatePath = path.join(
       process.cwd(),
@@ -41,24 +48,31 @@ export class EmailService {
     let html: string;
     try {
       html = fs.readFileSync(templatePath, 'utf8');
+      this.logger.log(`Email template loaded from ${templatePath}`);
     } catch (e) {
       this.logger.error(`Failed to read email template: ${e.message}`);
       return;
     }
 
-    console.log(code);
+    const finalHtml = html.replace('{{code}}', code);
+    this.logger.log(`Verification code inserted: ${code}`);
 
     try {
       const info = await this.transporter.sendMail({
         from: this.fromEmail,
         to: email,
         subject,
-        html,
+        html: finalHtml,
       });
 
-      this.logger.log(`Email sent: ${info.messageId}`);
+      this.logger.log(
+        `Email successfully sent to ${email}. Message ID: ${info.messageId}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to send email: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to send email to ${email}: ${error.message}`,
+        error.stack,
+      );
     }
   }
 }

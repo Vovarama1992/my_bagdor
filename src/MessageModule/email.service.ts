@@ -35,8 +35,9 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, code: string): Promise<void> {
+    this.logger.log(`Sending verification email to ${email} with code ${code}`);
+
     const subject = 'Подтверждение регистрации';
-    this.logger.log(`Preparing to send verification email to: ${email}`);
 
     const templatePath = path.join(
       process.cwd(),
@@ -44,35 +45,49 @@ export class EmailService {
       'templates',
       'email_code.html',
     );
+    const logoPath = path.join(
+      process.cwd(),
+      'src',
+      'templates',
+      'logosss.png',
+    );
 
     let html: string;
     try {
       html = fs.readFileSync(templatePath, 'utf8');
-      this.logger.log(`Email template loaded from ${templatePath}`);
+      this.logger.log(`Email template loaded`);
     } catch (e) {
       this.logger.error(`Failed to read email template: ${e.message}`);
       return;
     }
 
-    const finalHtml = html.replace('{{code}}', code);
-    this.logger.log(`Verification code inserted: ${code}`);
+    html = html.replace(/54690/g, code); // Заменяем хардкод на реальный код
+
+    const attachments = [];
+    if (fs.existsSync(logoPath)) {
+      this.logger.log(`Logo found: ${logoPath}`);
+      attachments.push({
+        filename: 'logosss.png',
+        path: logoPath,
+        cid: 'logo', // указывается в <img src="cid:logo">
+        contentType: 'image/png',
+      });
+    } else {
+      this.logger.warn(`Logo not found at path: ${logoPath}`);
+    }
 
     try {
       const info = await this.transporter.sendMail({
         from: this.fromEmail,
         to: email,
         subject,
-        html: finalHtml,
+        html,
+        attachments,
       });
 
-      this.logger.log(
-        `Email successfully sent to ${email}. Message ID: ${info.messageId}`,
-      );
+      this.logger.log(`Email sent: ${info.messageId}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to send email to ${email}: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to send email: ${error.message}`, error.stack);
     }
   }
 }

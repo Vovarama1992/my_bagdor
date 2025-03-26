@@ -14,6 +14,7 @@ import * as fs from 'fs/promises';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from 'src/UserModule/users.service';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
+import { TelegramService } from 'src/TelegramModule/telegram.service';
 
 const execPromise = util.promisify(exec);
 
@@ -28,6 +29,7 @@ export class S3Service {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly prismaService: PrismaService,
+    private readonly telegramService: TelegramService,
   ) {
     const endpoint = this.configService.get<string>('S3_ENDPOINT');
     const accessKeyId = this.configService.get<string>('S3_ACCESS_KEY');
@@ -46,53 +48,46 @@ export class S3Service {
     this.endpoint = endpoint;
   }
 
-  async processAndUpload(
+  async processAndUploadPhoto(
     authHeader: string,
     orderId: number,
     file: Express.Multer.File,
   ): Promise<string> {
-    try {
-      this.logger.log(
-        `Загрузка файла ${file.originalname} для заказа #${orderId}`,
-      );
+    return this.processAndUploadGeneral(authHeader, orderId, file, 'photo');
+  }
 
+  async processAndUploadVideo(
+    authHeader: string,
+    orderId: number,
+    file: Express.Multer.File,
+  ): Promise<string> {
+    return this.processAndUploadGeneral(authHeader, orderId, file, 'video');
+  }
+
+  private async processAndUploadGeneral(
+    authHeader: string,
+    orderId: number,
+    file: Express.Multer.File,
+    type: 'photo' | 'video',
+  ): Promise<string> {
+    try {
       const user = await this.usersService.authenticate(authHeader);
       const db = this.prismaService.getDatabase(user.dbRegion);
-
       const order = await db.order.findUnique({ where: { id: orderId } });
-      if (!order) {
-        this.logger.warn(`Заказ #${orderId} не найден`);
-        throw new NotFoundException('Заказ не найден');
-      }
 
-      if (order.userId !== user.id) {
-        this.logger.warn(
-          `Пользователь ${user.id} не имеет доступа к заказу #${orderId}`,
-        );
-        throw new ForbiddenException('Нет доступа');
-      }
+      if (!order) throw new NotFoundException('Заказ не найден');
+      if (order.userId !== user.id) throw new ForbiddenException('Нет доступа');
 
       const ext = path.extname(file.originalname).toLowerCase();
-      this.logger.log(`Расширение файла: ${ext}`);
-
       const baseName = path.basename(file.originalname, ext);
-      const finalExt = ['.jpg', '.jpeg', '.png'].includes(ext)
-        ? '.webp'
-        : ['.mp4', '.mov', '.avi'].includes(ext)
-          ? '.webm'
-          : ext;
-
+      const finalExt =
+        type === 'photo' ? '.webp' : type === 'video' ? '.webm' : ext;
       const fileName = `${Date.now()}_${baseName}${finalExt}`;
       const key = `${user.dbRegion}/orders/${orderId}/${fileName}`;
 
-      this.logger.log(`Итоговый путь (key): ${key}`);
-
       let buffer: Buffer;
 
-      if (['.jpg', '.jpeg', '.png'].includes(ext)) {
-        this.logger.log(
-          'Обработка изображения с ресайзом до 1200px и конвертацией в WEBP',
-        );
+      if (type === 'photo') {
         const metadata = await sharp(file.buffer).metadata();
         const resizeOptions =
           metadata.width >= metadata.height
@@ -103,17 +98,12 @@ export class S3Service {
           .resize(resizeOptions)
           .toFormat('webp')
           .toBuffer();
-      } else if (['.mp4', '.mov', '.avi'].includes(ext)) {
-        this.logger.log('Обработка видео с ресайзом и fps=30');
-
+      } else if (type === 'video') {
         const tmpPath = `/tmp/${Date.now()}_${file.originalname}`;
         await fs.writeFile(tmpPath, file.buffer);
-
         buffer = await this.convertVideoToWebm(tmpPath);
-
         await fs.unlink(tmpPath);
       } else {
-        this.logger.warn(`Неизвестный формат файла, загружаем как есть`);
         buffer = file.buffer;
       }
 
@@ -121,7 +111,6 @@ export class S3Service {
       const url = `https://${this.bucketName}.${cleanedEndpoint}/${key}`;
 
       await this.uploadToS3(buffer, key);
-      this.logger.log(`Файл загружен в S3: ${url}`);
 
       await db.order.update({
         where: { id: orderId },
@@ -130,7 +119,17 @@ export class S3Service {
         },
       });
 
-      this.logger.log(`URL добавлен в order.mediaUrls`);
+      const isStore = order.type === 'STORE_PURCHASE';
+      const shouldTrigger =
+        (isStore && type === 'photo') || (!isStore && type === 'video');
+
+      if (shouldTrigger) {
+        await this.telegramService.delegateToModeration(
+          'order',
+          order.id,
+          user.dbRegion,
+        );
+      }
 
       return url;
     } catch (error) {

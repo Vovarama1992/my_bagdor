@@ -62,12 +62,6 @@ export class OrderService {
         },
       });
 
-      await this.telegramService.delegateToModeration(
-        'order',
-        order.id,
-        user.dbRegion,
-      );
-
       return { message: 'Заказ создан и отправлен на модерацию', order };
     } catch (error) {
       this.handleException(error, 'Ошибка при создании заказа');

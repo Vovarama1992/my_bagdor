@@ -87,18 +87,25 @@ export class UsersController {
     status: 400,
     description: 'Номер уже используется другим пользователем',
   })
+  @ApiResponse({
+    status: 404,
+    description: 'Пользователь с таким email не найден',
+  })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
+        email: { type: 'string', example: 'user@example.com' },
         phone: { type: 'string', example: '+79998887766' },
         firstName: { type: 'string', example: 'Иван' },
       },
-      required: ['phone'],
+      required: ['email', 'phone'],
     },
   })
   @Post('request-phone-code')
-  async requestPhoneCode(@Body() body: { phone: string; firstName?: string }) {
+  async requestPhoneCode(
+    @Body() body: { email: string; phone: string; firstName?: string },
+  ) {
     return this.usersService.sendPhoneVerificationCode(body);
   }
 

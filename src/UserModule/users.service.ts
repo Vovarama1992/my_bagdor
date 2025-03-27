@@ -235,35 +235,69 @@ export class UsersService {
     }
   }
 
-  async sendPhoneVerificationCode(body: { phone: string; firstName?: string }) {
-    for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
-      const model = this.prismaService.getUserModel(region);
-      const existing = await model.findUnique({
-        where: { phone: body.phone, isPhoneVerified: true },
-      });
+  async sendPhoneVerificationCode(body: {
+    email: string;
+    phone: string;
+    firstName?: string;
+  }) {
+    const regions = ['PENDING', 'RU', 'OTHER'] as const;
 
-      if (existing) {
-        this.logger.warn(
-          `Попытка отправки кода на уже используемый номер ${body.phone} (user ID: ${existing.id})`,
-        );
-        throw new BadRequestException('Этот номер уже используется');
+    // 1. Найти пользователя по email
+    let user = null;
+    let userRegion = null;
+
+    for (const region of regions) {
+      const model = this.prismaService.getUserModel(region);
+      const found = await model.findUnique({ where: { email: body.email } });
+      if (found) {
+        user = found;
+        userRegion = region;
+        break;
       }
     }
 
-    const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
-    const redisKey = `phone_verification:public:${body.phone}`;
+    if (!user) {
+      throw new NotFoundException('Пользователь с таким email не найден');
+    }
+
+    // 2. Проверить, что номер не занят другим пользователем
+    for (const region of regions) {
+      const model = this.prismaService.getUserModel(region);
+      const existing = await model.findUnique({ where: { phone: body.phone } });
+
+      if (existing && existing.id !== user.id) {
+        throw new BadRequestException(
+          'Этот номер уже используется другим пользователем',
+        );
+      }
+    }
+
+    // 3. Обновить номер и сбросить флаг подтверждения
+    const userModel = this.prismaService.getUserModel(userRegion);
+    await userModel.update({
+      where: { id: user.id },
+      data: {
+        phone: body.phone,
+        isPhoneVerified: false,
+      },
+    });
+
+    // 4. Сгенерировать и сохранить код
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    const redisKey = `phone_verification:${user.id}`;
 
     await this.redisService.del(redisKey);
-    await this.redisService.set(redisKey, verificationCode, 300);
+    await this.redisService.set(redisKey, code, 300);
 
+    // 5. Отправить SMS
     await this.smsService.sendVerificationSms(
       body.phone,
-      body.firstName ?? '',
-      verificationCode,
+      body.firstName ?? user.firstName,
+      code,
     );
 
     this.logger.log(
-      `Отправлен код подтверждения ${verificationCode} на номер ${body.phone}`,
+      `Код ${code} отправлен на номер ${body.phone} для пользователя ${user.id}`,
     );
 
     return { success: true };

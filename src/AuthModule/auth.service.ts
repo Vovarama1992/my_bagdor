@@ -268,9 +268,6 @@ export class AuthService {
       }
 
       if (!user.isEmailVerified || !user.isPhoneVerified) {
-        this.logger.warn(
-          `User found in PENDING: email=${body.email || ''}, phone=${body.phone || ''}`,
-        );
         throw new ForbiddenException('User is not verified yet');
       }
 

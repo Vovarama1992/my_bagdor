@@ -267,8 +267,15 @@ export class AuthService {
         throw new ForbiddenException('Invalid credentials');
       }
 
-      if (!user.isEmailVerified || !user.isPhoneVerified) {
-        throw new ForbiddenException('User is not verified yet');
+      if (
+        !user.isEmailVerified ||
+        !user.firstName ||
+        !user.lastName ||
+        !user.nickname
+      ) {
+        throw new ForbiddenException(
+          'User profile is incomplete or email is not verified',
+        );
       }
 
       const passwordMatch = await bcrypt.compare(body.password, user.password);

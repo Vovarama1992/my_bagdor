@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   Logger,
   InternalServerErrorException,
+  HttpException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
@@ -224,14 +225,7 @@ export class UsersService {
         error.stack,
       );
 
-      if (
-        error instanceof BadRequestException ||
-        error instanceof ForbiddenException
-      ) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(error.stack);
+      this.handleException(error, 'Failed to update user profile');
     }
   }
 
@@ -578,5 +572,18 @@ export class UsersService {
         type,
       },
     });
+  }
+
+  private handleException(error: any, customMessage: string) {
+    if (error.code === 'P2002')
+      throw new BadRequestException(
+        'Дублирование данных: такой заказ уже существует',
+      );
+    if (error.code === 'P2025')
+      throw new NotFoundException('Запись не найдена');
+    throw new HttpException(
+      { message: customMessage, error: error.message },
+      error.status || 500,
+    );
   }
 }

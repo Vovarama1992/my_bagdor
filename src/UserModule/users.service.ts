@@ -235,6 +235,40 @@ export class UsersService {
     }
   }
 
+  async sendPhoneVerificationCode(body: { phone: string; firstName?: string }) {
+    for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
+      const model = this.prismaService.getUserModel(region);
+      const existing = await model.findUnique({
+        where: { phone: body.phone },
+      });
+
+      if (existing) {
+        this.logger.warn(
+          `Попытка отправки кода на уже используемый номер ${body.phone} (user ID: ${existing.id})`,
+        );
+        throw new BadRequestException('Этот номер уже используется');
+      }
+    }
+
+    const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const redisKey = `phone_verification:public:${body.phone}`;
+
+    await this.redisService.del(redisKey);
+    await this.redisService.set(redisKey, verificationCode, 300);
+
+    await this.smsService.sendVerificationSms(
+      body.phone,
+      body.firstName ?? '',
+      verificationCode,
+    );
+
+    this.logger.log(
+      `Отправлен код подтверждения ${verificationCode} на номер ${body.phone}`,
+    );
+
+    return { success: true };
+  }
+
   async resendVerificationCode(email: string) {
     this.logger.log(`Resending verification code for email: ${email}`);
 

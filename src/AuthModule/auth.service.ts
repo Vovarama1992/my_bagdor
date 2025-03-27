@@ -267,7 +267,7 @@ export class AuthService {
         throw new ForbiddenException('Invalid credentials');
       }
 
-      if (!user.isEmailVerified) {
+      if (!user.isEmailVerified || !user.isPhoneVerified) {
         this.logger.warn(
           `User found in PENDING: email=${body.email || ''}, phone=${body.phone || ''}`,
         );

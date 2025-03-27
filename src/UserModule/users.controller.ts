@@ -79,6 +79,29 @@ export class UsersController {
     return this.usersService.resendVerificationCode(body.email);
   }
 
+  @ApiOperation({
+    summary: 'Запросить код подтверждения по номеру телефона (без авторизации)',
+  })
+  @ApiResponse({ status: 200, description: 'Код успешно отправлен' })
+  @ApiResponse({
+    status: 400,
+    description: 'Номер уже используется другим пользователем',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        phone: { type: 'string', example: '+79998887766' },
+        firstName: { type: 'string', example: 'Иван' },
+      },
+      required: ['phone'],
+    },
+  })
+  @Post('request-phone-code')
+  async requestPhoneCode(@Body() body: { phone: string; firstName?: string }) {
+    return this.usersService.sendPhoneVerificationCode(body);
+  }
+
   @ApiOperation({ summary: 'Подтвердить номер телефона' })
   @ApiResponse({
     status: 200,

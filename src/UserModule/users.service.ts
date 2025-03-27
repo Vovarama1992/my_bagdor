@@ -239,7 +239,7 @@ export class UsersService {
     for (const region of ['PENDING', 'RU', 'OTHER'] as const) {
       const model = this.prismaService.getUserModel(region);
       const existing = await model.findUnique({
-        where: { phone: body.phone },
+        where: { phone: body.phone, isPhoneVerified: true },
       });
 
       if (existing) {

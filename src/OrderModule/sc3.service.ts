@@ -210,8 +210,7 @@ export class S3Service {
       const files = await Promise.all(
         (order.mediaUrls ?? []).map(async (url) => {
           try {
-            const key =
-              url.split(`/${this.bucketName}/`)[1] ?? url.split('.com/')[1];
+            const key = url.replace(/^https?:\/\/[^/]+\//, '');
 
             this.logger.log(`Загрузка файла из S3: ${key}`);
 

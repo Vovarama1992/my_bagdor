@@ -155,7 +155,7 @@ export class S3Service {
       if (!filePath) throw new Error('filePath is undefined');
 
       const outputPath = filePath.replace(path.extname(filePath), '.webm');
-      const command = `ffmpeg -i "${filePath}" -vf "scale='min(1200,iw)':-2" -r 30 -c:v libvpx -b:v 1M -c:a libvorbis "${outputPath}"`;
+      const command = `ffmpeg -i input -vf "scale='min(1200,iw)':-2" -r 30 -c:v libvpx-vp9 -crf 30 -b:v 0 -c:a libopus output.webm`;
 
       this.logger.log(`FFmpeg command: ${command}`);
 

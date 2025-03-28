@@ -100,7 +100,13 @@ export class AuthService {
 
   async register(body: RegisterDto) {
     try {
-      const { firstName, lastName, email, phone, password } = body;
+      const { firstName, lastName, email, phone, password, nickname } = body;
+      if (!firstName || !lastName || !nickname) {
+        throw new BadRequestException(
+          'First name, last name and nickname are required',
+        );
+      }
+
       this.logger.log(`Registering user: email=${email}, phone=${phone}`);
 
       const dbPending = this.prismaService.getDatabase('PENDING');
@@ -180,11 +186,16 @@ export class AuthService {
         data: {
           firstName,
           lastName,
+          nickname,
           email,
           phone: phone || null,
           password: hashedPassword,
           isRegistered: false,
         },
+      });
+      const token = this.jwtService.sign({
+        id: newUser.id,
+        dbRgion: 'PENDING', // Теперь в токене есть регион пользователя
       });
       this.logger.log(`User created: id=${newUser.id}`);
 
@@ -226,6 +237,7 @@ export class AuthService {
       this.logger.log(`User registration completed.`);
       return {
         userId: newUser.id,
+        token,
         message: 'User registered, please verify your phone or email',
       };
     } catch (error) {

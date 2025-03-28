@@ -103,10 +103,10 @@ export class TelegramService {
     entityType: 'order' | 'flight' | 'review',
     id: number,
     dbRegion: DbRegion,
+    mediaBuffers?: { buffer: Buffer; type: 'photo' | 'video' }[],
   ) {
     const chatId = this.moderatorChatId;
 
-    // Присылаем сообщение-уведомление о новом объекте
     await this.bot.telegram.sendMessage(
       chatId,
       `🔔 Новый ${this.getTypeLabel(entityType)} ожидает модерации. Откройте меню.`,
@@ -114,7 +114,7 @@ export class TelegramService {
 
     if (entityType === 'order') {
       const order = await this.moderationService.findOrderById(dbRegion, id);
-      if (order && order.user) await this.sendOrder(order);
+      if (order && order.user) await this.sendOrder(order, mediaBuffers);
     } else if (entityType === 'flight') {
       const flight = await this.moderationService.findFlightById(dbRegion, id);
       if (flight && flight.user) await this.sendFlight(flight);
@@ -140,19 +140,29 @@ export class TelegramService {
     for (const review of reviews) await this.sendReview(review);
   }
 
-  private async sendOrder(order: Order & { user: User }) {
+  private async sendOrder(
+    order: Order & { user: User },
+    mediaBuffers?: { buffer: Buffer; type: 'photo' | 'video' }[],
+  ) {
     const caption = `📦 *Новый заказ на модерации*
-🆔 ID: ${order.id}
-👤 ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})
-📌 ${order.name}
-📜 ${order.description}
-💰 ${order.price} ₽
-🎁 ${order.reward} ₽
-📍 ${order.departure} → ${order.arrival}`;
+  🆔 ID: ${order.id}
+  👤 ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})
+  📌 ${order.name}
+  📜 ${order.description}
+  💰 ${order.price} ₽
+  🎁 ${order.reward} ₽
+  📍 ${order.departure} → ${order.arrival}`;
 
-    if (order.mediaUrls?.length) {
+    if (mediaBuffers?.length) {
+      await this.sendOrderMediaDirectly(
+        this.moderatorChatId,
+        caption,
+        mediaBuffers,
+      );
+    } else if (order.mediaUrls?.length) {
+      // Это fallback вариант, если нет буферов, отправляем по ссылке (фото)
       const media = order.mediaUrls.map((url, i) =>
-        url.endsWith('.mp4')
+        url.endsWith('.mp4') || url.endsWith('.webm')
           ? ({
               type: 'video',
               media: url,
@@ -173,6 +183,32 @@ export class TelegramService {
     }
 
     await this.sendModerationActions('order', order.id, order.dbRegion);
+  }
+
+  async sendOrderMediaDirectly(
+    chatId: string,
+    caption: string,
+    buffers: { buffer: Buffer; type: 'photo' | 'video' }[],
+  ) {
+    const media = buffers.map((file, i) => {
+      if (file.type === 'photo') {
+        return {
+          type: 'photo',
+          media: { source: file.buffer },
+          caption: i === 0 ? caption : undefined,
+          parse_mode: 'Markdown',
+        } as InputMediaPhoto;
+      } else {
+        return {
+          type: 'video',
+          media: { source: file.buffer },
+          caption: i === 0 ? caption : undefined,
+          parse_mode: 'Markdown',
+        } as InputMediaVideo;
+      }
+    });
+
+    await this.bot.telegram.sendMediaGroup(chatId, media);
   }
 
   private async sendFlight(flight: Flight & { user: User }) {

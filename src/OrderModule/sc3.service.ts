@@ -80,8 +80,7 @@ export class S3Service {
 
       const ext = path.extname(file.originalname).toLowerCase();
       const baseName = path.basename(file.originalname, ext);
-      const finalExt =
-        type === 'photo' ? '.webp' : type === 'video' ? '.webm' : ext;
+      const finalExt = type === 'photo' ? '.webp' : '.webm';
       const fileName = `${Date.now()}_${baseName}${finalExt}`;
       const key = `${user.dbRegion}/orders/${orderId}/${fileName}`;
 
@@ -124,11 +123,22 @@ export class S3Service {
         (isStore && type === 'photo') || (!isStore && type === 'video');
 
       if (shouldTrigger) {
-        await this.telegramService.delegateToModeration(
-          'order',
-          order.id,
-          user.dbRegion,
-        );
+        if (type === 'video') {
+          // видео отправляем через буфер
+          await this.telegramService.delegateToModeration(
+            'order',
+            order.id,
+            user.dbRegion,
+            [{ buffer, type: 'video' }],
+          );
+        } else {
+          // фото отправляем ссылкой, без буфера
+          await this.telegramService.delegateToModeration(
+            'order',
+            order.id,
+            user.dbRegion,
+          );
+        }
       }
 
       return url;
@@ -140,7 +150,6 @@ export class S3Service {
       this.handleException(error);
     }
   }
-
   private async convertVideoToWebm(filePath: string): Promise<Buffer> {
     try {
       if (!filePath) throw new Error('filePath is undefined');

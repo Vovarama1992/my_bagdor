@@ -80,7 +80,7 @@ export class S3Service {
 
       const ext = path.extname(file.originalname).toLowerCase();
       const baseName = path.basename(file.originalname, ext);
-      const finalExt = type === 'photo' ? '.webp' : '.webm';
+      const finalExt = type === 'photo' ? '.webp' : '.mp4';
       const fileName = `${Date.now()}_${baseName}${finalExt}`;
       const key = `${user.dbRegion}/orders/${orderId}/${fileName}`;
 

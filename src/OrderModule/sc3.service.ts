@@ -100,7 +100,7 @@ export class S3Service {
       } else if (type === 'video') {
         const tmpPath = `/tmp/${Date.now()}_${file.originalname}`;
         await fs.writeFile(tmpPath, file.buffer);
-        buffer = await this.convertVideoToWebm(tmpPath);
+        buffer = await this.convertVideoToMp4(tmpPath);
         await fs.unlink(tmpPath);
       } else {
         buffer = file.buffer;
@@ -150,13 +150,15 @@ export class S3Service {
       this.handleException(error);
     }
   }
-  private async convertVideoToWebm(filePath: string): Promise<Buffer> {
+  private async convertVideoToMp4(filePath: string): Promise<Buffer> {
     try {
       if (!filePath) throw new Error('filePath is undefined');
 
-      const outputPath = filePath.replace(path.extname(filePath), '.webm');
+      const outputPath = filePath.replace(path.extname(filePath), '.mp4');
 
-      const command = `ffmpeg -i "${filePath}" -vf "scale='min(1200,iw)':-2" -r 30 -c:v libvpx-vp9 -crf 30 -b:v 0 -c:a libopus "${outputPath}"`;
+      const command = `ffmpeg -i "${filePath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" \
+  -c:v libx264 -profile:v baseline -level 3.0 -pix_fmt yuv420p \
+  -c:a aac -b:a 128k -movflags +faststart "${outputPath}"`;
 
       this.logger.log(`FFmpeg command: ${command}`);
 
@@ -166,7 +168,7 @@ export class S3Service {
       await fs.unlink(outputPath);
       return buffer;
     } catch (err) {
-      this.logger.error('Ошибка в convertVideoToWebm', err.stack);
+      this.logger.error('Ошибка в convertVideoToMp4', err.stack);
       throw err;
     }
   }

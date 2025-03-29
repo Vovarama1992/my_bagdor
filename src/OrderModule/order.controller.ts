@@ -143,6 +143,19 @@ export class OrderController {
     );
   }
 
+  @Patch(':orderId/set-flight')
+  @ApiOperation({ summary: 'Привязать заказ к рейсу (от заказчика)' })
+  @ApiResponse({ status: 200, description: 'Рейс успешно назначен' })
+  async attachOrderToFlight(
+    @Headers('authorization') authHeader: string,
+    @Param('orderId') orderId: string,
+    @Body() body: { flightId: number },
+  ) {
+    return this.orderService.editOrder(authHeader, +orderId, {
+      flightId: body.flightId,
+    });
+  }
+
   @ApiOperation({ summary: 'Заказчик принимает отклик' })
   @Post('responses/:responseId/accept')
   async acceptResponse(

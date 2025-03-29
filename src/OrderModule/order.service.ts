@@ -44,6 +44,8 @@ export class OrderService {
         );
       }
 
+      const status = createOrderDto.flightId ? 'PROCESSED_BY_CUSTOMER' : 'RAW';
+
       const order = await db.order.create({
         data: {
           userId: user.id,
@@ -59,6 +61,8 @@ export class OrderService {
           deliveryEnd: new Date(createOrderDto.deliveryEnd),
           departure: createOrderDto.departure,
           arrival: createOrderDto.arrival,
+          flightId: createOrderDto.flightId || null,
+          status,
         },
       });
 
@@ -232,7 +236,7 @@ export class OrderService {
   async editOrder(
     authHeader: string,
     orderId: number,
-    updateData: CreateOrderDto,
+    updateData: Partial<CreateOrderDto>,
   ) {
     const user = await this.usersService.authenticate(authHeader);
     const db = this.prisma.getDatabase(user.dbRegion);
@@ -249,9 +253,15 @@ export class OrderService {
       throw new ForbiddenException('Вы не можете редактировать этот заказ');
     }
 
+    const shouldUpdateStatus =
+      order.status === 'RAW' && !order.flightId && updateData.flightId;
+
     const updatedOrder = await db.order.update({
       where: { id: orderId },
-      data: updateData,
+      data: {
+        ...updateData,
+        ...(shouldUpdateStatus ? { status: 'PROCESSED_BY_CUSTOMER' } : {}),
+      },
     });
 
     return { message: 'Заказ успешно отредактирован', order: updatedOrder };

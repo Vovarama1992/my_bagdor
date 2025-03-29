@@ -104,6 +104,7 @@ model Flight {
 }
 enum FlightStatus {
   PENDING      // Ожидает подтверждения
+  REJECTED     // Отклонен
   CONFIRMED    // Подтверждён, открыт для заказов
   IN_PROGRESS  // В пути, есть активные заказы
   ARRIVED      // Прилетел, но не все заказы доставлены

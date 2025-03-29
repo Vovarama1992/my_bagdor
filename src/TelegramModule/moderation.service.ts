@@ -165,10 +165,13 @@ export class ModerationService {
 
     try {
       if (type === 'flight') {
-        await db.flight.delete({ where: { id } });
+        await db.flight.update({
+          where: { id },
+          data: { status: 'REJECTED' },
+        });
         this.logger.log(`FLIGHT ${id} rejected in ${dbRegion}`);
       } else if (type === 'review') {
-        await db.review.delete({ where: { id } });
+        await db.review.update({ where: { id }, data: { isModerated: false } });
         this.logger.log(`REVIEW ${id} rejected in ${dbRegion}`);
       } else if (type === 'order') {
         await db.order.update({

@@ -35,6 +35,14 @@ export class CreateOrderDto {
   @IsString()
   name: string;
 
+  @ApiPropertyOptional({
+    example: 123,
+    description: 'ID рейса, к которому заказчик хочет прикрепить заказ',
+  })
+  @IsOptional()
+  @IsNumber()
+  flightId?: number;
+
   @ApiProperty({
     example: 'Нужен курьер для перевозки документов',
     description: 'Описание заказа',

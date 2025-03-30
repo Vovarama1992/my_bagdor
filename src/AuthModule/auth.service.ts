@@ -101,7 +101,6 @@ export class AuthService {
   async register(body: RegisterDto) {
     try {
       const { firstName, lastName, email, phone, password, nickname } = body;
-      
 
       this.logger.log(`Registering user: email=${email}, phone=${phone}`);
 
@@ -277,6 +276,7 @@ export class AuthService {
 
       if (
         !user.isEmailVerified ||
+        !user.isPhoneVerified ||
         !user.firstName ||
         !user.lastName ||
         !user.nickname

@@ -127,6 +127,12 @@ export class OrderController {
     return this.s3Service.getOrderMediaFiles(authHeader, +orderId);
   }
 
+  @ApiOperation({ summary: 'Получить все заказы' })
+  @Get()
+  async getAllOrders(@Headers('authorization') authHeader: string) {
+    return this.orderService.getAllOrdersAcrossRegions(authHeader);
+  }
+
   @ApiOperation({ summary: 'Перевозчик оставляет отклик на заказ' })
   @Post(':orderId/response')
   async createResponse(

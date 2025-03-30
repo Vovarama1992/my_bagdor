@@ -237,7 +237,7 @@ export class FlightController {
     );
   }
 
-  @ApiOperation({ summary: 'Получить все активные рейсы' })
+  @ApiOperation({ summary: 'Получить все активные рейсы(из нашей БД)' })
   @ApiResponse({
     status: 200,
     description: 'Список активных рейсов',
@@ -247,7 +247,7 @@ export class FlightController {
     return this.flightService.getActiveFlights();
   }
 
-  @ApiOperation({ summary: 'Получить все рейсы в воздухе (онлайн)' })
+  @ApiOperation({ summary: 'Получить все рейсы в воздухе (онлайн) - из АПИ' })
   @ApiResponse({
     status: 200,
     description: 'Список рейсов в реальном времени',

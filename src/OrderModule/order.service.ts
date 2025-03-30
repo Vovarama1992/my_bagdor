@@ -9,6 +9,7 @@ import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { UsersService } from 'src/UserModule/users.service';
 import { CreateOrderDto } from './dto/order.dto';
 import {
+  DbRegion,
   Flight,
   FlightStatus,
   ModerationStatus,
@@ -122,6 +123,22 @@ export class OrderService {
     });
 
     return { message: 'Заказ добавлен в избранное' };
+  }
+
+  async getAllOrdersAcrossRegions(authHeader: string) {
+    await this.usersService.authenticate(authHeader);
+
+    const results = await Promise.all(
+      Object.values(DbRegion).map(async (region) => {
+        const db = this.prisma.getDatabase(region);
+        const orders = await db.order.findMany({
+          orderBy: { createdAt: 'desc' },
+        });
+        return orders;
+      }),
+    );
+
+    return results.flat();
   }
 
   async getUnmoderatedOrders(authHeader: string) {

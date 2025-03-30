@@ -77,25 +77,8 @@ export class TelegramService {
           id,
         );
 
-        this.queues[type] = this.queues[type].filter((item) => item.id !== id);
-
         await ctx.deleteMessage();
-
-        const pos = this.positions.get(ctx.chat.id);
-        if (pos && pos.index >= this.queues[type].length) {
-          pos.index = Math.max(0, this.queues[type].length - 1);
-          this.positions.set(ctx.chat.id, pos);
-        }
-
-        if (this.queues[type].length > 0) {
-          await this.showCurrent(ctx.chat.id, type);
-        } else {
-          await this.bot.telegram.sendMessage(
-            ctx.chat.id,
-            `Нет больше элементов для модерации в категории "${this.getTypeLabel(type)}".`,
-          );
-          await this.showMainMenu(ctx.chat.id);
-        }
+        await this.showNext(ctx.chat.id, type);
       } catch (e) {
         this.logger.error(`Approve action failed: ${e.message}`);
       }
@@ -119,25 +102,8 @@ export class TelegramService {
 
         await this.moderationService.rejectItem(dbRegion as DbRegion, type, id);
 
-        this.queues[type] = this.queues[type].filter((item) => item.id !== id);
-
         await ctx.deleteMessage();
-
-        const pos = this.positions.get(ctx.chat.id);
-        if (pos && pos.index >= this.queues[type].length) {
-          pos.index = Math.max(0, this.queues[type].length - 1);
-          this.positions.set(ctx.chat.id, pos);
-        }
-
-        if (this.queues[type].length > 0) {
-          await this.showCurrent(ctx.chat.id, type);
-        } else {
-          await this.bot.telegram.sendMessage(
-            ctx.chat.id,
-            `Нет больше элементов для модерации в категории "${this.getTypeLabel(type)}".`,
-          );
-          await this.showMainMenu(ctx.chat.id);
-        }
+        await this.showNext(ctx.chat.id, type);
       } catch (e) {
         this.logger.error(`Reject action failed: ${e.message}`);
       }
@@ -292,12 +258,7 @@ export class TelegramService {
   }
 
   private async showNext(chatId: number, type: string) {
-    const currentPos = this.positions.get(chatId);
-
-    if (!currentPos || currentPos.type !== type) {
-      this.positions.set(chatId, { type, index: 0 });
-    }
-
+    this.positions.set(chatId, { type, index: 0 });
     await this.showCurrent(chatId, type);
   }
 

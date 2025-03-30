@@ -54,25 +54,59 @@ export class TelegramService {
     });
 
     this.bot.action(/^approve_(\w+)_([0-9]+)_(\w+)$/, async (ctx) => {
-      const [, type, id, dbRegion] = ctx.match;
-      await this.moderationService.approveItem(
-        dbRegion as DbRegion,
-        type,
-        Number(id),
-      );
-      await ctx.deleteMessage();
-      await this.showNext(ctx.chat.id, type);
+      try {
+        await ctx.answerCbQuery();
+
+        const cb = ctx.callbackQuery;
+        if (!('data' in cb)) throw new Error('No data in callbackQuery');
+
+        const data = cb.data;
+        const match = data.match(/^approve_(\w+)_([0-9]+)_(\w+)$/);
+        if (!match) throw new Error('Invalid approve callback format');
+
+        const [, type, idStr, dbRegion] = match;
+        const id = Number(idStr);
+
+        this.logger.debug(
+          `Approve: type=${type}, id=${id}, region=${dbRegion}`,
+        );
+
+        await this.moderationService.approveItem(
+          dbRegion as DbRegion,
+          type,
+          id,
+        );
+
+        await ctx.deleteMessage();
+        await this.showNext(ctx.chat.id, type);
+      } catch (e) {
+        this.logger.error(`Approve action failed: ${e.message}`);
+      }
     });
 
     this.bot.action(/^reject_(\w+)_([0-9]+)_(\w+)$/, async (ctx) => {
-      const [, type, id, dbRegion] = ctx.match;
-      await this.moderationService.rejectItem(
-        dbRegion as DbRegion,
-        type,
-        Number(id),
-      );
-      await ctx.deleteMessage();
-      await this.showNext(ctx.chat.id, type);
+      try {
+        await ctx.answerCbQuery();
+
+        const cb = ctx.callbackQuery;
+        if (!('data' in cb)) throw new Error('No data in callbackQuery');
+
+        const data = cb.data;
+        const match = data.match(/^reject_(\w+)_([0-9]+)_(\w+)$/);
+        if (!match) throw new Error('Invalid reject callback format');
+
+        const [, type, idStr, dbRegion] = match;
+        const id = Number(idStr);
+
+        this.logger.debug(`Reject: type=${type}, id=${id}, region=${dbRegion}`);
+
+        await this.moderationService.rejectItem(dbRegion as DbRegion, type, id);
+
+        await ctx.deleteMessage();
+        await this.showNext(ctx.chat.id, type);
+      } catch (e) {
+        this.logger.error(`Reject action failed: ${e.message}`);
+      }
     });
 
     this.bot.action(/^prev_(\w+)$/, async (ctx) => {

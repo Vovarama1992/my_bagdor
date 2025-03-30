@@ -2,17 +2,23 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Telegraf, Markup } from 'telegraf';
 import { ModerationService } from './moderation.service';
-import { DbRegion, Flight, Order, Review, User } from '@prisma/client';
-import {
-  InputMediaPhoto,
-  InputMediaVideo,
-} from 'telegraf/typings/core/types/typegram';
+import { DbRegion, Order, Flight, Review, User } from '@prisma/client';
 
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
   private readonly bot: Telegraf;
   private readonly moderatorChatId: string;
+
+  private readonly queues = {
+    order: [] as (Order & { user: User })[],
+    flight: [] as (Flight & { user: User })[],
+    review: [] as (Review & { fromUser: User; toUser: User })[],
+  };
+  private readonly positions = new Map<
+    number,
+    { type: string; index: number }
+  >();
 
   constructor(
     private configService: ConfigService,
@@ -32,40 +38,60 @@ export class TelegramService {
       await this.showMainMenu(ctx.chat.id);
     });
 
-    this.bot.action('moderate_orders', async () => {
-      await this.showPendingOrders();
+    this.bot.action('moderate_orders', async (ctx) => {
+      await this.loadQueue('order');
+      await this.showNext(ctx.chat.id, 'order');
     });
 
-    this.bot.action('moderate_flights', async () => {
-      await this.showPendingFlights();
+    this.bot.action('moderate_flights', async (ctx) => {
+      await this.loadQueue('flight');
+      await this.showNext(ctx.chat.id, 'flight');
     });
 
-    this.bot.action('moderate_reviews', async () => {
-      await this.showPendingReviews();
+    this.bot.action('moderate_reviews', async (ctx) => {
+      await this.loadQueue('review');
+      await this.showNext(ctx.chat.id, 'review');
     });
 
-    this.bot.action(/^approve_(\w+)_(\d+)_(\w+)$/, async (ctx) => {
+    this.bot.action(/^approve_(\w+)_([0-9]+)_(\w+)$/, async (ctx) => {
       const [, type, id, dbRegion] = ctx.match;
       await this.moderationService.approveItem(
         dbRegion as DbRegion,
         type,
         Number(id),
       );
-      await ctx.answerCbQuery(
-        `✅ ${this.getTypeLabel(type)} #${id} подтвержден`,
-      );
       await ctx.deleteMessage();
+      await this.showNext(ctx.chat.id, type);
     });
 
-    this.bot.action(/^reject_(\w+)_(\d+)_(\w+)$/, async (ctx) => {
+    this.bot.action(/^reject_(\w+)_([0-9]+)_(\w+)$/, async (ctx) => {
       const [, type, id, dbRegion] = ctx.match;
       await this.moderationService.rejectItem(
         dbRegion as DbRegion,
         type,
         Number(id),
       );
-      await ctx.answerCbQuery(`❌ ${this.getTypeLabel(type)} #${id} отклонен`);
       await ctx.deleteMessage();
+      await this.showNext(ctx.chat.id, type);
+    });
+
+    this.bot.action(/^prev_(\w+)$/, async (ctx) => {
+      const [, type] = ctx.match;
+      this.adjustIndex(ctx.chat.id, type, -1);
+      await ctx.deleteMessage();
+      await this.showCurrent(ctx.chat.id, type);
+    });
+
+    this.bot.action(/^next_(\w+)$/, async (ctx) => {
+      const [, type] = ctx.match;
+      this.adjustIndex(ctx.chat.id, type, 1);
+      await ctx.deleteMessage();
+      await this.showCurrent(ctx.chat.id, type);
+    });
+
+    this.bot.action('back_to_menu', async (ctx) => {
+      await ctx.deleteMessage();
+      await this.showMainMenu(ctx.chat.id);
     });
 
     this.bot.launch();
@@ -103,10 +129,8 @@ export class TelegramService {
     entityType: 'order' | 'flight' | 'review',
     id: number,
     dbRegion: DbRegion,
-    mediaBuffers?: { buffer: Buffer; type: 'photo' | 'video' }[],
   ) {
-    const chatId = this.moderatorChatId;
-
+    const chatId = Number(this.moderatorChatId);
     await this.bot.telegram.sendMessage(
       chatId,
       `🔔 Новый ${this.getTypeLabel(entityType)} ожидает модерации. Откройте меню.`,
@@ -114,173 +138,142 @@ export class TelegramService {
 
     if (entityType === 'order') {
       const order = await this.moderationService.findOrderById(dbRegion, id);
-      if (order && order.user) await this.sendOrder(order, mediaBuffers);
+      if (order && order.user) await this.sendOrder(chatId, order);
     } else if (entityType === 'flight') {
       const flight = await this.moderationService.findFlightById(dbRegion, id);
-      if (flight && flight.user) await this.sendFlight(flight);
+      if (flight && flight.user) await this.sendFlight(chatId, flight);
     } else if (entityType === 'review') {
       const review = await this.moderationService.findReviewById(dbRegion, id);
       if (review && review.fromUser && review.toUser)
-        await this.sendReview(review);
+        await this.sendReview(chatId, review);
     }
   }
 
-  private async showPendingOrders() {
-    const orders = await this.moderationService.getPendingOrders();
-    for (const order of orders) await this.sendOrder(order);
-  }
-
-  private async showPendingFlights() {
-    const flights = await this.moderationService.getPendingFlights();
-    for (const flight of flights) await this.sendFlight(flight);
-  }
-
-  private async showPendingReviews() {
-    const reviews = await this.moderationService.getPendingReviews();
-    for (const review of reviews) await this.sendReview(review);
-  }
-
-  private async sendOrder(
-    order: Order & { user: User },
-    mediaBuffers?: { buffer: Buffer; type: 'photo' | 'video' }[],
-  ) {
-    const caption = `📦 *Новый заказ на модерации*
-  🆔 ID: ${order.id}
-  👤 ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})
-  📌 ${order.name}
-  📜 ${order.description}
-  💰 ${order.price} ₽
-  🎁 ${order.reward} ₽
-  📍 ${order.departure} → ${order.arrival}`;
-
-    if (mediaBuffers?.length) {
-      await this.sendOrderMediaDirectly(
-        this.moderatorChatId,
-        caption,
-        mediaBuffers,
-      );
-    } else if (order.mediaUrls?.length) {
-      // Это fallback вариант, если нет буферов, отправляем по ссылке (фото)
-      const media = order.mediaUrls.map((url, i) =>
-        url.endsWith('.mp4') || url.endsWith('.webm')
-          ? ({
-              type: 'video',
-              media: url,
-              caption: i === 0 ? caption : undefined,
-            } as InputMediaVideo)
-          : ({
-              type: 'photo',
-              media: url,
-              caption: i === 0 ? caption : undefined,
-            } as InputMediaPhoto),
-      );
-
-      await this.bot.telegram.sendMediaGroup(this.moderatorChatId, media);
+  private async loadQueue(type: 'order' | 'flight' | 'review') {
+    if (type === 'order') {
+      this.queues.order = await this.moderationService.getPendingOrders();
+    } else if (type === 'flight') {
+      this.queues.flight = await this.moderationService.getPendingFlights();
     } else {
-      await this.bot.telegram.sendMessage(this.moderatorChatId, caption, {
+      this.queues.review = await this.moderationService.getPendingReviews();
+    }
+  }
+
+  private adjustIndex(chatId: number, type: string, delta: number) {
+    const pos = this.positions.get(chatId) || { type, index: 0 };
+    pos.index += delta;
+    if (pos.index < 0) pos.index = 0;
+    const list = this.queues[type];
+    if (pos.index >= list.length) pos.index = list.length - 1;
+    this.positions.set(chatId, pos);
+  }
+
+  private async showNext(chatId: number, type: string) {
+    this.positions.set(chatId, { type, index: 0 });
+    await this.showCurrent(chatId, type);
+  }
+
+  private async showCurrent(chatId: number, type: string) {
+    const pos = this.positions.get(chatId);
+    const list = this.queues[type];
+    if (!pos || !list.length) {
+      await this.bot.telegram.sendMessage(
+        chatId,
+        'Нет объектов для модерации.',
+      );
+      return;
+    }
+    const item = list[pos.index];
+    if (type === 'order') await this.sendOrder(chatId, item);
+    if (type === 'flight') await this.sendFlight(chatId, item);
+    if (type === 'review') await this.sendReview(chatId, item);
+  }
+
+  private getNavigationButtons(type: string, id: number, dbRegion: DbRegion) {
+    return Markup.inlineKeyboard([
+      [
+        Markup.button.callback(
+          '✅ Подтвердить',
+          `approve_${type}_${id}_${dbRegion}`,
+        ),
+        Markup.button.callback(
+          '❌ Отклонить',
+          `reject_${type}_${id}_${dbRegion}`,
+        ),
+      ],
+      [
+        Markup.button.callback('⬅️', `prev_${type}`),
+        Markup.button.callback('➡️', `next_${type}`),
+        Markup.button.callback('↩️ Меню', 'back_to_menu'),
+      ],
+    ]);
+  }
+
+  private async sendOrder(chatId: number, order: Order & { user: User }) {
+    const caption = `📦 *Заказ #${order.id}*
+👤 ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})
+📌 ${order.name}
+📜 ${order.description}
+💰 ${order.price} ₽ | 🎁 ${order.reward} ₽
+📍 ${order.departure} → ${order.arrival}`;
+
+    if (order.mediaUrls?.length) {
+      const media = order.mediaUrls[0];
+      if (media.endsWith('.mp4') || media.endsWith('.webm')) {
+        await this.bot.telegram.sendVideo(chatId, media, {
+          caption,
+          parse_mode: 'Markdown',
+          ...this.getNavigationButtons('order', order.id, order.dbRegion),
+        });
+      } else {
+        await this.bot.telegram.sendPhoto(chatId, media, {
+          caption,
+          parse_mode: 'Markdown',
+          ...this.getNavigationButtons('order', order.id, order.dbRegion),
+        });
+      }
+    } else {
+      await this.bot.telegram.sendMessage(chatId, caption, {
         parse_mode: 'Markdown',
+        ...this.getNavigationButtons('order', order.id, order.dbRegion),
       });
     }
-
-    await this.sendModerationActions('order', order.id, order.dbRegion);
   }
 
-  async sendOrderMediaDirectly(
-    chatId: string,
-    caption: string,
-    buffers: { buffer: Buffer; type: 'photo' | 'video' }[],
-  ) {
-    const media = buffers.map((file, i) => {
-      if (file.type === 'photo') {
-        return {
-          type: 'photo',
-          media: { source: file.buffer },
-          caption: i === 0 ? caption : undefined,
-          parse_mode: 'Markdown',
-        } as InputMediaPhoto;
-      } else {
-        return {
-          type: 'video',
-          media: { source: file.buffer },
-          caption: i === 0 ? caption : undefined,
-          parse_mode: 'Markdown',
-        } as InputMediaVideo;
-      }
-    });
-
-    await this.bot.telegram.sendMediaGroup(chatId, media);
-  }
-
-  private async sendFlight(flight: Flight & { user: User }) {
-    const caption = `✈️ *Новый рейс на модерации*
-🆔 ID: ${flight.id}
+  private async sendFlight(chatId: number, flight: Flight & { user: User }) {
+    const caption = `✈️ *Рейс #${flight.id}*
 👤 ${flight.user.firstName} ${flight.user.lastName} (ID: ${flight.userId})
 📍 ${flight.departure} → ${flight.arrival}
 📅 ${new Date(flight.date).toLocaleString()}`;
 
     if (flight.documentUrl) {
-      await this.bot.telegram.sendDocument(
-        this.moderatorChatId,
-        flight.documentUrl,
-        {
-          caption,
-          parse_mode: 'Markdown',
-        },
-      );
-    } else {
-      await this.bot.telegram.sendMessage(this.moderatorChatId, caption, {
+      await this.bot.telegram.sendDocument(chatId, flight.documentUrl, {
+        caption,
         parse_mode: 'Markdown',
+        ...this.getNavigationButtons('flight', flight.id, flight.dbRegion),
+      });
+    } else {
+      await this.bot.telegram.sendMessage(chatId, caption, {
+        parse_mode: 'Markdown',
+        ...this.getNavigationButtons('flight', flight.id, flight.dbRegion),
       });
     }
-
-    await this.sendModerationActions('flight', flight.id, flight.dbRegion);
   }
 
-  private async sendReview(review: Review & { fromUser: User; toUser: User }) {
-    const caption = `📝 *Новый отзыв*
+  private async sendReview(
+    chatId: number,
+    review: Review & { fromUser: User; toUser: User },
+  ) {
+    const caption = `📝 *Отзыв*
 👤 От: ${review.fromUser.firstName} ${review.fromUser.lastName}
 👤 Кому: ${review.toUser.firstName} ${review.toUser.lastName}
 ⭐ ${review.rating}/5
 💬 ${review.comment}`;
 
-    await this.bot.telegram.sendMessage(this.moderatorChatId, caption, {
+    await this.bot.telegram.sendMessage(chatId, caption, {
       parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [
-          Markup.button.callback(
-            '✅ Опубликовать',
-            `approve_review_${review.id}_${review.dbRegion}`,
-          ),
-          Markup.button.callback(
-            '❌ Отклонить',
-            `reject_review_${review.id}_${review.dbRegion}`,
-          ),
-        ],
-      ]),
+      ...this.getNavigationButtons('review', review.id, review.dbRegion),
     });
-  }
-
-  private async sendModerationActions(
-    type: string,
-    id: number,
-    dbRegion: DbRegion,
-  ) {
-    await this.bot.telegram.sendMessage(
-      this.moderatorChatId,
-      'Выберите действие:',
-      Markup.inlineKeyboard([
-        [
-          Markup.button.callback(
-            `✅ Подтвердить`,
-            `approve_${type}_${id}_${dbRegion}`,
-          ),
-          Markup.button.callback(
-            `❌ Отклонить`,
-            `reject_${type}_${id}_${dbRegion}`,
-          ),
-        ],
-      ]),
-    );
   }
 
   private getTypeLabel(type: string) {

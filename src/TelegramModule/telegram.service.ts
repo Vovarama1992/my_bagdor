@@ -227,7 +227,11 @@ export class TelegramService {
     const caption = `📦 *Заказ #${order.id}*\n👤 ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})\n📌 ${order.name}\n📜 ${order.description}\n💰 ${order.price} ₽ | 🎁 ${order.reward} ₽\n📍 ${order.departure} → ${order.arrival}`;
 
     if (mediaBuffers?.length) {
-      const file = mediaBuffers[0];
+      const video = mediaBuffers.find((m) => m.type === 'video');
+      const photo = mediaBuffers.find((m) => m.type === 'photo');
+
+      const file = video || photo;
+
       if (file.type === 'video') {
         await this.bot.telegram.sendVideo(
           chatId,

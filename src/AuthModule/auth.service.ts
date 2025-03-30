@@ -101,11 +101,7 @@ export class AuthService {
   async register(body: RegisterDto) {
     try {
       const { firstName, lastName, email, phone, password, nickname } = body;
-      if (!firstName || !lastName || !nickname) {
-        throw new BadRequestException(
-          'First name, last name and nickname are required',
-        );
-      }
+      
 
       this.logger.log(`Registering user: email=${email}, phone=${phone}`);
 

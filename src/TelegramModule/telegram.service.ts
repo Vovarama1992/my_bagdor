@@ -129,6 +129,7 @@ export class TelegramService {
     entityType: 'order' | 'flight' | 'review',
     id: number,
     dbRegion: DbRegion,
+    mediaBuffers?: { buffer: Buffer; type: 'photo' | 'video' }[],
   ) {
     const chatId = Number(this.moderatorChatId);
     await this.bot.telegram.sendMessage(
@@ -138,7 +139,8 @@ export class TelegramService {
 
     if (entityType === 'order') {
       const order = await this.moderationService.findOrderById(dbRegion, id);
-      if (order && order.user) await this.sendOrder(chatId, order);
+      if (order && order.user)
+        await this.sendOrder(chatId, order, mediaBuffers);
     } else if (entityType === 'flight') {
       const flight = await this.moderationService.findFlightById(dbRegion, id);
       if (flight && flight.user) await this.sendFlight(chatId, flight);
@@ -146,6 +148,59 @@ export class TelegramService {
       const review = await this.moderationService.findReviewById(dbRegion, id);
       if (review && review.fromUser && review.toUser)
         await this.sendReview(chatId, review);
+    }
+  }
+
+  private async sendOrder(
+    chatId: number,
+    order: Order & { user: User },
+    mediaBuffers?: { buffer: Buffer; type: 'photo' | 'video' }[],
+  ) {
+    const caption = `📦 *Заказ #${order.id}*\n👤 ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})\n📌 ${order.name}\n📜 ${order.description}\n💰 ${order.price} ₽ | 🎁 ${order.reward} ₽\n📍 ${order.departure} → ${order.arrival}`;
+
+    if (mediaBuffers?.length) {
+      const file = mediaBuffers[0];
+      if (file.type === 'video') {
+        await this.bot.telegram.sendVideo(
+          chatId,
+          { source: file.buffer },
+          {
+            caption,
+            parse_mode: 'Markdown',
+            ...this.getNavigationButtons('order', order.id, order.dbRegion),
+          },
+        );
+      } else {
+        await this.bot.telegram.sendPhoto(
+          chatId,
+          { source: file.buffer },
+          {
+            caption,
+            parse_mode: 'Markdown',
+            ...this.getNavigationButtons('order', order.id, order.dbRegion),
+          },
+        );
+      }
+    } else if (order.mediaUrls?.length) {
+      const media = order.mediaUrls[0];
+      if (media.endsWith('.mp4') || media.endsWith('.webm')) {
+        await this.bot.telegram.sendVideo(chatId, media, {
+          caption,
+          parse_mode: 'Markdown',
+          ...this.getNavigationButtons('order', order.id, order.dbRegion),
+        });
+      } else {
+        await this.bot.telegram.sendPhoto(chatId, media, {
+          caption,
+          parse_mode: 'Markdown',
+          ...this.getNavigationButtons('order', order.id, order.dbRegion),
+        });
+      }
+    } else {
+      await this.bot.telegram.sendMessage(chatId, caption, {
+        parse_mode: 'Markdown',
+        ...this.getNavigationButtons('order', order.id, order.dbRegion),
+      });
     }
   }
 
@@ -209,42 +264,8 @@ export class TelegramService {
     ]);
   }
 
-  private async sendOrder(chatId: number, order: Order & { user: User }) {
-    const caption = `📦 *Заказ #${order.id}*
-👤 ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})
-📌 ${order.name}
-📜 ${order.description}
-💰 ${order.price} ₽ | 🎁 ${order.reward} ₽
-📍 ${order.departure} → ${order.arrival}`;
-
-    if (order.mediaUrls?.length) {
-      const media = order.mediaUrls[0];
-      if (media.endsWith('.mp4') || media.endsWith('.webm')) {
-        await this.bot.telegram.sendVideo(chatId, media, {
-          caption,
-          parse_mode: 'Markdown',
-          ...this.getNavigationButtons('order', order.id, order.dbRegion),
-        });
-      } else {
-        await this.bot.telegram.sendPhoto(chatId, media, {
-          caption,
-          parse_mode: 'Markdown',
-          ...this.getNavigationButtons('order', order.id, order.dbRegion),
-        });
-      }
-    } else {
-      await this.bot.telegram.sendMessage(chatId, caption, {
-        parse_mode: 'Markdown',
-        ...this.getNavigationButtons('order', order.id, order.dbRegion),
-      });
-    }
-  }
-
   private async sendFlight(chatId: number, flight: Flight & { user: User }) {
-    const caption = `✈️ *Рейс #${flight.id}*
-👤 ${flight.user.firstName} ${flight.user.lastName} (ID: ${flight.userId})
-📍 ${flight.departure} → ${flight.arrival}
-📅 ${new Date(flight.date).toLocaleString()}`;
+    const caption = `✈️ *Рейс #${flight.id}*\n👤 ${flight.user.firstName} ${flight.user.lastName} (ID: ${flight.userId})\n📍 ${flight.departure} → ${flight.arrival}\n📅 ${new Date(flight.date).toLocaleString()}`;
 
     if (flight.documentUrl) {
       await this.bot.telegram.sendDocument(chatId, flight.documentUrl, {
@@ -264,11 +285,7 @@ export class TelegramService {
     chatId: number,
     review: Review & { fromUser: User; toUser: User },
   ) {
-    const caption = `📝 *Отзыв*
-👤 От: ${review.fromUser.firstName} ${review.fromUser.lastName}
-👤 Кому: ${review.toUser.firstName} ${review.toUser.lastName}
-⭐ ${review.rating}/5
-💬 ${review.comment}`;
+    const caption = `📝 *Отзыв*\n👤 От: ${review.fromUser.firstName} ${review.fromUser.lastName}\n👤 Кому: ${review.toUser.firstName} ${review.toUser.lastName}\n⭐ ${review.rating}/5\n💬 ${review.comment}`;
 
     await this.bot.telegram.sendMessage(chatId, caption, {
       parse_mode: 'Markdown',

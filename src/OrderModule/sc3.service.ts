@@ -119,8 +119,11 @@ export class S3Service {
       });
 
       const isStore = order.type === 'STORE_PURCHASE';
+      const isUnmoderated = order.moderationStatus === 'PENDING';
+
       const shouldTrigger =
-        (isStore && type === 'photo') || (!isStore && type === 'video');
+        !isUnmoderated &&
+        ((isStore && type === 'photo') || (!isStore && type === 'video'));
 
       if (shouldTrigger) {
         if (type === 'video') {

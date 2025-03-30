@@ -227,31 +227,35 @@ export class TelegramService {
     const caption = `📦 *Заказ #${order.id}*\n👤 ${order.user.firstName} ${order.user.lastName} (ID: ${order.userId})\n📌 ${order.name}\n📜 ${order.description}\n💰 ${order.price} ₽ | 🎁 ${order.reward} ₽\n📍 ${order.departure} → ${order.arrival}`;
 
     if (mediaBuffers?.length) {
-      const video = mediaBuffers.find((m) => m.type === 'video');
-      const photo = mediaBuffers.find((m) => m.type === 'photo');
+      const sorted = [...mediaBuffers].sort((a, b) =>
+        a.type === 'video' && b.type === 'photo' ? -1 : 1,
+      );
 
-      const file = video || photo;
+      for (let i = 0; i < sorted.length; i++) {
+        const file = sorted[i];
+        const isLast = i === sorted.length - 1;
 
-      if (file.type === 'video') {
-        await this.bot.telegram.sendVideo(
-          chatId,
-          { source: file.buffer },
-          {
-            caption,
-            parse_mode: 'Markdown',
-            ...this.getNavigationButtons('order', order.id, order.dbRegion),
-          },
-        );
-      } else {
-        await this.bot.telegram.sendPhoto(
-          chatId,
-          { source: file.buffer },
-          {
-            caption,
-            parse_mode: 'Markdown',
-            ...this.getNavigationButtons('order', order.id, order.dbRegion),
-          },
-        );
+        if (file.type === 'video') {
+          await this.bot.telegram.sendVideo(
+            chatId,
+            { source: file.buffer },
+            {
+              caption: isLast ? caption : undefined,
+              parse_mode: 'Markdown',
+              ...this.getNavigationButtons('order', order.id, order.dbRegion),
+            },
+          );
+        } else {
+          await this.bot.telegram.sendPhoto(
+            chatId,
+            { source: file.buffer },
+            {
+              caption: isLast ? caption : undefined,
+              parse_mode: 'Markdown',
+              ...this.getNavigationButtons('order', order.id, order.dbRegion),
+            },
+          );
+        }
       }
     } else if (order.mediaUrls?.length) {
       const media = order.mediaUrls[0];

@@ -54,68 +54,65 @@ export class OrderController {
     return this.orderService.createOrder(authHeader, createOrderDto);
   }
 
-  @Post(':orderId/upload-photo')
+  @Post(':orderId/upload-media')
   @UseInterceptors(FilesInterceptor('files', 10))
-  async uploadPhotoFiles(
+  async uploadMediaFiles(
     @Headers('authorization') authHeader: string,
     @Param('orderId') orderId: string,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    this.logger.log(`Начало загрузки фото для заказа #${orderId}`);
-    return this.uploadMediaByType(authHeader, orderId, files, 'photo');
+    this.logger.log(`Начало загрузки медиа для заказа #${orderId}`);
+    return this.uploadMediaAutoType(authHeader, orderId, files);
   }
 
-  @Post(':orderId/upload-video')
-  @UseInterceptors(FilesInterceptor('files', 10))
-  async uploadVideoFiles(
-    @Headers('authorization') authHeader: string,
-    @Param('orderId') orderId: string,
-    @UploadedFiles() files: Express.Multer.File[],
-  ) {
-    this.logger.log(`Начало загрузки видео для заказа #${orderId}`);
-    return this.uploadMediaByType(authHeader, orderId, files, 'video');
-  }
-
-  private async uploadMediaByType(
+  private async uploadMediaAutoType(
     authHeader: string,
     orderId: string,
     files: Express.Multer.File[],
-    type: 'photo' | 'video',
   ) {
     if (!files || files.length === 0) {
-      this.logger.warn(`[${type}] Файлы не загружены`);
       throw new BadRequestException('Файлы не загружены');
     }
 
     const uploadedFiles = await Promise.all(
       files.map(async (file) => {
-        try {
-          this.logger.log(`[${type}] Обработка файла: ${file.originalname}`);
-          const url =
-            type === 'photo'
-              ? await this.s3Service.processAndUploadPhoto(
-                  authHeader,
-                  Number(orderId),
-                  file,
-                )
-              : await this.s3Service.processAndUploadVideo(
-                  authHeader,
-                  Number(orderId),
-                  file,
-                );
-          this.logger.log(`[${type}] Файл загружен: ${url}`);
-          return url;
-        } catch (error) {
-          this.logger.error(
-            `[${type}] Ошибка при загрузке файла ${file.originalname}`,
-            error.stack,
+        const mimetype = file.mimetype;
+        const type: 'photo' | 'video' = mimetype.startsWith('image/')
+          ? 'photo'
+          : mimetype.startsWith('video/')
+            ? 'video'
+            : null;
+
+        if (!type) {
+          this.logger.warn(
+            `Неизвестный тип файла: ${file.originalname} (${mimetype})`,
           );
-          throw error;
+          throw new BadRequestException(
+            `Недопустимый тип файла: ${file.originalname}`,
+          );
         }
+
+        this.logger.log(`[${type}] Обработка файла: ${file.originalname}`);
+
+        const url =
+          type === 'photo'
+            ? await this.s3Service.processAndUploadPhoto(
+                authHeader,
+                Number(orderId),
+                file,
+              )
+            : await this.s3Service.processAndUploadVideo(
+                authHeader,
+                Number(orderId),
+                file,
+              );
+
+        this.logger.log(`[${type}] Файл загружен: ${url}`);
+        return url;
       }),
     );
 
-    this.logger.log(`[${type}] Все файлы загружены для заказа #${orderId}`);
+    this.logger.log(`Все файлы загружены для заказа #${orderId}`);
     return { message: 'Файлы загружены', files: uploadedFiles };
   }
 

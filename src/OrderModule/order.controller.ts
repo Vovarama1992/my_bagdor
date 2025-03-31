@@ -130,17 +130,18 @@ export class OrderController {
     return this.orderService.getAllOrdersAcrossRegions(authHeader);
   }
 
-  @ApiOperation({ summary: 'Перевозчик оставляет отклик на заказ' })
-  @Post(':orderId/response')
+  @Post(':region/:orderId/response')
   async createResponse(
     @Headers('authorization') authHeader: string,
-    @Param('orderId') orderId: string,
+    @Param('region') region: DbRegion,
+    @Param('orderId') orderId: number,
     @Body() dto: { flightId: number; message?: string; priceOffer?: number },
   ) {
     return this.responseService.createResponse(
       authHeader,
-      Number(orderId),
-      Number(dto.flightId),
+      region,
+      orderId,
+      dto.flightId,
       dto.message,
       dto.priceOffer,
     );

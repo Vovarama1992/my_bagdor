@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { UsersService } from 'src/UserModule/users.service';
-import { OrderStatus } from '@prisma/client';
+import { DbRegion, OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class ResponseService {
@@ -20,13 +20,14 @@ export class ResponseService {
 
   async createResponse(
     authHeader: string,
+    region: DbRegion,
     orderId: number,
     flightId: number,
     message?: string,
     priceOffer?: number,
   ) {
     this.logger.log(
-      `Called createResponse with orderId=${orderId}, flightId=${flightId}`,
+      `Called createResponse: region=${region}, orderId=${orderId}, flightId=${flightId}`,
     );
 
     try {
@@ -35,33 +36,46 @@ export class ResponseService {
         `Authenticated user ${user.id}, dbRegion=${user.dbRegion}`,
       );
 
-      const db = this.prisma.getDatabase(user.dbRegion);
-
       if (!message?.trim()) {
         this.logger.warn(`Empty message from user ${user.id}`);
         throw new BadRequestException('Сообщение обязательно');
       }
 
+      const orderDb = this.prisma.getDatabase(region);
+      const userDb = this.prisma.getDatabase(user.dbRegion);
+
       let order, flight, existingResponses;
 
       try {
-        order = await db.order.findUnique({ where: { id: orderId } });
-        flight = await db.flight.findUnique({
+        order = await orderDb.order.findUnique({ where: { id: orderId } });
+        if (!order) {
+          this.logger.warn(`Order ${orderId} not found in region ${region}`);
+          throw new NotFoundException('Заказ не найден');
+        }
+
+        if (order.dbRegion !== user.dbRegion) {
+          this.logger.warn(
+            `User ${user.id} (region ${user.dbRegion}) пытается откликнуться на заказ из другого региона (${order.dbRegion})`,
+          );
+          throw new BadRequestException(
+            'Нельзя откликаться на заказ из другого региона',
+          );
+        }
+
+        flight = await userDb.flight.findUnique({
           where: { id: flightId, userId: user.id },
         });
-        existingResponses = await db.response.findMany({ where: { orderId } });
+
+        existingResponses = await orderDb.response.findMany({
+          where: { orderId },
+        });
 
         this.logger.debug(
-          `Fetched order=${!!order}, flight=${!!flight}, responses=${existingResponses.length}`,
+          `Fetched flight=${!!flight}, responses=${existingResponses.length}`,
         );
       } catch (error) {
-        this.logger.error('Ошибка при получении данных из БД', error.stack);
+        this.logger.error('Ошибка при получении данных', error.stack);
         throw error;
-      }
-
-      if (!order) {
-        this.logger.warn(`Order ${orderId} not found`);
-        throw new NotFoundException('Заказ не найден');
       }
 
       if (!flight) {
@@ -81,9 +95,8 @@ export class ResponseService {
       }
 
       let response;
-
       try {
-        response = await db.response.create({
+        response = await orderDb.response.create({
           data: { orderId, flightId, carrierId: user.id, message, priceOffer },
         });
       } catch (error) {
@@ -93,7 +106,7 @@ export class ResponseService {
 
       if (existingResponses.length === 0) {
         try {
-          await db.order.update({
+          await orderDb.order.update({
             where: { id: orderId },
             data: { status: OrderStatus.PROCESSED_BY_CARRIER },
           });
@@ -105,13 +118,10 @@ export class ResponseService {
             'Ошибка при обновлении статуса заказа',
             error.stack,
           );
-          // не бросаем дальше, чтобы не мешать основному флоу
         }
       }
 
-      this.logger.log(
-        `Отклик успешно создан для заказа ${orderId} пользователем ${user.id}`,
-      );
+      this.logger.log(`Отклик создан: orderId=${orderId}, userId=${user.id}`);
       return { message: 'Отклик создан', response };
     } catch (error) {
       this.logger.error('❌ Unhandled error in createResponse', error.stack);

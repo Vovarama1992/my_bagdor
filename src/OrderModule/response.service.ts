@@ -4,7 +4,6 @@ import {
   ForbiddenException,
   BadRequestException,
   Logger,
-  InternalServerErrorException,
   HttpException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
@@ -46,19 +45,19 @@ export class ResponseService {
       let order, flight, existingResponses;
 
       try {
-        [order, flight, existingResponses] = await Promise.all([
-          db.order.findUnique({ where: { id: orderId } }),
-          db.flight.findUnique({ where: { id: flightId, userId: user.id } }),
-          db.response.findMany({ where: { orderId } }),
-        ]);
+        order = await db.order.findUnique({ where: { id: orderId } });
+        flight = await db.flight.findUnique({
+          where: { id: flightId, userId: user.id },
+        });
+        existingResponses = await db.response.findMany({ where: { orderId } });
+
+        this.logger.debug(
+          `Fetched order=${!!order}, flight=${!!flight}, responses=${existingResponses.length}`,
+        );
       } catch (error) {
         this.logger.error('Ошибка при получении данных из БД', error.stack);
-        throw new InternalServerErrorException('Ошибка при получении данных');
+        throw error;
       }
-
-      this.logger.debug(
-        `Fetched data for orderId=${orderId}: order=${!!order}, flight=${!!flight}, responses=${existingResponses.length}`,
-      );
 
       if (!order) {
         this.logger.warn(`Order ${orderId} not found`);
@@ -82,13 +81,14 @@ export class ResponseService {
       }
 
       let response;
+
       try {
         response = await db.response.create({
           data: { orderId, flightId, carrierId: user.id, message, priceOffer },
         });
       } catch (error) {
         this.logger.error('Ошибка при создании отклика', error.stack);
-        throw new InternalServerErrorException('Не удалось создать отклик');
+        throw error;
       }
 
       if (existingResponses.length === 0) {
@@ -105,6 +105,7 @@ export class ResponseService {
             'Ошибка при обновлении статуса заказа',
             error.stack,
           );
+          // не бросаем дальше, чтобы не мешать основному флоу
         }
       }
 
@@ -113,6 +114,7 @@ export class ResponseService {
       );
       return { message: 'Отклик создан', response };
     } catch (error) {
+      this.logger.error('❌ Unhandled error in createResponse', error.stack);
       this.handleException(error);
     }
   }

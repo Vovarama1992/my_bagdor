@@ -134,13 +134,13 @@ export class OrderController {
   @Post(':orderId/response')
   async createResponse(
     @Headers('authorization') authHeader: string,
-    @Param('orderId') orderId: number,
+    @Param('orderId') orderId: string,
     @Body() dto: { flightId: number; message?: string; priceOffer?: number },
   ) {
     return this.responseService.createResponse(
       authHeader,
-      orderId,
-      dto.flightId,
+      Number(orderId),
+      Number(dto.flightId),
       dto.message,
       dto.priceOffer,
     );

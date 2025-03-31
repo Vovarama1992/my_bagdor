@@ -5,54 +5,44 @@ import * as bcrypt from 'bcryptjs';
 
 async function main() {
   const configService = new ConfigService();
-  const prismaService = new PrismaService(configService); // 🔹 Передаем ConfigService
-
-  const adminEmail = 'vovvarls@gmail.com';
-  const adminPhone = '+79684042508';
-  const adminPassword = 'Bfoan3592_';
-  const dbRegion: DbRegion = 'RU'; // 🔹 Укажи, в какую БД добавлять ('RU', 'OTHER', 'PENDING')
-
-  console.log(`⏳ Подключаемся к базе ${dbRegion}...`);
+  const prismaService = new PrismaService(configService);
+  const dbRegion: DbRegion = 'RU';
   const prisma = prismaService.getDatabase(dbRegion);
 
-  // Проверяем, есть ли уже админ
-  const existingAdmin = await prisma.user.findFirst({
-    where: {
-      OR: [{ email: adminEmail }, { phone: adminPhone }],
-      accountType: 'ADMIN',
-    },
+  const adminEmail = 'admin@example.com';
+  const adminPassword = 'Pass123$';
+
+  // Удаляем существующего пользователя с таким email
+  const existing = await prisma.user.findUnique({
+    where: { email: adminEmail },
   });
 
-  if (existingAdmin) {
-    console.log(
-      `✅ Админ уже существует в ${dbRegion}: ${existingAdmin.email}`,
-    );
-    return;
+  if (existing) {
+    await prisma.user.delete({ where: { email: adminEmail } });
+    console.log(`🗑️ Удалён старый пользователь с email ${adminEmail}`);
   }
 
-  // Хешируем пароль
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
-  // Создаем админа
   const newAdmin = await prisma.user.create({
     data: {
       email: adminEmail,
-      phone: adminPhone,
-      nickname: 'vokevo',
+      phone: '+70000000000',
+      nickname: 'admin2',
       firstName: 'Admin',
-      lastName: 'User',
+      lastName: 'Example',
       password: hashedPassword,
       accountType: 'ADMIN',
       isEmailVerified: true,
       isPhoneVerified: true,
       isRegistered: true,
-      dbRegion: dbRegion,
+      dbRegion,
     },
   });
 
-  console.log(`✅ Админ создан в ${dbRegion}: ${newAdmin.email}`);
+  console.log(`✅ Новый админ создан: ${newAdmin.email}`);
 
-  await prismaService.onModuleDestroy(); // Закрываем соединение
+  await prismaService.onModuleDestroy();
 }
 
 main().catch((e) => {

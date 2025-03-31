@@ -4,6 +4,7 @@ import {
   NotFoundException,
   Logger,
   HttpException,
+  BadRequestException,
 } from '@nestjs/common';
 import { S3 } from 'aws-sdk';
 import * as sharp from 'sharp';
@@ -74,6 +75,11 @@ export class S3Service {
       const user = await this.usersService.authenticate(authHeader);
       const db = this.prismaService.getDatabase(user.dbRegion);
       const order = await db.order.findUnique({ where: { id: orderId } });
+      if (order.type === 'STORE_PURCHASE' && type === 'video') {
+        throw new BadRequestException(
+          'Для заказов из магазина видео недоступно',
+        );
+      }
 
       if (!order) throw new NotFoundException('Заказ не найден');
       if (order.userId !== user.id) throw new ForbiddenException('Нет доступа');

@@ -3,6 +3,9 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Logger,
+  InternalServerErrorException,
+  HttpException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/PrismaModule/prisma.service';
 import { UsersService } from 'src/UserModule/users.service';
@@ -10,6 +13,7 @@ import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class ResponseService {
+  private readonly logger = new Logger(ResponseService.name);
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
@@ -22,40 +26,95 @@ export class ResponseService {
     message?: string,
     priceOffer?: number,
   ) {
-    const user = await this.usersService.authenticate(authHeader);
-    const db = this.prisma.getDatabase(user.dbRegion);
-    if (!message?.trim()) {
-      throw new BadRequestException('Сообщение обязательно');
-    }
+    this.logger.log(
+      `Called createResponse with orderId=${orderId}, flightId=${flightId}`,
+    );
 
-    const [order, flight, existingResponses] = await Promise.all([
-      db.order.findUnique({ where: { id: orderId } }),
-      db.flight.findUnique({ where: { id: flightId, userId: user.id } }),
-      db.response.findMany({ where: { orderId } }),
-    ]);
-
-    if (flight.status !== 'CONFIRMED') {
-      throw new BadRequestException(
-        'Можно откликаться только на подтверждённые рейсы',
+    try {
+      const user = await this.usersService.authenticate(authHeader);
+      this.logger.debug(
+        `Authenticated user ${user.id}, dbRegion=${user.dbRegion}`,
       );
+
+      const db = this.prisma.getDatabase(user.dbRegion);
+
+      if (!message?.trim()) {
+        this.logger.warn(`Empty message from user ${user.id}`);
+        throw new BadRequestException('Сообщение обязательно');
+      }
+
+      let order, flight, existingResponses;
+
+      try {
+        [order, flight, existingResponses] = await Promise.all([
+          db.order.findUnique({ where: { id: orderId } }),
+          db.flight.findUnique({ where: { id: flightId, userId: user.id } }),
+          db.response.findMany({ where: { orderId } }),
+        ]);
+      } catch (error) {
+        this.logger.error('Ошибка при получении данных из БД', error.stack);
+        throw new InternalServerErrorException('Ошибка при получении данных');
+      }
+
+      this.logger.debug(
+        `Fetched data for orderId=${orderId}: order=${!!order}, flight=${!!flight}, responses=${existingResponses.length}`,
+      );
+
+      if (!order) {
+        this.logger.warn(`Order ${orderId} not found`);
+        throw new NotFoundException('Заказ не найден');
+      }
+
+      if (!flight) {
+        this.logger.warn(
+          `Flight ${flightId} not found or not owned by user ${user.id}`,
+        );
+        throw new NotFoundException('Рейс не найден или вам не принадлежит');
+      }
+
+      if (flight.status !== 'CONFIRMED') {
+        this.logger.warn(
+          `Flight ${flightId} is not confirmed (status: ${flight.status})`,
+        );
+        throw new BadRequestException(
+          'Можно откликаться только на подтверждённые рейсы',
+        );
+      }
+
+      let response;
+      try {
+        response = await db.response.create({
+          data: { orderId, flightId, carrierId: user.id, message, priceOffer },
+        });
+      } catch (error) {
+        this.logger.error('Ошибка при создании отклика', error.stack);
+        throw new InternalServerErrorException('Не удалось создать отклик');
+      }
+
+      if (existingResponses.length === 0) {
+        try {
+          await db.order.update({
+            where: { id: orderId },
+            data: { status: OrderStatus.PROCESSED_BY_CARRIER },
+          });
+          this.logger.debug(
+            `Order ${orderId} status updated to PROCESSED_BY_CARRIER`,
+          );
+        } catch (error) {
+          this.logger.error(
+            'Ошибка при обновлении статуса заказа',
+            error.stack,
+          );
+        }
+      }
+
+      this.logger.log(
+        `Отклик успешно создан для заказа ${orderId} пользователем ${user.id}`,
+      );
+      return { message: 'Отклик создан', response };
+    } catch (error) {
+      this.handleException(error);
     }
-
-    if (!order) throw new NotFoundException('Заказ не найден');
-    if (!flight)
-      throw new NotFoundException('Рейс не найден или вам не принадлежит');
-
-    const response = await db.response.create({
-      data: { orderId, flightId, carrierId: user.id, message, priceOffer },
-    });
-
-    if (existingResponses.length === 0) {
-      await db.order.update({
-        where: { id: orderId },
-        data: { status: OrderStatus.PROCESSED_BY_CARRIER },
-      });
-    }
-
-    return { message: 'Отклик создан', response };
   }
 
   async acceptResponse(authHeader: string, responseId: number) {
@@ -134,5 +193,17 @@ export class ResponseService {
     });
 
     return responses;
+  }
+
+  handleException(error: any) {
+    const status = error?.status || 500;
+    throw new HttpException(
+      {
+        code: status,
+        status: 'error',
+        stack: error.stack || 'no stack trace',
+      },
+      status,
+    );
   }
 }

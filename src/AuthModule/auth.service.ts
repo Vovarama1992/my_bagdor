@@ -190,7 +190,7 @@ export class AuthService {
       });
       const token = this.jwtService.sign({
         id: newUser.id,
-        dbRgion: 'PENDING', // Теперь в токене есть регион пользователя
+        dbRegion: 'PENDING', // Теперь в токене есть регион пользователя
       });
       this.logger.log(`User created: id=${newUser.id}`);
 
